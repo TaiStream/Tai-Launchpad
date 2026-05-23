@@ -7,11 +7,27 @@
 ///
 /// See ../../SPEC.md for the authoritative design document.
 module tai::launchpad {
+    use sui::balance::{Self, Balance};
+    use sui::coin::{TreasuryCap};
+    use sui::sui::SUI;
+    use std::string::String;
 
     // ============================= Error Codes =============================
+    // Caller / authorization
+    const ENotCreator: u64 = 100;
+    // Cross-object linkage
+    const ETreasuryCapNotEmpty: u64 = 104;
+    const ELaunchpadMismatch: u64 = 105;
+    const ECoinPaymentsDisabled: u64 = 107;
+    // Fee / share invariants
     const EFeeBpsInvalid: u64 = 110;
     const EFeeBpsZero: u64 = 111;
     const ECredTargetZero: u64 = 113;
+    // Trading
+    const EInsufficientLiquidity: u64 = 120;
+    const ESlippageExceeded: u64 = 121;
+    const EMathOverflow: u64 = 122;
+    // Admin
     const ENotAdmin: u64 = 140;
 
     // ============================= Constants ===============================
@@ -127,9 +143,16 @@ module tai::launchpad {
     public fun bps_denominator(): u64 { BPS_DENOMINATOR }
 
     // Error code accessors
+    public fun e_not_creator(): u64 { ENotCreator }
+    public fun e_treasury_cap_not_empty(): u64 { ETreasuryCapNotEmpty }
+    public fun e_launchpad_mismatch(): u64 { ELaunchpadMismatch }
+    public fun e_coin_payments_disabled(): u64 { ECoinPaymentsDisabled }
     public fun e_fee_bps_invalid(): u64 { EFeeBpsInvalid }
     public fun e_fee_bps_zero(): u64 { EFeeBpsZero }
     public fun e_cred_target_zero(): u64 { ECredTargetZero }
+    public fun e_insufficient_liquidity(): u64 { EInsufficientLiquidity }
+    public fun e_slippage_exceeded(): u64 { ESlippageExceeded }
+    public fun e_math_overflow(): u64 { EMathOverflow }
     public fun e_not_admin(): u64 { ENotAdmin }
 
     // ============================= Admin entry functions ===================
@@ -211,6 +234,130 @@ module tai::launchpad {
     ) {
         assert!(ctx.sender() == config.admin, ENotAdmin);
         config.admin = new_admin;
+    }
+
+    // ============================= LaunchpadAccount<T> =====================
+    /// The per-agent launchpad object. THIS OBJECT IS THE POOL — trades
+    /// settle against real_sui_balance and real_token_balance using
+    /// bonding-curve math with snapshotted virtual reserves.
+    ///
+    /// Linked to sibling objects via:
+    ///   - treasury_cap_holder_id   <-> TreasuryCapHolder<T>
+    ///   - agent_treasury_id        <-> AgentTreasury<T>     (tai::agent_treasury)
+    ///   - owner_cap_id             <-> OwnerCap<T>          (tai::agent_treasury)
+    ///   - dwallets_object_id       <-> RESERVED for v1.1 Ika adapter
+    public struct LaunchpadAccount<phantom T> has key {
+        id: UID,
+
+        // Ownership + identity
+        creator: address,
+        linked_identity: Option<ID>,
+        coin_type_name: String,
+        total_supply: u64,
+        decimals: u8,
+
+        // Bonding curve state (these balances ARE the pool)
+        real_sui_balance: Balance<SUI>,
+        real_token_balance: Balance<T>,
+        virtual_sui_reserves: u64,
+        virtual_token_reserves: u64,
+
+        // LP reserve (locked permanently in v1)
+        lp_reserve: Balance<T>,
+
+        // NAV — grows from BOTH trade fees AND service payments
+        nav_sui: Balance<SUI>,
+        nav_token: Balance<T>,
+
+        // Productive-asset layer
+        access_threshold: u64,
+        accept_coin_payments: bool,
+        lifetime_service_revenue_sui: u64,
+        cred_revenue_target: u64,
+
+        // Sibling-object linkage
+        treasury_cap_holder_id: ID,
+        agent_treasury_id: ID,
+        owner_cap_id: ID,
+        dwallets_object_id: Option<ID>,   // RESERVED for v1.1 Ika adapter
+
+        // Cumulative stats (per-account)
+        total_buys: u64,
+        total_sells: u64,
+        total_service_payments_sui: u64,
+        total_service_payments_token: u64,
+        cumulative_volume_sui: u64,
+        cumulative_fees_sui: u64,
+        launched_at: u64,
+    }
+
+    /// Wraps TreasuryCap<T> after launch. Used only by tai::fees::distribute_token
+    /// to burn token-denominated service-payment shares. No public accessor
+    /// returns the cap.
+    public struct TreasuryCapHolder<phantom T> has key {
+        id: UID,
+        cap: TreasuryCap<T>,
+        launchpad_account_id: ID,
+    }
+
+    // ============================= Events ==================================
+    #[allow(unused_field)]
+    public struct LaunchEvent has copy, drop {
+        launchpad_id: ID,
+        agent_treasury_id: ID,
+        owner_cap_id: ID,
+        treasury_cap_holder_id: ID,
+        coin_type_name: String,
+        creator: address,
+        linked_identity: Option<ID>,
+        timestamp: u64,
+    }
+
+    // ============================= Account getters =========================
+    public fun account_creator<T>(a: &LaunchpadAccount<T>): address { a.creator }
+    public fun account_linked_identity<T>(a: &LaunchpadAccount<T>): Option<ID> { a.linked_identity }
+    public fun account_coin_type_name<T>(a: &LaunchpadAccount<T>): String { a.coin_type_name }
+    public fun account_total_supply<T>(a: &LaunchpadAccount<T>): u64 { a.total_supply }
+    public fun account_decimals<T>(a: &LaunchpadAccount<T>): u8 { a.decimals }
+
+    public fun account_real_sui<T>(a: &LaunchpadAccount<T>): u64 { balance::value(&a.real_sui_balance) }
+    public fun account_real_token<T>(a: &LaunchpadAccount<T>): u64 { balance::value(&a.real_token_balance) }
+    public fun account_virtual_sui<T>(a: &LaunchpadAccount<T>): u64 { a.virtual_sui_reserves }
+    public fun account_virtual_token<T>(a: &LaunchpadAccount<T>): u64 { a.virtual_token_reserves }
+    public fun account_lp_reserve<T>(a: &LaunchpadAccount<T>): u64 { balance::value(&a.lp_reserve) }
+
+    public fun account_nav_sui<T>(a: &LaunchpadAccount<T>): u64 { balance::value(&a.nav_sui) }
+    public fun account_nav_token<T>(a: &LaunchpadAccount<T>): u64 { balance::value(&a.nav_token) }
+
+    public fun account_access_threshold<T>(a: &LaunchpadAccount<T>): u64 { a.access_threshold }
+    public fun account_accept_coin_payments<T>(a: &LaunchpadAccount<T>): bool { a.accept_coin_payments }
+    public fun account_lifetime_service_revenue<T>(a: &LaunchpadAccount<T>): u64 { a.lifetime_service_revenue_sui }
+    public fun account_cred_revenue_target<T>(a: &LaunchpadAccount<T>): u64 { a.cred_revenue_target }
+
+    public fun account_treasury_cap_holder_id<T>(a: &LaunchpadAccount<T>): ID { a.treasury_cap_holder_id }
+    public fun account_agent_treasury_id<T>(a: &LaunchpadAccount<T>): ID { a.agent_treasury_id }
+    public fun account_owner_cap_id<T>(a: &LaunchpadAccount<T>): ID { a.owner_cap_id }
+    public fun account_dwallets_object_id<T>(a: &LaunchpadAccount<T>): Option<ID> { a.dwallets_object_id }
+
+    public fun account_total_buys<T>(a: &LaunchpadAccount<T>): u64 { a.total_buys }
+    public fun account_total_sells<T>(a: &LaunchpadAccount<T>): u64 { a.total_sells }
+    public fun account_total_service_payments_sui<T>(a: &LaunchpadAccount<T>): u64 { a.total_service_payments_sui }
+    public fun account_total_service_payments_token<T>(a: &LaunchpadAccount<T>): u64 { a.total_service_payments_token }
+    public fun account_cumulative_volume<T>(a: &LaunchpadAccount<T>): u64 { a.cumulative_volume_sui }
+    public fun account_cumulative_fees<T>(a: &LaunchpadAccount<T>): u64 { a.cumulative_fees_sui }
+    public fun account_launched_at<T>(a: &LaunchpadAccount<T>): u64 { a.launched_at }
+
+    // ============================= TreasuryCapHolder accessors =============
+    public fun holder_launchpad_account_id<T>(h: &TreasuryCapHolder<T>): ID {
+        h.launchpad_account_id
+    }
+
+    /// Package-only accessor for the wrapped TreasuryCap. The ONLY post-launch
+    /// use of this cap is `coin::burn` from inside `tai::fees::distribute_token`
+    /// during a token-denominated service payment. No public function exposes
+    /// the cap externally.
+    public(package) fun holder_cap_mut<T>(h: &mut TreasuryCapHolder<T>): &mut TreasuryCap<T> {
+        &mut h.cap
     }
 
     // ============================= Test helpers ============================
