@@ -90,6 +90,74 @@ module tai::bonding_curve_tests {
     }
 
     // ============================================================
-    //  Sell-side math (Phase 2.2)
+    //  Sell-side math
     // ============================================================
+
+    #[test]
+    fun sell_after_buy_returns_less_than_paid() {
+        // Path-dependence sanity: buy 1 SUI worth, then sell the tokens back.
+        // Seller must receive strictly less than the original 990M MIST net
+        // (fees on both legs).
+        let (tokens_out, _fee_buy) = bonding_curve::compute_buy(
+            0, 800_000_000_000_000_000,
+            10_000_000_000_000, 1_073_000_000_000_000_000,
+            1_000_000_000, 100,
+        );
+
+        let real_sui_after = 990_000_000;
+        let real_token_after = 800_000_000_000_000_000 - tokens_out;
+
+        let (sui_out, _fee_sell) = bonding_curve::compute_sell(
+            real_sui_after,
+            real_token_after,
+            10_000_000_000_000,
+            1_073_000_000_000_000_000,
+            tokens_out,
+            100,
+        );
+        assert!(sui_out < 990_000_000, 0);
+        assert!(sui_out > 0, 1);
+    }
+
+    #[test]
+    fun sell_with_zero_tokens_returns_zero() {
+        let (sui_out, fee) = bonding_curve::compute_sell(
+            1_000_000_000, 700_000_000_000_000_000,
+            10_000_000_000_000, 1_073_000_000_000_000_000,
+            0, 100,
+        );
+        assert!(sui_out == 0, 0);
+        assert!(fee == 0, 1);
+    }
+
+    #[test]
+    fun sell_huge_amount_uses_u128_for_fee_calc() {
+        // Synthetic large pool so the sell math exercises u128 multiplication
+        // without aborting on the real_sui guard.
+        // sui_gross close to 1e18; sui_gross * fee_bps = 1e20 overflows u64.
+        let (sui_out, fee) = bonding_curve::compute_sell(
+            2_000_000_000_000_000_000,            // real_sui = 2e18
+            1_000_000_000_000_000_000,            // real_token = 1e18
+            1_000_000_000_000_000_000,            // virtual_sui = 1e18
+            1_000_000_000_000_000_000,            // virtual_token = 1e18
+            500_000_000_000_000_000,              // tokens_in = 5e17
+            100,                                  // fee_bps = 1%
+        );
+        assert!(sui_out > 0, 0);
+        assert!(fee > 0, 1);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::bonding_curve::EMathOverflow)]
+    fun sell_that_would_drain_real_sui_aborts() {
+        // sui_gross exceeds real_sui — must abort at the curve layer.
+        let (_s, _f) = bonding_curve::compute_sell(
+            100,                                  // real_sui = trivially small
+            800_000_000_000_000_000,
+            10_000_000_000_000,
+            1_073_000_000_000_000_000,
+            500_000_000_000_000_000,              // huge tokens_in
+            100,
+        );
+    }
 }
