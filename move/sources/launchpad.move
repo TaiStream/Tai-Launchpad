@@ -8,9 +8,12 @@
 /// See ../../SPEC.md for the authoritative design document.
 module tai::launchpad {
     use sui::balance::{Self, Balance};
-    use sui::coin::{TreasuryCap};
+    use sui::clock::{Self, Clock};
+    use sui::coin::{Self, TreasuryCap, CoinMetadata};
+    use sui::event;
     use sui::sui::SUI;
     use std::string::String;
+    use tai::agent_treasury;
 
     // ============================= Error Codes =============================
     // Caller / authorization
@@ -358,6 +361,119 @@ module tai::launchpad {
     /// the cap externally.
     public(package) fun holder_cap_mut<T>(h: &mut TreasuryCapHolder<T>): &mut TreasuryCap<T> {
         &mut h.cap
+    }
+
+    // ============================= launch_agent_coin =======================
+    /// Atomic launch: consume a fresh TreasuryCap<T>, mint the full supply,
+    /// create LaunchpadAccount + TreasuryCapHolder + AgentTreasury, mint
+    /// OwnerCap to `owner_cap_recipient`, optionally mint OperatorCap to
+    /// `operator_recipient`, emit LaunchEvent, and share the three persistent
+    /// objects.
+    ///
+    /// Mode is an emergent property of the recipient flags:
+    ///   - sovereign:    owner_cap_recipient == operator_recipient
+    ///   - commissioned: owner_cap_recipient != operator_recipient
+    ///   - spawned:      caller is a parent agent's OperatorCap holder
+    ///
+    /// Authorization: holding a fresh TreasuryCap<T> is sufficient proof of
+    /// authorship — only the original coin module's publisher can produce
+    /// one.
+    public fun launch_agent_coin<T>(
+        config: &LaunchpadConfig,
+        mut treasury_cap: TreasuryCap<T>,
+        _metadata: &CoinMetadata<T>,
+        coin_type_name: String,
+        linked_identity: Option<ID>,
+        owner_cap_recipient: address,
+        operator_recipient: Option<address>,
+        operator_daily_limit_sui: u64,
+        operator_allowed_targets: vector<address>,
+        operator_ttl_ms: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(coin::total_supply(&treasury_cap) == 0, ETreasuryCapNotEmpty);
+
+        let sender = ctx.sender();
+        let sale_supply = config.sale_supply;
+        let lp_supply = config.lp_supply;
+        let total_supply = sale_supply + lp_supply;
+
+        let sale_coin = coin::mint(&mut treasury_cap, sale_supply, ctx);
+        let lp_coin = coin::mint(&mut treasury_cap, lp_supply, ctx);
+
+        let now = clock::timestamp_ms(clock);
+
+        // Allocate the LaunchpadAccount and TreasuryCapHolder UIDs first so
+        // their IDs are available for cross-object linkage.
+        let account_uid = object::new(ctx);
+        let account_id = account_uid.to_inner();
+        let holder_uid = object::new(ctx);
+        let holder_id = holder_uid.to_inner();
+
+        // Delegate treasury + cap creation to the agent_treasury module.
+        let (treasury_id, owner_cap_id) =
+            agent_treasury::build_treasury_owner_and_optional_operator<T>(
+                account_id,
+                owner_cap_recipient,
+                operator_recipient,
+                operator_daily_limit_sui,
+                operator_allowed_targets,
+                operator_ttl_ms,
+                clock,
+                ctx,
+            );
+
+        let cap_holder = TreasuryCapHolder<T> {
+            id: holder_uid,
+            cap: treasury_cap,
+            launchpad_account_id: account_id,
+        };
+
+        let account = LaunchpadAccount<T> {
+            id: account_uid,
+            creator: sender,
+            linked_identity,
+            coin_type_name,
+            total_supply,
+            decimals: 9,
+            real_sui_balance: balance::zero<SUI>(),
+            real_token_balance: coin::into_balance(sale_coin),
+            virtual_sui_reserves: config.virtual_sui_reserves,
+            virtual_token_reserves: config.virtual_token_reserves,
+            lp_reserve: coin::into_balance(lp_coin),
+            nav_sui: balance::zero<SUI>(),
+            nav_token: balance::zero<T>(),
+            access_threshold: 0,
+            accept_coin_payments: false,
+            lifetime_service_revenue_sui: 0,
+            cred_revenue_target: config.cred_revenue_target,
+            treasury_cap_holder_id: holder_id,
+            agent_treasury_id: treasury_id,
+            owner_cap_id,
+            dwallets_object_id: option::none<ID>(),
+            total_buys: 0,
+            total_sells: 0,
+            total_service_payments_sui: 0,
+            total_service_payments_token: 0,
+            cumulative_volume_sui: 0,
+            cumulative_fees_sui: 0,
+            launched_at: now,
+        };
+
+        event::emit(LaunchEvent {
+            launchpad_id: account_id,
+            agent_treasury_id: treasury_id,
+            owner_cap_id,
+            treasury_cap_holder_id: holder_id,
+            coin_type_name: account.coin_type_name,
+            creator: sender,
+            linked_identity: account.linked_identity,
+            timestamp: now,
+        });
+
+        transfer::share_object(cap_holder);
+        transfer::share_object(account);
     }
 
     // ============================= Test helpers ============================

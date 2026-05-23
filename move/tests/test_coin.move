@@ -7,6 +7,7 @@ module tai::test_coin {
     /// production each agent's coin module would supply its own OTW.
     public struct TEST_COIN has drop {}
 
+    #[allow(deprecated_usage)]
     public fun create_for_testing(ctx: &mut TxContext): (
         sui::coin::TreasuryCap<TEST_COIN>,
         sui::coin::CoinMetadata<TEST_COIN>,
