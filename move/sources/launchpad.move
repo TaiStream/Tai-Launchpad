@@ -9,11 +9,13 @@
 module tai::launchpad {
     use sui::balance::{Self, Balance};
     use sui::clock::{Self, Clock};
-    use sui::coin::{Self, TreasuryCap, CoinMetadata};
+    use sui::coin::{Self, Coin, TreasuryCap, CoinMetadata};
     use sui::event;
     use sui::sui::SUI;
     use std::string::String;
     use tai::agent_treasury;
+    use tai::bonding_curve;
+    use tai::fees;
 
     // ============================= Error Codes =============================
     // Caller / authorization
@@ -316,6 +318,21 @@ module tai::launchpad {
         timestamp: u64,
     }
 
+    #[allow(unused_field)]
+    public struct TradeEvent has copy, drop {
+        launchpad_id: ID,
+        trader: address,
+        is_buy: bool,
+        sui_in: u64,
+        tokens_out: u64,
+        sui_out: u64,
+        tokens_in: u64,
+        fee_sui: u64,
+        new_real_sui_balance: u64,
+        new_real_token_balance: u64,
+        timestamp: u64,
+    }
+
     // ============================= Account getters =========================
     public fun account_creator<T>(a: &LaunchpadAccount<T>): address { a.creator }
     public fun account_linked_identity<T>(a: &LaunchpadAccount<T>): Option<ID> { a.linked_identity }
@@ -474,6 +491,165 @@ module tai::launchpad {
 
         transfer::share_object(cap_holder);
         transfer::share_object(account);
+    }
+
+    // ============================= buy =====================================
+    /// Buy `T` tokens with `payment` SUI on the bonding curve.
+    ///
+    /// `min_tokens_out` enforces slippage protection. The fee is taken off
+    /// the top of the payment and routed via `fees::distribute_sui` with the
+    /// trade fee split (default 30/60/10 NAV/creator/platform).
+    ///
+    /// The resulting Coin<T> is transferred directly to the caller. PTB
+    /// composability is intentionally a v1.5 expansion (will add a sibling
+    /// `buy_return<T>` that returns Coin<T> instead).
+    #[allow(lint(self_transfer))]
+    public fun buy<T>(
+        config: &LaunchpadConfig,
+        account: &mut LaunchpadAccount<T>,
+        payment: Coin<SUI>,
+        min_tokens_out: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        let sender = ctx.sender();
+        let sui_in = coin::value(&payment);
+        assert!(sui_in > 0, EInsufficientLiquidity);
+
+        let (tokens_out, fee) = bonding_curve::compute_buy(
+            balance::value(&account.real_sui_balance),
+            balance::value(&account.real_token_balance),
+            account.virtual_sui_reserves,
+            account.virtual_token_reserves,
+            sui_in,
+            config.trade_fee_bps,
+        );
+
+        assert!(tokens_out >= min_tokens_out, ESlippageExceeded);
+        assert!(balance::value(&account.real_token_balance) >= tokens_out, EInsufficientLiquidity);
+
+        // Split payment: fee off the top, net SUI into the pool.
+        let mut payment_balance = coin::into_balance(payment);
+        let fee_balance = balance::split(&mut payment_balance, fee);
+        balance::join(&mut account.real_sui_balance, payment_balance);
+
+        // Distribute fee per trade-fee split.
+        let split = fees::compute_split(
+            fee,
+            config.trade_nav_share_bps,
+            config.trade_creator_share_bps,
+        );
+        fees::distribute_sui(
+            fee_balance,
+            split,
+            &mut account.nav_sui,
+            account.creator,
+            config.platform_treasury,
+            ctx,
+        );
+
+        // Pay out tokens.
+        let token_balance = balance::split(&mut account.real_token_balance, tokens_out);
+        transfer::public_transfer(coin::from_balance(token_balance, ctx), sender);
+
+        // Counters.
+        account.total_buys = account.total_buys + 1;
+        account.cumulative_volume_sui = account.cumulative_volume_sui + sui_in;
+        account.cumulative_fees_sui = account.cumulative_fees_sui + fee;
+
+        let now = clock::timestamp_ms(clock);
+        event::emit(TradeEvent {
+            launchpad_id: object::id(account),
+            trader: sender,
+            is_buy: true,
+            sui_in,
+            tokens_out,
+            sui_out: 0,
+            tokens_in: 0,
+            fee_sui: fee,
+            new_real_sui_balance: balance::value(&account.real_sui_balance),
+            new_real_token_balance: balance::value(&account.real_token_balance),
+            timestamp: now,
+        });
+    }
+
+    // ============================= sell ====================================
+    /// Sell `tokens` back to the bonding curve for SUI.
+    ///
+    /// `min_sui_out` enforces slippage. The fee is taken off `sui_gross`
+    /// (not off the tokens) and routed via `fees::distribute_sui` with the
+    /// trade fee split. Resulting Coin<SUI> transferred directly to caller;
+    /// see `buy` for the v1.5 composability note.
+    #[allow(lint(self_transfer))]
+    public fun sell<T>(
+        config: &LaunchpadConfig,
+        account: &mut LaunchpadAccount<T>,
+        tokens: Coin<T>,
+        min_sui_out: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        let sender = ctx.sender();
+        let tokens_in = coin::value(&tokens);
+        assert!(tokens_in > 0, EInsufficientLiquidity);
+
+        let (sui_out, fee) = bonding_curve::compute_sell(
+            balance::value(&account.real_sui_balance),
+            balance::value(&account.real_token_balance),
+            account.virtual_sui_reserves,
+            account.virtual_token_reserves,
+            tokens_in,
+            config.trade_fee_bps,
+        );
+
+        assert!(sui_out >= min_sui_out, ESlippageExceeded);
+        assert!(
+            balance::value(&account.real_sui_balance) >= sui_out + fee,
+            EInsufficientLiquidity,
+        );
+
+        // Accept incoming tokens.
+        balance::join(&mut account.real_token_balance, coin::into_balance(tokens));
+
+        // Pay the seller.
+        let payout = balance::split(&mut account.real_sui_balance, sui_out);
+        transfer::public_transfer(coin::from_balance(payout, ctx), sender);
+
+        // Take fee from the pool and distribute it.
+        let fee_balance = balance::split(&mut account.real_sui_balance, fee);
+        let split = fees::compute_split(
+            fee,
+            config.trade_nav_share_bps,
+            config.trade_creator_share_bps,
+        );
+        fees::distribute_sui(
+            fee_balance,
+            split,
+            &mut account.nav_sui,
+            account.creator,
+            config.platform_treasury,
+            ctx,
+        );
+
+        // Counters.
+        account.total_sells = account.total_sells + 1;
+        account.cumulative_volume_sui = account.cumulative_volume_sui + sui_out + fee;
+        account.cumulative_fees_sui = account.cumulative_fees_sui + fee;
+
+        let now = clock::timestamp_ms(clock);
+        event::emit(TradeEvent {
+            launchpad_id: object::id(account),
+            trader: sender,
+            is_buy: false,
+            sui_in: 0,
+            tokens_out: 0,
+            sui_out,
+            tokens_in,
+            fee_sui: fee,
+            new_real_sui_balance: balance::value(&account.real_sui_balance),
+            new_real_token_balance: balance::value(&account.real_token_balance),
+            timestamp: now,
+        });
     }
 
     // ============================= Test helpers ============================
