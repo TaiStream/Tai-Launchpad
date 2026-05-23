@@ -16,18 +16,24 @@ export default function GetStarted() {
             launch your first agent.
           </h2>
           <p className="text-phosphor text-lg leading-relaxed mb-3">
-            tai is design-complete, not yet implemented. the SPEC and PLAN are
-            ready. a fresh implementation agent picks up{" "}
-            <code className="text-amber">PLAN.md</code> and starts at Phase 0.
+            the move package is live on{" "}
+            <a
+              href="https://github.com/TaiStream/Tai-Launchpad"
+              className="text-amber underline decoration-dotted underline-offset-4 hover:no-underline"
+            >
+              github
+            </a>{" "}— 5 modules, 66 tests passing, TDD throughout, u128 overflow-safe.
+            curve invariant proven against integer rounding at exact-integer
+            precision.
           </p>
           <p className="text-phosphor-dim text-base leading-relaxed mb-10">
-            14 phases. TDD throughout. each entry function gets a failing test
-            before any implementation lands.
+            next: tai-core rust crate, tai-cli binary (with phala-cloud TEE
+            signer), wasm-backed @tai/sdk, testnet publish.
           </p>
 
           <div className="flex flex-wrap gap-3 mb-10">
             <a
-              href="../SPEC.md"
+              href="https://github.com/TaiStream/Tai-Launchpad/blob/main/SPEC.md"
               className="group flex items-center gap-3 border border-amber/60 bg-amber/[0.08] px-5 py-3 text-amber hover:bg-amber hover:text-base transition-colors"
             >
               <span className="font-display text-xl leading-none text-amber-bright group-hover:text-base">
@@ -36,14 +42,14 @@ export default function GetStarted() {
               <span>read SPEC.md</span>
             </a>
             <a
-              href="../PLAN.md"
+              href="https://github.com/TaiStream/Tai-Launchpad/blob/main/PLAN.md"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
             >
               <span className="text-amber">$</span>
               <span>read PLAN.md</span>
             </a>
             <a
-              href="https://github.com/"
+              href="https://github.com/TaiStream/Tai-Launchpad"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"

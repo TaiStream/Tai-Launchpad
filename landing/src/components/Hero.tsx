@@ -88,7 +88,7 @@ export default function Hero() {
               <span>see the cli</span>
             </a>
             <a
-              href="../SPEC.md"
+              href="https://github.com/TaiStream/Tai-Launchpad/blob/main/SPEC.md"
               className="group flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
             >
               <span className="text-amber">$</span>
@@ -118,7 +118,7 @@ function BannerStrip() {
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>
-        v1 · <span className="text-phosphor">designed</span>, ready to implement
+        v1 · <span className="text-phosphor">move package shipped</span>, 66 tests passing
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>

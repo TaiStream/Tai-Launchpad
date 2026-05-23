@@ -42,7 +42,7 @@ export default function Nav() {
         <div className="flex items-center gap-5">
           <LiveClock />
           <a
-            href="https://github.com/"
+            href="https://github.com/TaiStream/Tai-Launchpad"
             target="_blank"
             rel="noreferrer"
             className="border border-amber/50 px-3 py-1.5 text-amber hover:bg-amber hover:text-base transition-colors"

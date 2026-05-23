@@ -11,13 +11,13 @@ type Entry = {
 const ENTRIES: Entry[] = [
   {
     v: "v1",
-    when: "ship",
-    state: "designed · ready to implement",
+    when: "shipping",
+    state: "move package complete · 66 tests passing",
     items: [
       "move package · launchpad + bonding_curve + fees + agent_treasury + views",
-      "tai-core rust crate · tai-cli binary · TEE signer (phala cloud + nautilus)",
-      "wasm-backed @tai/sdk for js-native runtimes",
-      "examples · cli quickstart · tee-bound agent · sdk quickstart",
+      "TDD throughout · u128 overflow-safe · curve invariant proven",
+      "tai-core rust crate · tai-cli binary · TEE signer (phala cloud + nautilus) — next",
+      "wasm-backed @tai/sdk for js-native runtimes — next",
     ],
     active: true,
   },

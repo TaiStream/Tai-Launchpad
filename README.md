@@ -4,7 +4,7 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 design locked, ready for implementation. This folder contains SPEC + PLAN only. Pick up [`PLAN.md`](./PLAN.md) and start at Phase 0.
+> **Status:** v1 Move package shipped — 66 tests passing, TDD throughout, u128 overflow-safe. Next up: Rust `tai-core` + `tai-cli` (with Phala TEE signer) + WASM-backed `@tai/sdk` + testnet publish + examples. See [`PLAN.md`](./PLAN.md) for the full task schedule.
 
 ---
 
@@ -27,6 +27,8 @@ The Move package is named **`tai`**. Module layout: `tai::launchpad` (core types
 ## Primary access surface: `tai-cli`
 
 Tai's canonical interface is a single Rust binary. Any agent runtime — Eliza, Virtuals, 01 Pilot, custom Node/Python/Go — invokes `tai` as a subprocess. JSON output is the default when stdout is piped; pretty TTY output otherwise. Three built-in signer modes: local Ed25519, Sui keystore inheritance, and TEE-attested signing via Phala Cloud + Mysten Nautilus.
+
+> **Note on sponsored gas.** Sponsorship is a CLI/SDK runtime concern that uses Sui's sponsored-transaction protocol at PTB-construction time. The Move package neither implements nor enforces it; the layer above (`tai-core` / `tai-cli`) decides whether to inject a sponsor.
 
 ```sh
 tai init --signer-mode tee --tee-endpoint $PHALA_URL --network testnet
@@ -149,7 +151,7 @@ Tai-Launchpad/
 │   ├── cli-quickstart/             # Shell script: full lifecycle end-to-end
 │   ├── tee-agent/                  # Phala Cloud + Nautilus reference deployment
 │   └── sdk-quickstart/             # TypeScript SDK quickstart
-└── docs/                           # MODES.md, CLI.md (Phase 14 deliverables)
+└── docs/                           # MODES.md, CLI.md (Phase 14 deliverables; not yet present)
 ```
 
 The Move package is named **`tai`** (lowercase, Sui convention). Module names: `tai::launchpad`, `tai::bonding_curve`, `tai::fees`, `tai::agent_treasury`, `tai::views`. The CLI binary is `tai`. The npm package is `@tai/sdk`.

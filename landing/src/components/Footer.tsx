@@ -1,37 +1,41 @@
+const REPO = "https://github.com/TaiStream/Tai-Launchpad";
+
 const COLUMNS = [
   {
     title: "docs",
     links: [
-      { label: "README", href: "../README.md" },
-      { label: "SPEC", href: "../SPEC.md" },
-      { label: "PLAN", href: "../PLAN.md" },
+      { label: "README", href: `${REPO}/blob/main/README.md` },
+      { label: "SPEC", href: `${REPO}/blob/main/SPEC.md` },
+      { label: "PLAN", href: `${REPO}/blob/main/PLAN.md` },
     ],
   },
   {
     title: "code",
     links: [
-      { label: "move/", href: "../move/" },
-      { label: "rust/tai-cli/", href: "../rust/tai-cli/" },
-      { label: "sdk/", href: "../sdk/" },
+      { label: "move/", href: `${REPO}/tree/main/move` },
+      { label: "landing/", href: `${REPO}/tree/main/landing` },
+      { label: "tai-cli (soon)", href: `${REPO}#roadmap`, dim: true },
     ],
   },
   {
-    title: "siblings",
+    title: "org",
     links: [
-      { label: "SAI", href: "../../SAI-SuiAgentIndex" },
-      { label: "Tai Live", href: "../../Tai-Live" },
-      { label: "Tai Meet", href: "../../Tai-Meet" },
+      { label: "TaiStream", href: "https://github.com/TaiStream" },
+      { label: "Tai-Live", href: "https://github.com/TaiStream/Tai-Live" },
+      { label: "Tai-Meet", href: "https://github.com/TaiStream/Tai-Meet" },
     ],
   },
   {
-    title: "contact",
+    title: "repo",
     links: [
-      { label: "github", href: "#" },
-      { label: "twitter", href: "#" },
-      { label: "discord", href: "#" },
+      { label: "issues", href: `${REPO}/issues` },
+      { label: "commits", href: `${REPO}/commits/main` },
+      { label: "releases", href: `${REPO}/releases` },
     ],
   },
 ];
+
+type Link = { label: string; href: string; dim?: boolean };
 
 export default function Footer() {
   return (
@@ -60,11 +64,15 @@ export default function Footer() {
                 {col.title}
               </div>
               <div className="space-y-1.5">
-                {col.links.map((l) => (
+                {(col.links as Link[]).map((l) => (
                   <a
                     key={l.label}
                     href={l.href}
-                    className="block text-phosphor-dim hover:text-amber transition-colors"
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`block hover:text-amber transition-colors ${
+                      l.dim ? "text-phosphor-faint" : "text-phosphor-dim"
+                    }`}
                   >
                     <span className="text-phosphor-faint">─ </span>
                     {l.label}
