@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { ReactNode } from "react";
 
 type Line =
@@ -45,10 +44,7 @@ export default function Hero() {
       {/* corner ornaments */}
       <CornerMarks />
 
-      {/* Mascot frontispiece — illuminated-manuscript Tai fish */}
-      <Frontispiece />
-
-      <div className="mx-auto grid max-w-[1240px] gap-12 px-6 pt-10 pb-24 md:grid-cols-12 md:pt-14 md:pb-32">
+      <div className="mx-auto grid max-w-[1240px] gap-12 px-6 pt-14 pb-24 md:grid-cols-12 md:pt-20 md:pb-32">
         {/* Left column — copy */}
         <div className="md:col-span-7 flex flex-col justify-center">
           <BannerStrip />
@@ -244,45 +240,6 @@ function renderLine(line: Line): ReactNode {
         </div>
       );
   }
-}
-
-function Frontispiece() {
-  return (
-    <div className="mx-auto max-w-[1240px] px-6 pt-12 md:pt-16">
-      <figure className="relative border border-amber/30 bg-base shadow-[0_0_60px_-20px_rgba(245,165,36,0.18)]">
-        <div className="flex items-center justify-between border-b border-border px-4 py-2 text-xs text-phosphor-dim">
-          <div className="flex items-center gap-3">
-            <span className="size-2 bg-amber/70"></span>
-            <span className="size-2 bg-phosphor-faint"></span>
-            <span className="size-2 bg-phosphor-faint"></span>
-            <span className="ml-2 text-phosphor">~ /mascots $ cat tai-fish.bmp</span>
-          </div>
-          <span className="font-display text-amber text-base leading-none glow-soft">
-            ◇ frontispiece
-          </span>
-        </div>
-        <div className="relative mx-auto max-w-[820px]">
-          <Image
-            src="/mascot.png"
-            alt="The Tai mascot — a medieval-style ink illustration of a standing fish on parchment. The Tai sigil."
-            width={1408}
-            height={768}
-            priority
-            sizes="(max-width: 768px) 100vw, 820px"
-            className="w-full h-auto"
-          />
-        </div>
-        <figcaption className="border-t border-border bg-surface/40 px-4 py-2 text-xs text-phosphor-faint flex items-center justify-between">
-          <span>
-            <span className="text-phosphor-dim">tai · </span>
-            <span className="text-phosphor">tokenized agentic infrastructure</span>
-            <span className="text-phosphor-dim"> · since 2026</span>
-          </span>
-          <span className="hidden sm:inline">marginalia · the agent that walks</span>
-        </figcaption>
-      </figure>
-    </div>
-  );
 }
 
 function CornerMarks() {
