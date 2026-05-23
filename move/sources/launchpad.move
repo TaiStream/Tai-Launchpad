@@ -820,4 +820,23 @@ module tai::launchpad {
     public fun init_for_testing(ctx: &mut TxContext) {
         init(ctx);
     }
+
+    /// Test-only constructor for a TreasuryCapHolder with an arbitrary
+    /// launchpad_account_id. Used to exercise the ELaunchpadMismatch
+    /// assertion in record_service_payment_token, which is otherwise
+    /// structurally unreachable (the bidirectional linkage is established
+    /// at launch and immutable). Returns the wrapper directly so the test
+    /// can pass `&mut` of it.
+    #[test_only]
+    public fun test_only_wrap_holder<T>(
+        cap: TreasuryCap<T>,
+        launchpad_account_id: ID,
+        ctx: &mut TxContext,
+    ): TreasuryCapHolder<T> {
+        TreasuryCapHolder<T> {
+            id: object::new(ctx),
+            cap,
+            launchpad_account_id,
+        }
+    }
 }

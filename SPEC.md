@@ -426,18 +426,28 @@ k           = total_sui * total_token
 fee             = (u128(sui_in) * u128(fee_bps)) / 10_000          // downcast asserted
 sui_net         = sui_in - fee
 total_sui_new   = total_sui + sui_net
-total_token_new = k / total_sui_new
+total_token_new = ceil(k / total_sui_new)                          // CEILING, not floor
 tokens_out      = total_token - total_token_new
 ```
 
 **Sell:**
 ```
 total_token_new = total_token + tokens_in
-total_sui_new   = k / total_token_new
+total_sui_new   = floor(k / total_token_new)                       // floor
 sui_gross       = total_sui - total_sui_new
 fee             = (u128(sui_gross) * u128(fee_bps)) / 10_000        // downcast asserted
 sui_out         = sui_gross - fee
 ```
+
+**Why ceiling on buy + floor on sell.** A naïve floor on both legs breaks
+the curve invariant: a buy-then-sell roundtrip yields `sui_gross > real_sui`
+by 1 MIST due to asymmetric rounding, and the sell's `assert!(sui_gross <= real_sui)`
+fails. Ceiling on `total_token_new` during a buy guarantees the buyer
+receives at most the perfect-arithmetic token amount (occasionally 1 base
+unit less). Floor on the sell side guarantees the seller likewise gets at
+most the perfect SUI amount. The protocol keeps the rounding remainder on
+every leg, so `k` can only grow over time. Verified at exact integer
+precision; see `bonding_curve_tests.move::sell_after_buy_returns_less_than_paid`.
 
 **Slippage:** mandatory `min_tokens_out` on buy, `min_sui_out` on sell.
 
@@ -699,7 +709,7 @@ const ENotAdmin: u64                  = 140;
 | SDK | `@tai/sdk` (TypeScript, WASM-wrapping tai-core) | Derivative of CLI |
 | Web demo | Wraps SDK; not canonical | Explorability + hire discovery surface for humans |
 | TEE signer in v1 | Yes (Phala Cloud + Nautilus attestation) | Sovereign-mode requirement |
-| Sponsored gas | Yes for launch txs and first N service-payment calls | Removes boot-funding chicken-and-egg |
+| Sponsored gas | Yes for launch txs and first N service-payment calls (CLI/SDK runtime concern; not Move-enforced) | Removes boot-funding chicken-and-egg |
 
 ---
 
@@ -736,7 +746,7 @@ const ENotAdmin: u64                  = 140;
 - **Service-payment self-pump:** payer == creator excluded from `lifetime_service_revenue_sui`. Collusion (creator pays a friend, friend pays back) raises Sybil cost but isn't fully prevented; off-chain heuristics flag.
 - **Permissionless `record_service_payment_*` and `top_up_*`:** anyone can fund an agent. No abuse vector beyond donating value.
 - **Front-running:** sandwich attacks possible on the curve. Mitigated only via `min_out` slippage in v1.
-- **Sponsored gas trust model:** the sponsor (Tai platform, Shinami, or Sui Gas Pool) sees the full PTB. Privacy-sensitive operations should self-fund. Documented in CLI output.
+- **Sponsored gas is a runtime concern, not a Move-layer guarantee.** The Move package neither implements sponsorship nor enforces a particular sponsor. Sponsorship happens at PTB-construction time in the CLI/SDK via the Sui sponsored-transaction protocol. The sponsor (Tai platform, Shinami, or Sui Gas Pool) sees the full PTB; privacy-sensitive operations should self-fund. Documented in CLI output.
 - **TEE-attestation trust model (when used):** the TEE provider (Phala Cloud, AWS Nitro, Intel TDX) is the trust anchor. Validate attestation reports before relying on TEE signatures. v1 supports Phala Cloud + Nautilus by default; users can plug other TEEs via the generic signer interface.
 
 ---

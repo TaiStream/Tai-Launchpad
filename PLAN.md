@@ -686,17 +686,37 @@ Run tests → PASS. Commit: `launchpad: launch_agent_coin creates LaunchpadAccou
 
 ## Phase 5: Fees module
 
-Same as prior iteration. Three split functions (`compute_trade_split`, `compute_service_sui_split`, `compute_token_service_split`) plus two distribution functions (`distribute_sui`, `distribute_token<T>`). All math in `u128`. `distribute_token` borrows `&mut TreasuryCapHolder<T>` for `coin::burn`.
+Single config-agnostic `compute_split(total, nav_bps, creator_bps)` plus two distribution functions (`distribute_sui`, `distribute_token<T>`). All math in `u128`. **`tai::fees` does NOT import `tai::launchpad`** — keeping it independent is what lets Phase 6 import `tai::fees` from launchpad without creating a dependency cycle. Callers (buy / sell / record_service_payment_*) read their fee bps off `LaunchpadConfig` and pass them in.
 
-### Task 5.1: Failing tests for the three splits
+### Task 5.1: Failing tests for the split
 
-Test the trade, service-SUI, and token-service splits against default config. Include a large-input no-overflow test (e.g., 1e17 MIST fee).
+Test against default config bps pulled via `lp::config_*` getters:
+- Trade split (30/60/10) on 1M MIST.
+- Service-SUI split (40/50/10) on 1M MIST.
+- Token-service split (40/10/50 nav/creator/burn) on 1M base units.
+- Large-input no-overflow (1e17 MIST).
+- Total=1 with 30/60/10 → (0, 0, 1) (remainder routing).
 
 ### Task 5.2: Implement `fees.move`
 
-Create `move/sources/fees.move` with `Split` struct + `compute_trade_split` / `compute_service_sui_split` / `compute_token_service_split` (all routed through a `split_three` helper using `u128`). Then `distribute_sui` and `distribute_token<T>` (the latter calls `lp::holder_cap_mut` to burn).
+```move
+module tai::fees {
+    use sui::balance::{Self, Balance};
+    use sui::coin::{Self, TreasuryCap};
+    use sui::sui::SUI;
+    // NB: do NOT import tai::launchpad here — that creates a dep cycle with Phase 6.
 
-Run tests → PASS. Commit: `launchpad: fees module with three split policies and u128 math`.
+    public struct Split has copy, drop { nav: u64, creator: u64, platform_or_burn: u64 }
+
+    public fun compute_split(total: u64, nav_bps: u64, creator_bps: u64): Split { ... }
+    public fun distribute_sui(fee_balance, s, nav_target, creator_addr, platform_addr, ctx) { ... }
+    public fun distribute_token<T>(payment_balance, s, nav_target_token, cap: &mut TreasuryCap<T>, creator_addr, ctx) { ... }
+}
+```
+
+`distribute_token` takes `&mut TreasuryCap<T>` directly (not the wrapper). In Phase 6+ callers (`record_service_payment_token`) extract it via `lp::holder_cap_mut(holder)` and pass.
+
+Run tests → PASS. Commit: `launchpad: fees module with compute_split + sui/token distribution`.
 
 ---
 

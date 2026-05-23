@@ -17,8 +17,27 @@
 module tai::agent_treasury {
     use sui::balance::{Self, Balance};
     use sui::clock::{Self, Clock};
+    use sui::coin::{Self, Coin};
     use sui::event;
     use sui::sui::SUI;
+    use sui::transfer::Receiving;
+
+    // ============================= Error codes =============================
+    const ENotOwnerCap: u64 = 101;
+    const ENotOperatorCap: u64 = 102;
+    const EOperatorCapRevoked: u64 = 103;
+    const EOperatorCapExpired: u64 = 108;
+    const EOperatorTargetNotAllowed: u64 = 109;
+    const EOperatorDailyLimitExceeded: u64 = 115;
+    const EInsufficientLiquidity: u64 = 120;
+
+    public fun e_not_owner_cap(): u64 { ENotOwnerCap }
+    public fun e_not_operator_cap(): u64 { ENotOperatorCap }
+    public fun e_operator_cap_revoked(): u64 { EOperatorCapRevoked }
+    public fun e_operator_cap_expired(): u64 { EOperatorCapExpired }
+    public fun e_operator_target_not_allowed(): u64 { EOperatorTargetNotAllowed }
+    public fun e_operator_daily_limit_exceeded(): u64 { EOperatorDailyLimitExceeded }
+    public fun e_insufficient_liquidity(): u64 { EInsufficientLiquidity }
 
     // ============================= Capabilities ============================
 
@@ -179,5 +198,211 @@ module tai::agent_treasury {
         transfer::share_object(treasury);
 
         (treasury_id, owner_cap_id)
+    }
+
+    // ============================= OwnerCap-gated withdrawals ==============
+
+    #[allow(lint(self_transfer))]
+    public fun withdraw_sui<T>(
+        treasury: &mut AgentTreasury<T>,
+        owner_cap: &OwnerCap<T>,
+        amount: u64,
+        to: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
+        assert!(balance::value(&treasury.sui_balance) >= amount, EInsufficientLiquidity);
+        let payout = balance::split(&mut treasury.sui_balance, amount);
+        transfer::public_transfer(coin::from_balance(payout, ctx), to);
+        event::emit(TreasuryWithdrawEvent {
+            agent_treasury_id: object::id(treasury),
+            coin_type: 0,
+            amount,
+            to,
+            via: 0,
+        });
+    }
+
+    #[allow(lint(self_transfer))]
+    public fun withdraw_token<T>(
+        treasury: &mut AgentTreasury<T>,
+        owner_cap: &OwnerCap<T>,
+        amount: u64,
+        to: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
+        assert!(balance::value(&treasury.token_balance) >= amount, EInsufficientLiquidity);
+        let payout = balance::split(&mut treasury.token_balance, amount);
+        transfer::public_transfer(coin::from_balance(payout, ctx), to);
+        event::emit(TreasuryWithdrawEvent {
+            agent_treasury_id: object::id(treasury),
+            coin_type: 1,
+            amount,
+            to,
+            via: 0,
+        });
+    }
+
+    // ============================= Permissionless top-ups ==================
+
+    /// Anyone can fund the treasury directly via SUI.
+    public fun top_up_sui<T>(treasury: &mut AgentTreasury<T>, payment: Coin<SUI>) {
+        balance::join(&mut treasury.sui_balance, coin::into_balance(payment));
+    }
+
+    /// Anyone can fund the treasury with the agent's own token.
+    public fun top_up_token<T>(treasury: &mut AgentTreasury<T>, payment: Coin<T>) {
+        balance::join(&mut treasury.token_balance, coin::into_balance(payment));
+    }
+
+    // ============================= Transfer-to-object claim ================
+
+    /// Claim a SUI coin sent via `transfer::public_transfer(coin, treasury_addr)`.
+    /// Joins the received balance into `treasury.sui_balance`.
+    public fun claim_received_sui<T>(
+        treasury: &mut AgentTreasury<T>,
+        receiving: Receiving<Coin<SUI>>,
+    ) {
+        let received = transfer::public_receive(&mut treasury.id, receiving);
+        balance::join(&mut treasury.sui_balance, coin::into_balance(received));
+    }
+
+    /// Claim a Coin<T> sent via transfer-to-object.
+    public fun claim_received_token<T>(
+        treasury: &mut AgentTreasury<T>,
+        receiving: Receiving<Coin<T>>,
+    ) {
+        let received = transfer::public_receive(&mut treasury.id, receiving);
+        balance::join(&mut treasury.token_balance, coin::into_balance(received));
+    }
+
+    // ============================= OperatorCap lifecycle ===================
+
+    /// Post-launch OperatorCap issuance. OwnerCap-gated.
+    public fun issue_operator_cap<T>(
+        treasury: &mut AgentTreasury<T>,
+        owner_cap: &OwnerCap<T>,
+        recipient: address,
+        daily_limit_sui: u64,
+        allowed_targets: vector<address>,
+        ttl_ms: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
+        let now = clock::timestamp_ms(clock);
+        let expires_at = if (ttl_ms == 0) 0 else now + ttl_ms;
+        let op_cap_uid = object::new(ctx);
+        let op_cap_id = op_cap_uid.to_inner();
+        let op_cap = OperatorCap<T> {
+            id: op_cap_uid,
+            agent_treasury_id: object::id(treasury),
+            daily_limit_sui,
+            spent_today_sui: 0,
+            epoch_day: now / 86_400_000,
+            allowed_targets,
+            expires_at_ms: expires_at,
+        };
+        treasury.active_operator_cap_ids.push_back(op_cap_id);
+        event::emit(OperatorCapIssuedEvent {
+            agent_treasury_id: object::id(treasury),
+            operator_cap_id: op_cap_id,
+            recipient,
+            daily_limit_sui,
+            allowed_targets,
+            expires_at_ms: expires_at,
+        });
+        transfer::public_transfer(op_cap, recipient);
+    }
+
+    /// Remove an OperatorCap from the active set. The cap object itself
+    /// stays in its holder's inventory but presenting it via spend functions
+    /// will fail (EOperatorCapRevoked).
+    public fun revoke_operator_cap<T>(
+        treasury: &mut AgentTreasury<T>,
+        owner_cap: &OwnerCap<T>,
+        cap_id: ID,
+    ) {
+        assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
+        let (found, idx) = treasury.active_operator_cap_ids.index_of(&cap_id);
+        assert!(found, EOperatorCapRevoked);
+        treasury.active_operator_cap_ids.remove(idx);
+        event::emit(OperatorCapRevokedEvent {
+            agent_treasury_id: object::id(treasury),
+            operator_cap_id: cap_id,
+        });
+    }
+
+    // ============================= OperatorCap-gated spend =================
+
+    /// Spend SUI from the treasury under the OperatorCap's policy.
+    /// All gates enforced in Move:
+    ///   1. cap's agent_treasury_id matches.
+    ///   2. cap is in the treasury's active_operator_cap_ids set.
+    ///   3. clock < expires_at_ms (if non-zero).
+    ///   4. `to` is in the cap's allowed_targets.
+    ///   5. spent_today_sui + amount <= daily_limit_sui (with daily epoch reset).
+    ///   6. treasury has enough SUI.
+    #[allow(lint(self_transfer))]
+    public fun operator_spend_sui<T>(
+        treasury: &mut AgentTreasury<T>,
+        op_cap: &mut OperatorCap<T>,
+        amount: u64,
+        to: address,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        // 1.
+        assert!(op_cap.agent_treasury_id == object::id(treasury), ENotOperatorCap);
+        // 2.
+        assert!(
+            treasury.active_operator_cap_ids.contains(&object::id(op_cap)),
+            EOperatorCapRevoked,
+        );
+        // 3.
+        let now = clock::timestamp_ms(clock);
+        if (op_cap.expires_at_ms != 0) {
+            assert!(now < op_cap.expires_at_ms, EOperatorCapExpired);
+        };
+        // 4.
+        assert!(op_cap.allowed_targets.contains(&to), EOperatorTargetNotAllowed);
+        // 5. Daily epoch rollover before checking the limit.
+        let current_day = now / 86_400_000;
+        if (current_day > op_cap.epoch_day) {
+            op_cap.epoch_day = current_day;
+            op_cap.spent_today_sui = 0;
+        };
+        assert!(
+            op_cap.spent_today_sui + amount <= op_cap.daily_limit_sui,
+            EOperatorDailyLimitExceeded,
+        );
+        op_cap.spent_today_sui = op_cap.spent_today_sui + amount;
+        // 6.
+        assert!(balance::value(&treasury.sui_balance) >= amount, EInsufficientLiquidity);
+        let payout = balance::split(&mut treasury.sui_balance, amount);
+        transfer::public_transfer(coin::from_balance(payout, ctx), to);
+        event::emit(TreasuryWithdrawEvent {
+            agent_treasury_id: object::id(treasury),
+            coin_type: 0,
+            amount,
+            to,
+            via: 1,
+        });
+    }
+
+    // ============================= Test helpers ============================
+
+    /// Test-only constructor for an OwnerCap with an arbitrary
+    /// agent_treasury_id. Exercises the ENotOwnerCap assertion in
+    /// withdraw_*, issue_operator_cap, revoke_operator_cap. Otherwise
+    /// structurally unreachable because OwnerCap construction is
+    /// public(package) and only via the launch path.
+    #[test_only]
+    public fun test_only_make_owner_cap<T>(
+        agent_treasury_id: ID,
+        ctx: &mut TxContext,
+    ): OwnerCap<T> {
+        OwnerCap<T> { id: object::new(ctx), agent_treasury_id }
     }
 }
