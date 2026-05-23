@@ -1,0 +1,12 @@
+{
+  "testnet": {
+    "package_id": "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d",
+    "config_id": "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680",
+    "upgrade_cap_id": "0xb5c599cc0b3cd166c1584d96a27b7a941e30b3715aef9eda03efc2a23e30ffd5",
+    "publisher": "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14",
+    "publish_tx_checkpoint": "340351365",
+    "publish_tx_timestamp_ms": "1779568299473",
+    "publish_cost_mist": 118615880,
+    "modules": ["agent_treasury", "bonding_curve", "fees", "launchpad", "views"]
+  }
+}

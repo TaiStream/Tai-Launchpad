@@ -118,7 +118,7 @@ function BannerStrip() {
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>
-        v1 · <span className="text-phosphor">move package shipped</span>, 66 tests passing
+        v1 · <span className="text-phosphor">live on sui testnet</span> · 66 tests passing
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>

@@ -11,10 +11,11 @@ type Entry = {
 const ENTRIES: Entry[] = [
   {
     v: "v1",
-    when: "shipping",
-    state: "move package complete · 66 tests passing",
+    when: "live on sui testnet",
+    state: "move package shipped · 66 tests · ~0.12 SUI to publish",
     items: [
       "move package · launchpad + bonding_curve + fees + agent_treasury + views",
+      "package · 0x7d41…4f8d · LaunchpadConfig · 0x7aab…c680",
       "TDD throughout · u128 overflow-safe · curve invariant proven",
       "tai-core rust crate · tai-cli binary · TEE signer (phala cloud + nautilus) — next",
       "wasm-backed @tai/sdk for js-native runtimes — next",
