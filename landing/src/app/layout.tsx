@@ -37,12 +37,24 @@ export const metadata: Metadata = {
     description:
       "the asset, treasury, and capability layer for AI agents on sui.",
     type: "website",
+    images: [
+      {
+        url: "/mascot.png",
+        width: 1408,
+        height: 768,
+        alt: "The Tai mascot — a medieval-style fish standing on legs.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "tai // tokenized agentic infrastructure",
     description:
       "the asset, treasury, and capability layer for AI agents on sui.",
+    images: ["/mascot.png"],
+  },
+  icons: {
+    icon: "/mascot.png",
   },
 };
 
