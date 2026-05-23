@@ -132,6 +132,87 @@ module tai::launchpad {
     public fun e_cred_target_zero(): u64 { ECredTargetZero }
     public fun e_not_admin(): u64 { ENotAdmin }
 
+    // ============================= Admin entry functions ===================
+    public fun set_platform_treasury(
+        config: &mut LaunchpadConfig,
+        new_treasury: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        config.platform_treasury = new_treasury;
+    }
+
+    public fun set_trade_shares(
+        config: &mut LaunchpadConfig,
+        nav_bps: u64,
+        creator_bps: u64,
+        platform_bps: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        assert!(nav_bps + creator_bps + platform_bps == BPS_DENOMINATOR, EFeeBpsInvalid);
+        config.trade_nav_share_bps = nav_bps;
+        config.trade_creator_share_bps = creator_bps;
+        config.trade_platform_share_bps = platform_bps;
+    }
+
+    public fun set_service_shares(
+        config: &mut LaunchpadConfig,
+        nav_bps: u64,
+        creator_bps: u64,
+        platform_bps: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        assert!(nav_bps + creator_bps + platform_bps == BPS_DENOMINATOR, EFeeBpsInvalid);
+        config.service_nav_share_bps = nav_bps;
+        config.service_creator_share_bps = creator_bps;
+        config.service_platform_share_bps = platform_bps;
+    }
+
+    public fun set_token_service_shares(
+        config: &mut LaunchpadConfig,
+        nav_bps: u64,
+        burn_bps: u64,
+        creator_bps: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        assert!(nav_bps + burn_bps + creator_bps == BPS_DENOMINATOR, EFeeBpsInvalid);
+        config.token_service_nav_share_bps = nav_bps;
+        config.token_service_burn_share_bps = burn_bps;
+        config.token_service_creator_share_bps = creator_bps;
+    }
+
+    public fun set_trade_fee_bps(
+        config: &mut LaunchpadConfig,
+        bps: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        assert!(bps > 0, EFeeBpsZero);
+        config.trade_fee_bps = bps;
+    }
+
+    public fun set_cred_revenue_target(
+        config: &mut LaunchpadConfig,
+        target: u64,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        assert!(target > 0, ECredTargetZero);
+        config.cred_revenue_target = target;
+    }
+
+    public fun transfer_admin(
+        config: &mut LaunchpadConfig,
+        new_admin: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        config.admin = new_admin;
+    }
+
     // ============================= Test helpers ============================
     #[test_only]
     public fun init_for_testing(ctx: &mut TxContext) {
