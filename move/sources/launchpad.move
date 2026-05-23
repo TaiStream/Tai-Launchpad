@@ -333,6 +333,30 @@ module tai::launchpad {
         timestamp: u64,
     }
 
+    #[allow(unused_field)]
+    public struct ServicePaymentEvent has copy, drop {
+        launchpad_id: ID,
+        payer: address,
+        sui_amount: u64,
+        token_amount: u64,
+        counted_toward_cred: bool,
+        new_lifetime_revenue_sui: u64,
+        timestamp: u64,
+    }
+
+    #[allow(unused_field)]
+    public struct AccessConfigEvent has copy, drop {
+        launchpad_id: ID,
+        access_threshold: u64,
+        accept_coin_payments: bool,
+    }
+
+    #[allow(unused_field)]
+    public struct LinkedIdentityEvent has copy, drop {
+        launchpad_id: ID,
+        linked_identity: Option<ID>,
+    }
+
     // ============================= Account getters =========================
     public fun account_creator<T>(a: &LaunchpadAccount<T>): address { a.creator }
     public fun account_linked_identity<T>(a: &LaunchpadAccount<T>): Option<ID> { a.linked_identity }
@@ -649,6 +673,145 @@ module tai::launchpad {
             new_real_sui_balance: balance::value(&account.real_sui_balance),
             new_real_token_balance: balance::value(&account.real_token_balance),
             timestamp: now,
+        });
+    }
+
+    // ============================= record_service_payment_sui ==============
+    /// Record a SUI service payment to an agent. Permissionless to call.
+    ///
+    /// Routes the payment per the service-SUI split (default 40 NAV / 50
+    /// creator / 10 platform). If the payer is not the agent's creator, the
+    /// full payment amount is added to `lifetime_service_revenue_sui` (which
+    /// drives the self-referential cred multiplier). Self-payments grow NAV
+    /// but are excluded from cred — the most basic self-pump protection.
+    public fun record_service_payment_sui<T>(
+        config: &LaunchpadConfig,
+        account: &mut LaunchpadAccount<T>,
+        payment: Coin<SUI>,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        let payer = ctx.sender();
+        let amount = coin::value(&payment);
+        assert!(amount > 0, EInsufficientLiquidity);
+
+        let split = fees::compute_split(
+            amount,
+            config.service_nav_share_bps,
+            config.service_creator_share_bps,
+        );
+        fees::distribute_sui(
+            coin::into_balance(payment),
+            split,
+            &mut account.nav_sui,
+            account.creator,
+            config.platform_treasury,
+            ctx,
+        );
+
+        let counted = payer != account.creator;
+        if (counted) {
+            account.lifetime_service_revenue_sui =
+                account.lifetime_service_revenue_sui + amount;
+        };
+        account.total_service_payments_sui = account.total_service_payments_sui + 1;
+
+        let now = clock::timestamp_ms(clock);
+        event::emit(ServicePaymentEvent {
+            launchpad_id: object::id(account),
+            payer,
+            sui_amount: amount,
+            token_amount: 0,
+            counted_toward_cred: counted,
+            new_lifetime_revenue_sui: account.lifetime_service_revenue_sui,
+            timestamp: now,
+        });
+    }
+
+    // ============================= record_service_payment_token ============
+    /// Record a token-denominated service payment.
+    ///
+    /// Requires `account.accept_coin_payments == true`. Routes the payment
+    /// per the service-token split (default 40 NAV-in-T / 50 burn / 10
+    /// creator). The burn portion is consumed via the wrapped TreasuryCap.
+    ///
+    /// Token payments do NOT contribute to `lifetime_service_revenue_sui` —
+    /// the cred multiplier is denominated in SUI and only SUI-denominated
+    /// revenue counts. Token payments still grow `nav_token` and burn supply.
+    public fun record_service_payment_token<T>(
+        config: &LaunchpadConfig,
+        account: &mut LaunchpadAccount<T>,
+        holder: &mut TreasuryCapHolder<T>,
+        payment: Coin<T>,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(account.accept_coin_payments, ECoinPaymentsDisabled);
+        assert!(holder.launchpad_account_id == object::id(account), ELaunchpadMismatch);
+
+        let amount = coin::value(&payment);
+        assert!(amount > 0, EInsufficientLiquidity);
+
+        let split = fees::compute_split(
+            amount,
+            config.token_service_nav_share_bps,
+            config.token_service_creator_share_bps,
+        );
+        fees::distribute_token<T>(
+            coin::into_balance(payment),
+            split,
+            &mut account.nav_token,
+            holder_cap_mut(holder),
+            account.creator,
+            ctx,
+        );
+
+        account.total_service_payments_token = account.total_service_payments_token + 1;
+
+        let payer = ctx.sender();
+        let now = clock::timestamp_ms(clock);
+        event::emit(ServicePaymentEvent {
+            launchpad_id: object::id(account),
+            payer,
+            sui_amount: 0,
+            token_amount: amount,
+            counted_toward_cred: false,  // token payments never count toward SUI cred
+            new_lifetime_revenue_sui: account.lifetime_service_revenue_sui,
+            timestamp: now,
+        });
+    }
+
+    // ============================= Access config ===========================
+    /// Creator-only mutator for the productive-asset layer.
+    public fun set_access_config<T>(
+        account: &mut LaunchpadAccount<T>,
+        threshold: u64,
+        accept_coin: bool,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == account.creator, ENotCreator);
+        account.access_threshold = threshold;
+        account.accept_coin_payments = accept_coin;
+
+        event::emit(AccessConfigEvent {
+            launchpad_id: object::id(account),
+            access_threshold: threshold,
+            accept_coin_payments: accept_coin,
+        });
+    }
+
+    /// Creator-only: set or clear the linked identity pointer.
+    public fun set_linked_identity<T>(
+        account: &mut LaunchpadAccount<T>,
+        identity: Option<ID>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == account.creator, ENotCreator);
+        account.linked_identity = identity;
+
+        event::emit(LinkedIdentityEvent {
+            launchpad_id: object::id(account),
+            linked_identity: identity,
         });
     }
 
