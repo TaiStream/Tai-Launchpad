@@ -15,7 +15,7 @@ const ENTRIES: Entry[] = [
     state: "move package shipped · 66 tests · ~0.12 SUI to publish",
     items: [
       "move package · launchpad + bonding_curve + fees + agent_treasury + views",
-      "package · 0x7d41…4f8d · LaunchpadConfig · 0x7aab…c680",
+      "v1.0.1 · 0xb41f…6909 · LaunchpadConfig · 0xe2ec…a1f0 · Display<OwnerCap<T>> wallet card",
       "TDD throughout · u128 overflow-safe · curve invariant proven",
       "tai-core rust crate · tai-cli binary · TEE signer (phala cloud + nautilus) — next",
       "wasm-backed @tai/sdk for js-native runtimes — next",

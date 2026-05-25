@@ -60,19 +60,21 @@ pub struct TaiConfig {
 }
 
 impl TaiConfig {
-    /// The known testnet deployment of the v1 Tai package.
+    /// The current canonical testnet deployment of the v1 Tai package.
+    /// Points at v1.0.1 (which adds Display<OwnerCap<T>> support via the
+    /// `tai::publisher` and `tai::agent_display` modules).
     ///
-    /// Source: `move/published.json` in this repo, committed after the
-    /// 2026-05-23 publish at checkpoint 340351365.
+    /// Source: `move/published.json` in this repo. Published 2026-05-25 at
+    /// checkpoint 340901378.
     pub fn testnet_v1() -> Self {
         TaiConfig {
             network: Network::Testnet,
             rpc_url: Network::Testnet.default_rpc_url().to_string(),
             package_id: ObjectId::from_bytes(hex_lit(
-                "7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d",
+                "b41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
             )),
             config_id: ObjectId::from_bytes(hex_lit(
-                "7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680",
+                "e2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0",
             )),
         }
     }
@@ -109,11 +111,11 @@ mod tests {
         assert_eq!(cfg.network, Network::Testnet);
         assert_eq!(
             cfg.package_id.to_string(),
-            "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d"
+            "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909"
         );
         assert_eq!(
             cfg.config_id.to_string(),
-            "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680"
+            "0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0"
         );
         assert_eq!(cfg.rpc_url, "https://fullnode.testnet.sui.io");
     }

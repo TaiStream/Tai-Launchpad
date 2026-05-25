@@ -1,12 +1,33 @@
 {
+  "version": "v1.0.1",
+  "notes": [
+    "Tai v1.0.1 adds two modules over v1.0.0: tai::publisher (claims the Publisher cap via OTW at publish time) and tai::agent_display (registers Display<OwnerCap<T>> per agent so wallets render the OwnerCap as a rich NFT-style card).",
+    "v1.0.1 was a fresh republish (NOT a Sui package upgrade) because OTW-init in newly-added modules is not yet supported by upgrade-time module additions on the protocol the v1.0.0 package was deployed at. The v1.0.0 package at 0x7d41…4f8d remains on-chain as a historical artifact but is no longer the canonical deployment."
+  ],
   "testnet": {
-    "package_id": "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d",
-    "config_id": "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680",
-    "upgrade_cap_id": "0xb5c599cc0b3cd166c1584d96a27b7a941e30b3715aef9eda03efc2a23e30ffd5",
+    "package_id": "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
+    "config_id": "0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0",
+    "upgrade_cap_id": "0x6046b65192508a01375810014857e85e02251633929c7fd99a5561b5960b364b",
+    "publisher_id": "0x9d9532b7be93404c773fe4a99e3db51b97e95b82549d47b9c42af326516fd203",
     "publisher": "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14",
-    "publish_tx_checkpoint": "340351365",
-    "publish_tx_timestamp_ms": "1779568299473",
-    "publish_cost_mist": 118615880,
-    "modules": ["agent_treasury", "bonding_curve", "fees", "launchpad", "views"]
+    "publish_tx_checkpoint": "340901378",
+    "publish_tx_timestamp_ms": "1779701510462",
+    "publish_cost_mist": 128998680,
+    "modules": [
+      "agent_display",
+      "agent_treasury",
+      "bonding_curve",
+      "fees",
+      "launchpad",
+      "publisher",
+      "views"
+    ]
+  },
+  "history": {
+    "v1.0.0_testnet": {
+      "package_id": "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d",
+      "config_id": "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680",
+      "status": "superseded_by_v1.0.1"
+    }
   }
 }

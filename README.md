@@ -4,11 +4,13 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 Move package **live on Sui testnet** — 66 tests passing, TDD throughout, u128 overflow-safe, ~0.12 SUI to publish.
+> **Status:** v1 Move package **live on Sui testnet (v1.0.1)** — 66 Move tests + 33 Rust unit tests + 4 live testnet integration tests, all passing.
 >
-> Testnet package: [`0x7d41…4f8d`](https://suiscan.xyz/testnet/object/0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d) · LaunchpadConfig: [`0x7aab…c680`](https://suiscan.xyz/testnet/object/0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680). See [`move/published.json`](./move/published.json).
+> Testnet package v1.0.1: [`0xb41f…6909`](https://suiscan.xyz/testnet/object/0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909) · LaunchpadConfig: [`0xe2ec…a1f0`](https://suiscan.xyz/testnet/object/0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0). See [`move/published.json`](./move/published.json).
 >
-> Next: Rust `tai-core` + `tai-cli` (with Phala TEE signer) + WASM-backed `@tai/sdk` + examples. See [`PLAN.md`](./PLAN.md) for the full task schedule.
+> Reference agent on-chain — Larry the Analyst: [`0x8831…c36e`](https://suiscan.xyz/testnet/object/0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e) (LaunchpadAccount). The OwnerCap has a registered `Display<OwnerCap<LARRY>>` — wallets render it as a rich NFT card. See [`examples/test-agent/`](./examples/test-agent/).
+>
+> Next: `tai-cli` (with Phala TEE signer) + WASM-backed `@tai/sdk` + examples. See [`PLAN.md`](./PLAN.md) for the full task schedule.
 
 ---
 

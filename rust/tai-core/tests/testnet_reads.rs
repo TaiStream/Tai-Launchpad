@@ -18,16 +18,17 @@ use tai_core::{
     RpcClient, TaiConfig,
 };
 
-// IDs from examples/test-agent/published.json. Kept inline so the test
-// file is self-contained and grep-able from the diff history.
+// IDs from examples/test-agent/published.json (Larry v2 against Tai v1.0.1).
+// Kept inline so the test file is self-contained and grep-able from the
+// diff history.
 const LARRY_LAUNCHPAD_ID: &str =
-    "0x7f83c4641634d78be9e3dd969622cd85af54832feaa65b2db5311807441b9d37";
+    "0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e";
 const LARRY_TREASURY_ID: &str =
-    "0xedc4de4324c5b6b178f4f1747ad3dbdbcc3937e478afcae890a05ae089af2564";
+    "0x4c5337abcbc0f5db1352ee68d25735f1a35ebca04a92fd04688d26629bc76592";
 const LARRY_OWNER_CAP_ID: &str =
-    "0xfd54e520b7d4d81c79cef7f7a9444b1b5ad9f5d51088dd46aad99de3fb92e336";
+    "0x24c99cfb1bdda10172b93f5fa7493304f05266406454f2731bba938db692e57e";
 const LARRY_HOLDER_ID: &str =
-    "0x1b843139f7ff7183a14274c0b0ca0ee97355a63a9fa05e3e86b3265182f49820";
+    "0xf4efb2a129ba420545a3289c6657c54f91cd7d90646e4423f68232625c0a62e5";
 const LARRY_CREATOR: &str =
     "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14";
 
