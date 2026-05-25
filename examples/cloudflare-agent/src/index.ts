@@ -195,7 +195,15 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         if (e instanceof PaymentVerificationError) {
             return json({ error: e.reason, detail: e.detail }, 402);
         }
-        throw e;
+        // Sui RPC also rejects malformed / non-existent digests — those are
+        // payment-related failures, not internal errors. Surface as 402.
+        return json(
+            {
+                error: "payment verification failed",
+                message: String((e as any)?.message ?? e),
+            },
+            402,
+        );
     }
 
     // Lock in the digest BEFORE generating the response so a long LLM call

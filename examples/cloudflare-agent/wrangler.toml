@@ -9,7 +9,7 @@ compatibility_flags = ["nodejs_compat"]
 # resulting id below before deploying.
 [[kv_namespaces]]
 binding = "CONSUMED_TXS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "ebbfd5b9068d4b9f9485b2b8deb8df1b"
 
 # Public, non-secret runtime config. Override in `wrangler.toml` overrides
 # (or via the dashboard) when launching a different agent.
