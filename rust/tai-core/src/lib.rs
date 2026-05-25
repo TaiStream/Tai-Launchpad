@@ -19,6 +19,7 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod client;
 pub mod config;
 pub mod error;
 pub mod ids;
@@ -26,6 +27,7 @@ pub mod reads;
 pub mod rpc;
 pub mod signer;
 
+pub use client::{ExecutionResult, MoveCall, RequestType, TaiClient, SUI_CLOCK_OBJECT_ID};
 pub use config::{Network, TaiConfig};
 pub use error::TaiError;
 pub use ids::{ObjectId, SuiAddress};
