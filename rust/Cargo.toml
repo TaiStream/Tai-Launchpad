@@ -1,0 +1,46 @@
+[workspace]
+members = ["tai-core"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT"
+authors = ["TaiStream"]
+repository = "https://github.com/TaiStream/Tai-Launchpad"
+
+[workspace.dependencies]
+# NB: sui-sdk-types / sui-sdk crates are intentionally NOT pulled in yet.
+# tai-core's first milestones (ids, signer, ptb builders, JSON-RPC client)
+# only need primitive types we own + ed25519/blake2 + reqwest. Pulling the
+# Sui SDK is deferred until we need its Transaction-builder helpers.
+#
+# Until then, ids::ObjectId / ids::SuiAddress are thin newtypes around
+# [u8; 32] and we BCS-encode transaction data ourselves following the
+# Sui protocol layout.
+
+# Async + error handling
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "time"] }
+anyhow = "1"
+thiserror = "2"
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bcs = "0.1"
+hex = "0.4"
+base64ct = { version = "1", features = ["std"] }
+
+# Crypto (Sui uses Ed25519 for signing; we sign over a digest we construct)
+ed25519-dalek = { version = "2", features = ["std", "rand_core"] }
+blake2 = "0.10"
+sha2 = "0.10"
+
+# HTTP for the Sui JSON-RPC endpoint
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+url = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

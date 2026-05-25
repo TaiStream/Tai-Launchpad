@@ -1,0 +1,33 @@
+[package]
+name = "tai-core"
+description = "Core library for Tai — PTB builders, signers, indexer client, OTW templater for the Tai launchpad on Sui."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+name = "tai_core"
+path = "src/lib.rs"
+
+[dependencies]
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+bcs.workspace = true
+hex.workspace = true
+base64ct.workspace = true
+
+ed25519-dalek.workspace = true
+blake2.workspace = true
+sha2.workspace = true
+
+reqwest.workspace = true
+url.workspace = true
+
+tracing.workspace = true
