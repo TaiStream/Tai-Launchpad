@@ -22,11 +22,15 @@
 pub mod config;
 pub mod error;
 pub mod ids;
+pub mod reads;
+pub mod rpc;
 pub mod signer;
 
 pub use config::{Network, TaiConfig};
 pub use error::TaiError;
 pub use ids::{ObjectId, SuiAddress};
+pub use reads::LaunchpadConfigView;
+pub use rpc::RpcClient;
 pub use signer::{Ed25519FileSigner, Signer};
 
 /// Crate-wide [`Result`] alias.
