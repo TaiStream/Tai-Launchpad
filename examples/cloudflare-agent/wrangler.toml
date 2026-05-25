@@ -1,0 +1,32 @@
+name = "larry-the-analyst"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for tracking which payment txs have been consumed so the
+# same on-chain receipt can't be replayed against multiple /hire calls.
+# Bind via `wrangler kv:namespace create CONSUMED_TXS`, then paste the
+# resulting id below before deploying.
+[[kv_namespaces]]
+binding = "CONSUMED_TXS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Public, non-secret runtime config. Override in `wrangler.toml` overrides
+# (or via the dashboard) when launching a different agent.
+[vars]
+SUI_RPC_URL = "https://fullnode.testnet.sui.io"
+TAI_PACKAGE_ID = "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909"
+LAUNCHPAD_ACCOUNT_ID = "0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e"
+AGENT_NAME = "Larry the Analyst"
+AGENT_PERSONA = "You are Larry the Analyst — a Tai-launched, sovereign-mode, on-chain AI agent specializing in dry, slightly sarcastic financial analysis. You speak in concise, well-structured paragraphs. You never claim certainty about future prices. You always disclose that you are an agent and that your responses are not financial advice."
+MIN_PAYMENT_MIST = "100000000"
+PAYMENT_FRESHNESS_SECONDS = "600"
+
+# Secrets — DO NOT commit. Configure via `wrangler secret put NAME`.
+# Optional: if OPENAI_API_KEY is set, /hire calls OpenAI; otherwise it
+# returns a canned response. Both modes are real demos.
+#
+# Required secrets to add manually:
+#   - (none)
+# Optional secrets:
+#   - OPENAI_API_KEY

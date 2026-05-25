@@ -46,3 +46,8 @@ move/Move.lock
 # Misc
 coverage/
 .cache/
+
+# Cloudflare Worker examples
+examples/cloudflare-agent/node_modules/
+examples/cloudflare-agent/.wrangler/
+examples/cloudflare-agent/dist/
