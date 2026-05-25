@@ -115,6 +115,29 @@ impl MoveCall {
         self.arg(json!(b))
     }
 
+    /// Append a pure `Option<ID>` argument.
+    ///
+    /// Sui's RPC format for Move Option arguments is an array:
+    /// `[]` for `None`, `[inner]` for `Some(inner)`.
+    pub fn arg_option_id(self, opt: Option<ObjectId>) -> Self {
+        match opt {
+            None => self.arg(json!([])),
+            Some(id) => self.arg(json!([id.to_string()])),
+        }
+    }
+
+    /// Append a pure `vector<address>` argument.
+    pub fn arg_vec_addr(self, addrs: &[SuiAddress]) -> Self {
+        let items: Vec<String> = addrs.iter().map(|a| a.to_string()).collect();
+        self.arg(json!(items))
+    }
+
+    /// Append a pure `vector<ID>` argument.
+    pub fn arg_vec_id(self, ids: &[ObjectId]) -> Self {
+        let items: Vec<String> = ids.iter().map(|i| i.to_string()).collect();
+        self.arg(json!(items))
+    }
+
     /// Override the gas budget.
     pub fn with_gas_budget(mut self, gas_budget: u64) -> Self {
         self.gas_budget = gas_budget;
@@ -431,6 +454,255 @@ impl TaiClient {
             .arg_object(payment_coin_id);
         self.execute_move_call(call, RequestType::WaitForLocalExecution).await
     }
+
+    /// `top_up_token<T>(treasury, payment)` — permissionless.
+    pub async fn top_up_token(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        payment_coin_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "top_up_token")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(payment_coin_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `withdraw_token<T>(treasury, owner_cap, amount, to)`. OwnerCap-gated.
+    pub async fn withdraw_token(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        owner_cap_id: ObjectId,
+        amount: u64,
+        to: SuiAddress,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "withdraw_token")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(owner_cap_id)
+            .arg_u64(amount)
+            .arg_addr(to);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `claim_received_sui<T>(treasury, Receiving<Coin<SUI>>)`.
+    ///
+    /// The `received_coin_id` argument is the id of a `Coin<SUI>` that has
+    /// been transferred-to-object to the treasury's address.
+    pub async fn claim_received_sui(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        received_coin_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "claim_received_sui")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(received_coin_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `claim_received_token<T>(treasury, Receiving<Coin<T>>)`.
+    pub async fn claim_received_token(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        received_coin_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "claim_received_token")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(received_coin_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `issue_operator_cap<T>(treasury, owner_cap, recipient, daily_limit_sui,
+    /// allowed_targets, ttl_ms, clock)`. OwnerCap-gated.
+    pub async fn issue_operator_cap(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        owner_cap_id: ObjectId,
+        recipient: SuiAddress,
+        daily_limit_sui: u64,
+        allowed_targets: &[SuiAddress],
+        ttl_ms: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "issue_operator_cap")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(owner_cap_id)
+            .arg_addr(recipient)
+            .arg_u64(daily_limit_sui)
+            .arg_vec_addr(allowed_targets)
+            .arg_u64(ttl_ms)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `revoke_operator_cap<T>(treasury, owner_cap, cap_id)`. OwnerCap-gated.
+    pub async fn revoke_operator_cap(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        owner_cap_id: ObjectId,
+        cap_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "revoke_operator_cap")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(owner_cap_id)
+            .arg_object(cap_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `operator_spend_sui<T>(treasury, op_cap, amount, to, clock)`.
+    /// OperatorCap-gated; subject to Move-enforced policy (revocation, TTL,
+    /// allowlist, daily limit).
+    pub async fn operator_spend_sui(
+        &self,
+        coin_type: &str,
+        treasury_id: ObjectId,
+        operator_cap_id: ObjectId,
+        amount: u64,
+        to: SuiAddress,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "agent_treasury", "operator_spend_sui")
+            .type_arg(coin_type)
+            .arg_object(treasury_id)
+            .arg_object(operator_cap_id)
+            .arg_u64(amount)
+            .arg_addr(to)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `record_service_payment_token<T>(config, account, holder, payment, clock)`.
+    pub async fn record_service_payment_token(
+        &self,
+        coin_type: &str,
+        launchpad_account_id: ObjectId,
+        treasury_cap_holder_id: ObjectId,
+        payment_coin_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "record_service_payment_token")
+            .type_arg(coin_type)
+            .arg_object(self.config.config_id)
+            .arg_object(launchpad_account_id)
+            .arg_object(treasury_cap_holder_id)
+            .arg_object(payment_coin_id)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `set_linked_identity<T>(account, Option<ID>)`. Creator-only.
+    pub async fn set_linked_identity(
+        &self,
+        coin_type: &str,
+        launchpad_account_id: ObjectId,
+        identity: Option<ObjectId>,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_linked_identity")
+            .type_arg(coin_type)
+            .arg_object(launchpad_account_id)
+            .arg_option_id(identity);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    // ------------------------------------------------------------------
+    //  Admin entries on LaunchpadConfig — usable only by the configured admin.
+    // ------------------------------------------------------------------
+
+    /// `set_platform_treasury(config, new_treasury)`. Admin-only.
+    pub async fn admin_set_platform_treasury(
+        &self,
+        new_treasury: SuiAddress,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_platform_treasury")
+            .arg_object(self.config.config_id)
+            .arg_addr(new_treasury);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `set_trade_shares(config, nav_bps, creator_bps, platform_bps)`. Admin-only.
+    pub async fn admin_set_trade_shares(
+        &self,
+        nav_bps: u64,
+        creator_bps: u64,
+        platform_bps: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_trade_shares")
+            .arg_object(self.config.config_id)
+            .arg_u64(nav_bps)
+            .arg_u64(creator_bps)
+            .arg_u64(platform_bps);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `set_service_shares(config, nav_bps, creator_bps, platform_bps)`. Admin-only.
+    pub async fn admin_set_service_shares(
+        &self,
+        nav_bps: u64,
+        creator_bps: u64,
+        platform_bps: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_service_shares")
+            .arg_object(self.config.config_id)
+            .arg_u64(nav_bps)
+            .arg_u64(creator_bps)
+            .arg_u64(platform_bps);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `set_token_service_shares(config, nav_bps, burn_bps, creator_bps)`. Admin-only.
+    pub async fn admin_set_token_service_shares(
+        &self,
+        nav_bps: u64,
+        burn_bps: u64,
+        creator_bps: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_token_service_shares")
+            .arg_object(self.config.config_id)
+            .arg_u64(nav_bps)
+            .arg_u64(burn_bps)
+            .arg_u64(creator_bps);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `set_trade_fee_bps(config, bps)`. Admin-only.
+    pub async fn admin_set_trade_fee_bps(
+        &self,
+        bps: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_trade_fee_bps")
+            .arg_object(self.config.config_id)
+            .arg_u64(bps);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `set_cred_revenue_target(config, target)`. Admin-only.
+    pub async fn admin_set_cred_revenue_target(
+        &self,
+        target: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_cred_revenue_target")
+            .arg_object(self.config.config_id)
+            .arg_u64(target);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
+
+    /// `transfer_admin(config, new_admin)`. Admin-only.
+    pub async fn admin_transfer_admin(
+        &self,
+        new_admin: SuiAddress,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "transfer_admin")
+            .arg_object(self.config.config_id)
+            .arg_addr(new_admin);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+    }
 }
 
 // ============================================================================
@@ -529,5 +801,82 @@ mod tests {
         let expected = signer.address();
         let client = TaiClient::new(cfg(), signer);
         assert_eq!(client.sender(), expected);
+    }
+
+    #[test]
+    fn arg_option_id_encodes_none_as_empty_array() {
+        let pkg: ObjectId = "0x1".parse().unwrap();
+        let call = MoveCall::new(pkg, "launchpad", "set_linked_identity").arg_option_id(None);
+        assert_eq!(call.arguments[0], json!([]));
+    }
+
+    #[test]
+    fn arg_option_id_encodes_some_as_single_element_array() {
+        let pkg: ObjectId = "0x1".parse().unwrap();
+        let id: ObjectId = "0xfeed".parse().unwrap();
+        let call =
+            MoveCall::new(pkg, "launchpad", "set_linked_identity").arg_option_id(Some(id));
+        let arr = call.arguments[0].as_array().unwrap();
+        assert_eq!(arr.len(), 1);
+        assert_eq!(
+            arr[0].as_str().unwrap(),
+            "0x000000000000000000000000000000000000000000000000000000000000feed"
+        );
+    }
+
+    #[test]
+    fn arg_vec_addr_encodes_array_of_addresses() {
+        let pkg: ObjectId = "0x1".parse().unwrap();
+        let a: SuiAddress = "0xab".parse().unwrap();
+        let b: SuiAddress = "0xcd".parse().unwrap();
+        let call = MoveCall::new(pkg, "agent_treasury", "issue_operator_cap")
+            .arg_vec_addr(&[a, b]);
+        let arr = call.arguments[0].as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert!(arr[0].as_str().unwrap().ends_with("ab"));
+        assert!(arr[1].as_str().unwrap().ends_with("cd"));
+    }
+
+    #[test]
+    fn arg_vec_id_encodes_array_of_ids() {
+        let pkg: ObjectId = "0x1".parse().unwrap();
+        let a: ObjectId = "0xa1".parse().unwrap();
+        let b: ObjectId = "0xb2".parse().unwrap();
+        let call =
+            MoveCall::new(pkg, "agent_treasury", "issue_operator_cap").arg_vec_id(&[a, b]);
+        let arr = call.arguments[0].as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+    }
+
+    #[test]
+    fn issue_operator_cap_builds_expected_argument_layout() {
+        // Sanity-check the helper produces the right 7-positional-arg shape.
+        let signer = Arc::new(Ed25519FileSigner::from_seed([1u8; 32]));
+        let client = TaiClient::new(cfg(), signer);
+
+        // Build the MoveCall directly to inspect its shape.
+        let treasury: ObjectId = "0xaaaa".parse().unwrap();
+        let owner_cap: ObjectId = "0xbbbb".parse().unwrap();
+        let recipient: SuiAddress = "0xcc01".parse().unwrap();
+        let allowed: SuiAddress = "0xdd01".parse().unwrap();
+
+        let call = MoveCall::new(
+            client.config().package_id,
+            "agent_treasury",
+            "issue_operator_cap",
+        )
+        .type_arg("0xabc::larry::LARRY")
+        .arg_object(treasury)
+        .arg_object(owner_cap)
+        .arg_addr(recipient)
+        .arg_u64(10_000_000_000)
+        .arg_vec_addr(&[allowed])
+        .arg_u64(30 * 86_400_000)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+
+        assert_eq!(call.arguments.len(), 7);
+        assert_eq!(call.type_arguments, vec!["0xabc::larry::LARRY"]);
+        // arg 4 (zero-indexed) is the allowlist vector
+        assert!(call.arguments[4].is_array());
     }
 }
