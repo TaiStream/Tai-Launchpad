@@ -6,8 +6,30 @@
 //! ```sh
 //! cargo test -p tai-core -- --ignored
 //! ```
+//!
+//! Test fixtures live on Sui testnet:
+//! - **LaunchpadConfig** at the address recorded in `move/published.json`.
+//! - **Larry the Analyst** — a real LaunchpadAccount + AgentTreasury launched
+//!   at `examples/test-agent/published.json`. Sovereign-mode launch; the
+//!   creator address is also the OwnerCap holder.
 
-use tai_core::{LaunchpadConfigView, RpcClient, TaiConfig};
+use tai_core::{
+    hire_quote, AgentTreasuryView, LaunchpadAccountView, LaunchpadConfigView, ObjectId,
+    RpcClient, TaiConfig,
+};
+
+// IDs from examples/test-agent/published.json. Kept inline so the test
+// file is self-contained and grep-able from the diff history.
+const LARRY_LAUNCHPAD_ID: &str =
+    "0x7f83c4641634d78be9e3dd969622cd85af54832feaa65b2db5311807441b9d37";
+const LARRY_TREASURY_ID: &str =
+    "0xedc4de4324c5b6b178f4f1747ad3dbdbcc3937e478afcae890a05ae089af2564";
+const LARRY_OWNER_CAP_ID: &str =
+    "0xfd54e520b7d4d81c79cef7f7a9444b1b5ad9f5d51088dd46aad99de3fb92e336";
+const LARRY_HOLDER_ID: &str =
+    "0x1b843139f7ff7183a14274c0b0ca0ee97355a63a9fa05e3e86b3265182f49820";
+const LARRY_CREATOR: &str =
+    "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14";
 
 #[tokio::test]
 #[ignore = "hits Sui testnet; run with `cargo test -- --ignored`"]
@@ -66,4 +88,107 @@ async fn live_testnet_launchpad_config_matches_spec_defaults() {
         "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14"
     );
     assert_eq!(view.platform_treasury, view.admin);
+}
+
+#[tokio::test]
+#[ignore = "hits Sui testnet; run with `cargo test -- --ignored`"]
+async fn live_testnet_larry_launchpad_account_state() {
+    let cfg = TaiConfig::testnet_v1();
+    let rpc = RpcClient::new(&cfg.rpc_url);
+
+    let id: ObjectId = LARRY_LAUNCHPAD_ID.parse().unwrap();
+    let acc = LaunchpadAccountView::fetch(&rpc, id).await.unwrap();
+
+    // Type tag carries the LARRY generic.
+    assert!(acc.coin_type.contains("::larry::LARRY"), "got coin_type={}", acc.coin_type);
+
+    // Sovereign-mode launch: creator is the publisher.
+    assert_eq!(acc.creator.to_string(), LARRY_CREATOR);
+
+    // No linked identity at launch.
+    assert_eq!(acc.linked_identity, None);
+    // dwallets_object_id is reserved as Option<ID> and always None on v1 launches.
+    assert_eq!(acc.dwallets_object_id, None);
+
+    // Move-side `total_supply = sale_supply + lp_supply = 1B with 9 decimals`.
+    assert_eq!(acc.total_supply, 1_000_000_000_000_000_000);
+    assert_eq!(acc.decimals, 9);
+
+    // Fresh pool state at launch.
+    assert_eq!(acc.real_sui, 0);
+    assert_eq!(acc.real_token, 800_000_000_000_000_000);
+    assert_eq!(acc.lp_reserve, 200_000_000_000_000_000);
+    assert_eq!(acc.nav_sui, 0);
+    assert_eq!(acc.nav_token, 0);
+
+    // Default access config: open, no token payments.
+    assert_eq!(acc.access_threshold, 0);
+    assert!(!acc.accept_coin_payments);
+    assert_eq!(acc.lifetime_service_revenue_sui, 0);
+    // Cred target snapshotted from the global config at launch.
+    assert_eq!(acc.cred_revenue_target, 1_000_000_000_000);
+
+    // Virtual curve constants snapshotted from config.
+    assert_eq!(acc.virtual_sui_reserves, 10_000_000_000_000);
+    assert_eq!(acc.virtual_token_reserves, 1_073_000_000_000_000_000);
+
+    // Counters all zero before any interaction.
+    assert_eq!(acc.total_buys, 0);
+    assert_eq!(acc.total_sells, 0);
+    assert_eq!(acc.total_service_payments_sui, 0);
+    assert_eq!(acc.total_service_payments_token, 0);
+    assert_eq!(acc.cumulative_volume_sui, 0);
+    assert_eq!(acc.cumulative_fees_sui, 0);
+    assert!(acc.launched_at > 0);
+
+    // Bidirectional linkage to sibling objects.
+    let expected_holder: ObjectId = LARRY_HOLDER_ID.parse().unwrap();
+    let expected_treasury: ObjectId = LARRY_TREASURY_ID.parse().unwrap();
+    let expected_owner_cap: ObjectId = LARRY_OWNER_CAP_ID.parse().unwrap();
+    assert_eq!(acc.treasury_cap_holder_id, expected_holder);
+    assert_eq!(acc.agent_treasury_id, expected_treasury);
+    assert_eq!(acc.owner_cap_id, expected_owner_cap);
+}
+
+#[tokio::test]
+#[ignore = "hits Sui testnet; run with `cargo test -- --ignored`"]
+async fn live_testnet_larry_agent_treasury_state() {
+    let cfg = TaiConfig::testnet_v1();
+    let rpc = RpcClient::new(&cfg.rpc_url);
+
+    let treasury_id: ObjectId = LARRY_TREASURY_ID.parse().unwrap();
+    let treasury = AgentTreasuryView::fetch(&rpc, treasury_id).await.unwrap();
+
+    // Bidirectional linkage back to the LaunchpadAccount.
+    let expected_launchpad: ObjectId = LARRY_LAUNCHPAD_ID.parse().unwrap();
+    assert_eq!(treasury.launchpad_account_id, expected_launchpad);
+
+    let expected_owner_cap: ObjectId = LARRY_OWNER_CAP_ID.parse().unwrap();
+    assert_eq!(treasury.owner_cap_id, expected_owner_cap);
+
+    // Sovereign-mode launch issued no OperatorCap.
+    assert!(treasury.active_operator_cap_ids.is_empty());
+
+    // Treasury is empty at launch.
+    assert_eq!(treasury.sui_balance, 0);
+    assert_eq!(treasury.token_balance, 0);
+}
+
+#[tokio::test]
+#[ignore = "hits Sui testnet; run with `cargo test -- --ignored`"]
+async fn live_testnet_larry_hire_quote_at_baseline_is_one_x() {
+    let cfg = TaiConfig::testnet_v1();
+    let rpc = RpcClient::new(&cfg.rpc_url);
+
+    let id: ObjectId = LARRY_LAUNCHPAD_ID.parse().unwrap();
+    let acc = LaunchpadAccountView::fetch(&rpc, id).await.unwrap();
+    let quote = hire_quote(&acc);
+
+    // Fresh launch: NAV = 0, lifetime revenue = 0, so hire_price = 0 and
+    // multiplier sits at the 1.0x baseline.
+    assert_eq!(quote.nav_sui, 0);
+    assert_eq!(quote.lifetime_service_revenue_sui, 0);
+    assert_eq!(quote.cred_revenue_target, 1_000_000_000_000);
+    assert_eq!(quote.multiplier_bps, 10_000);
+    assert_eq!(quote.hire_price_sui, 0);
 }

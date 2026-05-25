@@ -1,0 +1,20 @@
+{
+  "name": "Larry the Analyst",
+  "description": "Test agent used by tai-core's live integration tests on Sui testnet. Sovereign-mode launch (owner_cap_recipient = publisher; no operator at launch).",
+  "testnet": {
+    "coin_package_id": "0xf7350c293a561a2e5d902b893d3a262a2fa9f152f6d8008f5436772d8a230c2d",
+    "coin_type": "0xf7350c293a561a2e5d902b893d3a262a2fa9f152f6d8008f5436772d8a230c2d::larry::LARRY",
+    "treasury_cap_holder_id": "0x1b843139f7ff7183a14274c0b0ca0ee97355a63a9fa05e3e86b3265182f49820",
+    "coin_metadata_id": "0x2ed54a942af9584c64604bfb7f147f44b2405dae3c375caead77554790918117",
+    "coin_upgrade_cap_id": "0x15495a5dd4b5cea284548915d5544b6e354a8d9648a6c471bfe2390dfdbd9302",
+
+    "launchpad_account_id": "0x7f83c4641634d78be9e3dd969622cd85af54832feaa65b2db5311807441b9d37",
+    "agent_treasury_id": "0xedc4de4324c5b6b178f4f1747ad3dbdbcc3937e478afcae890a05ae089af2564",
+    "owner_cap_id": "0xfd54e520b7d4d81c79cef7f7a9444b1b5ad9f5d51088dd46aad99de3fb92e336",
+
+    "creator": "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14",
+    "launch_tx_checkpoint": "340888882",
+    "launch_tx_timestamp_ms": "1779698460994",
+    "launch_cost_mist": 10359856
+  }
+}

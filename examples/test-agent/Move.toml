@@ -1,0 +1,11 @@
+[package]
+name = "test_agent"
+edition = "2024.beta"
+license = "MIT"
+authors = ["TaiStream"]
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "95cddc3f5" }
+
+[addresses]
+test_agent = "0x0"
