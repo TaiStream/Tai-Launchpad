@@ -1,5 +1,5 @@
 [workspace]
-members = ["tai-core"]
+members = ["tai-core", "tai-cli"]
 resolver = "2"
 
 [workspace.package]
@@ -44,3 +44,8 @@ url = "2"
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI-only deps
+clap = { version = "4", features = ["derive", "env", "wrap_help"] }
+toml = "0.8"
+dirs = "5"
