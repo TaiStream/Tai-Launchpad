@@ -21,6 +21,9 @@ export default function Nav() {
           <Link href="/hire" className="hover:text-phosphor">
             hire
           </Link>
+          <Link href="/docs" className="hover:text-phosphor">
+            docs
+          </Link>
           <Link href="/start" className="text-amber-bright hover:text-amber-bright/80">
             start →
           </Link>

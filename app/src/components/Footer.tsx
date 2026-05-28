@@ -15,6 +15,13 @@ export default function Footer() {
           <ul className="mt-3 space-y-1 text-[12px]">
             <li>
               ·{" "}
+              <a href="/docs" className="text-phosphor hover:text-amber-bright">
+                documentation
+              </a>{" "}
+              — what you can do + how
+            </li>
+            <li>
+              ·{" "}
               <a
                 href="https://t.me/TaiUpdates"
                 className="text-phosphor hover:text-amber-bright"
