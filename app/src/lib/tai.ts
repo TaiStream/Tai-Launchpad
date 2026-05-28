@@ -320,6 +320,60 @@ export async function fetchDisplay(
   }
 }
 
+// ============================= Bonding-curve math =========================
+
+/**
+ * Mirror of `tai::bonding_curve::compute_buy` from the Move source.
+ * Returns `(tokens_out, fee_sui)` for a buy of `sui_in` against a pool with
+ * the given (real, virtual) reserves. Ceiling division on the new total
+ * token to preserve the protocol's path-dependence invariant.
+ *
+ * All math is done in `bigint` to avoid JS-Number precision loss at u64
+ * boundaries (specifically the `(real + virtual) * (real + virtual)`
+ * intermediate which can exceed 2^53).
+ */
+export function computeBuy(
+  realSui: bigint,
+  realToken: bigint,
+  virtualSui: bigint,
+  virtualToken: bigint,
+  suiIn: bigint,
+  feeBps: bigint,
+): { tokensOut: bigint; fee: bigint } {
+  if (suiIn === 0n) return { tokensOut: 0n, fee: 0n };
+  const fee = (suiIn * feeBps) / 10_000n;
+  const suiNet = suiIn - fee;
+  const totalSui = realSui + virtualSui;
+  const totalToken = realToken + virtualToken;
+  const k = totalSui * totalToken;
+  const newTotalSui = totalSui + suiNet;
+  // Ceiling division: (k + d - 1) / d.
+  const newTotalToken = (k + newTotalSui - 1n) / newTotalSui;
+  const tokensOut = totalToken - newTotalToken;
+  return { tokensOut, fee };
+}
+
+/** Mirror of `tai::bonding_curve::compute_sell`. */
+export function computeSell(
+  realSui: bigint,
+  realToken: bigint,
+  virtualSui: bigint,
+  virtualToken: bigint,
+  tokensIn: bigint,
+  feeBps: bigint,
+): { suiOut: bigint; fee: bigint } {
+  if (tokensIn === 0n) return { suiOut: 0n, fee: 0n };
+  const totalSui = realSui + virtualSui;
+  const totalToken = realToken + virtualToken;
+  const k = totalSui * totalToken;
+  const newTotalToken = totalToken + tokensIn;
+  const newTotalSui = k / newTotalToken;
+  const suiGross = totalSui - newTotalSui;
+  const fee = (suiGross * feeBps) / 10_000n;
+  const suiOut = suiGross - fee;
+  return { suiOut, fee };
+}
+
 // ============================= Hire-quote view =============================
 
 /**

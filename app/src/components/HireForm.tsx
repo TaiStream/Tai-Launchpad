@@ -230,12 +230,16 @@ function errorMessage(err: unknown): string {
 }
 
 function parseSuiToMist(s: string): bigint {
-    const n = Number(s);
-    if (!Number.isFinite(n) || n < 0) throw new Error("invalid amount");
-    // 1 SUI = 1e9 MIST. Use string math to avoid float drift.
-    const [whole, frac = ""] = s.trim().split(".");
+    const trimmed = s.trim();
+    if (trimmed.length === 0) throw new Error("amount is empty");
+    // Reject scientific notation, signs, and multi-dot inputs — they're
+    // ambiguous against the simple decimal-pair parser below.
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+        throw new Error(`invalid amount "${s}" — must be a positive decimal like 0.1`);
+    }
+    const [whole, frac = ""] = trimmed.split(".");
     const fracPadded = (frac + "000000000").slice(0, 9);
-    const wholeBig = BigInt(whole || "0");
+    const wholeBig = BigInt(whole);
     const fracBig = BigInt(fracPadded || "0");
     return wholeBig * 1_000_000_000n + fracBig;
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   fetchAllLaunchEvents,
   fetchLaunchpadAccount,
@@ -86,7 +87,7 @@ export default async function AgentsPage() {
   return (
     <div className="mx-auto max-w-7xl px-5 py-12 md:px-8">
       <AutoRefresh intervalMs={20_000} />
-      <header className="mb-8 flex items-end justify-between gap-4 border-b border-border pb-5">
+      <header className="mb-8 flex flex-col gap-5 border-b border-border pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="font-display text-4xl tracking-tight text-phosphor glow-amber md:text-5xl">
             agents directory
@@ -98,9 +99,16 @@ export default async function AgentsPage() {
             agents. Read live from Sui testnet.
           </p>
         </div>
-        <div className="hidden text-right text-[11px] uppercase tracking-[0.2em] text-phosphor-faint md:block">
-          <div>{rows.length} agent{rows.length === 1 ? "" : "s"}</div>
-          <div>auto-refresh · 20s</div>
+        <div className="flex flex-col items-start gap-2 md:items-end">
+          <Link
+            href="/start"
+            className="border border-amber/70 bg-amber/10 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-amber-bright hover:bg-amber/20"
+          >
+            launch your own agent →
+          </Link>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-phosphor-faint">
+            {rows.length} agent{rows.length === 1 ? "" : "s"} · auto-refresh · 20s
+          </div>
         </div>
       </header>
 

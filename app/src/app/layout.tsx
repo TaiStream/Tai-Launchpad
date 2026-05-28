@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import HeaderTicker from "@/components/HeaderTicker";
+import NetworkBanner from "@/components/NetworkBanner";
 import WalletProvider from "@/components/WalletProvider";
 
 const plexMono = IBM_Plex_Mono({
@@ -77,6 +78,7 @@ export default function RootLayout({
         <WalletProvider>
           <HeaderTicker />
           <Nav />
+          <NetworkBanner />
           <main className="relative z-10 min-h-[calc(100vh-180px)]">{children}</main>
           <Footer />
         </WalletProvider>

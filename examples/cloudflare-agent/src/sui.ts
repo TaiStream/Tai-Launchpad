@@ -10,13 +10,14 @@ const SERVICE_PAYMENT_EVENT_SUFFIX = "::launchpad::ServicePaymentEvent";
 export interface VerifiedPayment {
     /** Sui address that paid. */
     payer: string;
-    /** Amount in MIST. */
-    suiAmount: number;
+    /** Amount in MIST. BigInt to preserve full u64 precision (JS `number`
+     *  loses precision above 2^53 ≈ 9 quadrillion MIST). */
+    suiAmount: bigint;
     /** Whether Tai counted this toward the cred multiplier. False for
      *  self-payments (payer === account.creator). */
     countedTowardCred: boolean;
     /** Lifetime SUI revenue AFTER this payment, as reported by the event. */
-    newLifetimeRevenueSui: number;
+    newLifetimeRevenueSui: bigint;
     /** Move-side `clock::timestamp_ms` at the payment. */
     paymentTimestampMs: number;
 }
@@ -26,8 +27,8 @@ export interface VerifyOptions {
     rpcUrl: string;
     /** LaunchpadAccount<T> object id the payment must reference. */
     launchpadAccountId: string;
-    /** Minimum acceptable payment in MIST. */
-    minPaymentMist: number;
+    /** Minimum acceptable payment in MIST. BigInt to preserve u64 precision. */
+    minPaymentMist: bigint;
     /** Max age of the payment in seconds (anti-replay-ish). */
     freshnessSeconds: number;
     /** Optional: require counted_toward_cred == true (rejects self-payments). */
@@ -86,8 +87,15 @@ export async function verifyServicePayment(
     }
 
     const parsed = event.parsedJson;
-    const suiAmount = Number(parsed.sui_amount ?? "0");
-    if (!Number.isFinite(suiAmount) || suiAmount <= 0) {
+    // u64 values arrive as decimal strings — parse as BigInt to preserve
+    // full precision against the on-chain u64.
+    let suiAmount: bigint;
+    try {
+        suiAmount = BigInt(String(parsed.sui_amount ?? "0"));
+    } catch {
+        throw new PaymentVerificationError("event has malformed SUI amount", parsed);
+    }
+    if (suiAmount <= 0n) {
         throw new PaymentVerificationError("event has no SUI amount", parsed);
     }
 
@@ -118,11 +126,18 @@ export async function verifyServicePayment(
         );
     }
 
+    let newLifetimeRevenueSui: bigint;
+    try {
+        newLifetimeRevenueSui = BigInt(String(parsed.new_lifetime_revenue_sui ?? "0"));
+    } catch {
+        newLifetimeRevenueSui = 0n;
+    }
+
     return {
         payer: String(parsed.payer),
         suiAmount,
         countedTowardCred,
-        newLifetimeRevenueSui: Number(parsed.new_lifetime_revenue_sui ?? "0"),
+        newLifetimeRevenueSui,
         paymentTimestampMs,
     };
 }

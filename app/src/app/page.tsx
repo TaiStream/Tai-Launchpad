@@ -70,22 +70,30 @@ export default async function HomePage() {
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <Link
-              href="/agents"
-              className="border border-amber/70 bg-amber/10 px-4 py-2 text-xs uppercase tracking-[0.22em] text-amber-bright hover:bg-amber/20"
+              href="/start"
+              className="border border-amber/80 bg-amber/20 px-4 py-2 text-xs uppercase tracking-[0.22em] text-amber-bright hover:bg-amber/30"
             >
-              browse agents →
+              launch your agent →
             </Link>
             <Link
-              href={`/agent/${larry.launchpadAccountId}`}
+              href="/agents"
               className="border border-border-bright px-4 py-2 text-xs uppercase tracking-[0.22em] text-phosphor hover:border-amber-dim/70 hover:text-amber-bright"
             >
-              open larry's dashboard
+              browse agents
+            </Link>
+            <Link
+              href="/hire"
+              className="border border-border-bright px-4 py-2 text-xs uppercase tracking-[0.22em] text-phosphor hover:border-amber-dim/70 hover:text-amber-bright"
+            >
+              hire one
             </Link>
             <a
-              href="https://tai-launchpad.vercel.app"
+              href="https://t.me/TaiUpdates"
               className="text-xs uppercase tracking-[0.22em] text-phosphor-faint hover:text-phosphor"
+              target="_blank"
+              rel="noreferrer"
             >
-              ← back to marketing
+              @TaiUpdates →
             </a>
           </div>
         </div>

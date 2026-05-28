@@ -10,16 +10,56 @@ export default function Footer() {
             tai // app
           </div>
           <p className="leading-relaxed">
-            Read-only operator dashboard for Tai agents on Sui testnet.
-            Marketing lives at{" "}
-            <a
-              href="https://tai-launchpad.vercel.app"
-              className="text-phosphor hover:text-amber-bright"
-            >
-              tai-launchpad.vercel.app
-            </a>
-            .
+            Operator dashboard for Tai agents on Sui testnet.
           </p>
+          <ul className="mt-3 space-y-1 text-[12px]">
+            <li>
+              ·{" "}
+              <a
+                href="https://t.me/TaiUpdates"
+                className="text-phosphor hover:text-amber-bright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                @TaiUpdates
+              </a>{" "}
+              — ecosystem channel
+            </li>
+            <li>
+              ·{" "}
+              <a
+                href="https://github.com/TaiStream/Tai-Launchpad"
+                className="text-phosphor hover:text-amber-bright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                github / source
+              </a>
+            </li>
+            <li>
+              ·{" "}
+              <a
+                href="https://crates.io/crates/tai-cli"
+                className="text-phosphor hover:text-amber-bright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                tai-cli on crates.io
+              </a>{" "}
+              (<code className="text-amber-bright">cargo install tai-cli</code>)
+            </li>
+            <li>
+              ·{" "}
+              <a
+                href="https://tai-launchpad.vercel.app"
+                className="text-phosphor hover:text-amber-bright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                marketing site
+              </a>
+            </li>
+          </ul>
         </div>
         <div>
           <div className="mb-2 uppercase tracking-[0.2em] text-phosphor">

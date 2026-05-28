@@ -479,6 +479,11 @@ export default async function AgentPage({
             packageVersion={account.packageVersion}
             decimals={account.decimals}
             symbol={symbol}
+            realSui={account.realSui}
+            realToken={account.realToken}
+            virtualSui={account.virtualSui}
+            virtualToken={account.virtualToken}
+            tradeFeeBps={config.tradeFeeBps}
           />
         </Panel>
       </section>

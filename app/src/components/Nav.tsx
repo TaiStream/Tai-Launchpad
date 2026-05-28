@@ -15,18 +15,28 @@ export default function Nav() {
           </span>
         </Link>
         <div className="flex items-center gap-5 text-xs uppercase tracking-[0.18em] text-phosphor-dim">
-          <Link href="/" className="hover:text-phosphor">
-            home
-          </Link>
           <Link href="/agents" className="hover:text-phosphor">
             agents
           </Link>
           <Link href="/hire" className="hover:text-phosphor">
             hire
           </Link>
+          <Link href="/start" className="text-amber-bright hover:text-amber-bright/80">
+            start →
+          </Link>
+          <a
+            href="https://t.me/TaiUpdates"
+            className="hidden hover:text-phosphor md:inline"
+            target="_blank"
+            rel="noreferrer"
+          >
+            telegram
+          </a>
           <a
             href="https://github.com/TaiStream/Tai-Launchpad"
             className="hidden hover:text-phosphor md:inline"
+            target="_blank"
+            rel="noreferrer"
           >
             github
           </a>

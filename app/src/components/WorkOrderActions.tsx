@@ -96,7 +96,7 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
     }
 
     function onAccept(asOperator: boolean) {
-        if (!isHex(capId, 0x20)) {
+        if (!isHex(capId, 32)) {
             setResult({
                 kind: "err",
                 message: "paste the cap object id (0x-hex, 32 bytes) first",
@@ -115,14 +115,23 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
     }
 
     function onSubmit(asOperator: boolean) {
-        if (!isHex(capId, 0x20)) {
+        if (!isHex(capId, 32)) {
             setResult({
                 kind: "err",
                 message: "paste the cap object id first",
             });
             return;
         }
-        const bytes = parseHex(receiptHex);
+        let bytes: Uint8Array;
+        try {
+            bytes = parseHex(receiptHex);
+        } catch (err) {
+            setResult({
+                kind: "err",
+                message: `receipt hash invalid — ${errorMessage(err)}`,
+            });
+            return;
+        }
         const tx = build(
             asOperator ? "submit_receipt_with_operator" : "submit_receipt_with_owner",
             [

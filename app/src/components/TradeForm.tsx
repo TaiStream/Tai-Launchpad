@@ -9,6 +9,7 @@ import {
 import { Transaction } from "@mysten/sui/transactions";
 import { TAI, suiscan, type TaiPackageInfo } from "@/lib/config";
 import { mistToSui } from "@/lib/format";
+import { computeBuy, computeSell } from "@/lib/tai";
 
 /**
  * Buy / sell tabs on the agent dashboard. Builds a one-PTB tx that either:
@@ -36,12 +37,22 @@ export default function TradeForm({
     packageVersion,
     decimals,
     symbol,
+    realSui,
+    realToken,
+    virtualSui,
+    virtualToken,
+    tradeFeeBps,
 }: {
     launchpadAccountId: string;
     coinType: string;
     packageVersion: string;
     decimals: number;
     symbol: string;
+    realSui: bigint;
+    realToken: bigint;
+    virtualSui: bigint;
+    virtualToken: bigint;
+    tradeFeeBps: bigint;
 }) {
     const account = useCurrentAccount();
     const suiClient = useSuiClient();
@@ -90,6 +101,45 @@ export default function TradeForm({
 
     const pkg = useMemo(() => packageFor(packageVersion), [packageVersion]);
 
+    // Live estimate of trade output. Recomputes as the user types.
+    // For `buy`: SUI in → estimated tokens out.
+    // For `sell`: tokens in → estimated SUI out.
+    const estimate = useMemo(() => {
+        try {
+            if (side === "buy") {
+                const mist = parseSuiToMist(amount);
+                if (mist <= 0n) return null;
+                const { tokensOut, fee } = computeBuy(
+                    realSui, realToken, virtualSui, virtualToken,
+                    mist, tradeFeeBps,
+                );
+                return { kind: "buy" as const, tokensOut, fee, suiIn: mist };
+            } else {
+                const tok = parseUnits(amount, decimals);
+                if (tok <= 0n) return null;
+                const { suiOut, fee } = computeSell(
+                    realSui, realToken, virtualSui, virtualToken,
+                    tok, tradeFeeBps,
+                );
+                return { kind: "sell" as const, suiOut, fee, tokensIn: tok };
+            }
+        } catch {
+            return null;
+        }
+    }, [side, amount, decimals, realSui, realToken, virtualSui, virtualToken, tradeFeeBps]);
+
+    // Slippage-protected minimum-out: estimate * (10_000 - slippageBps) / 10_000.
+    const slippageBps = useMemo(() => {
+        const pct = Math.min(100, Math.max(0, Number(slippagePct) || 0));
+        return BigInt(Math.floor(pct * 100));
+    }, [slippagePct]);
+
+    const minOut = useMemo(() => {
+        if (!estimate) return 0n;
+        const exact = estimate.kind === "buy" ? estimate.tokensOut : estimate.suiOut;
+        return (exact * (10_000n - slippageBps)) / 10_000n;
+    }, [estimate, slippageBps]);
+
     if (!account) {
         return (
             <div className="border border-dashed border-border-bright bg-surface/40 p-5 text-[12.5px] text-phosphor-dim">
@@ -115,11 +165,6 @@ export default function TradeForm({
                 const mist = parseSuiToMist(amount);
                 if (mist <= 0n) throw new Error("amount must be > 0");
                 const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(mist)]);
-                // We could simulate the call to compute exact minTokensOut.
-                // For v1 we just take an N% slippage on a rough estimate of 0
-                // (no simulation) — passing 0 effectively disables slippage.
-                // Slippage UI is reserved for a follow-up that simulates first.
-                const minOut = slippage === 0 ? 0n : 0n;
                 tx.moveCall({
                     target: `${pkg.packageId}::launchpad::buy`,
                     typeArguments: [coinType],
@@ -127,13 +172,18 @@ export default function TradeForm({
                         tx.object(pkg.configId),
                         tx.object(launchpadAccountId),
                         coin,
-                        tx.pure.u64(minOut),
+                        tx.pure.u64(minOut), // local curve sim × slippage
                         tx.object("0x6"),
                     ],
                 });
             } else {
                 const tokenUnits = parseUnits(amount, decimals);
                 if (tokenUnits <= 0n) throw new Error("amount must be > 0");
+                if (tokenBalance !== null && tokenUnits > tokenBalance) {
+                    throw new Error(
+                        `not enough ${symbol} in wallet (have ${unitsToString(tokenBalance, decimals, 4)}, need ${unitsToString(tokenUnits, decimals, 4)})`,
+                    );
+                }
                 // Find the wallet's Coin<T> objects, merge into one, split the user amount.
                 const owned = await suiClient.getCoins({
                     owner: account.address,
@@ -151,7 +201,6 @@ export default function TradeForm({
                     );
                 }
                 const [tokens] = tx.splitCoins(primaryArg, [tx.pure.u64(tokenUnits)]);
-                const minOut = 0n; // simulate-then-set is a v1.2 feature
                 tx.moveCall({
                     target: `${pkg.packageId}::launchpad::sell`,
                     typeArguments: [coinType],
@@ -256,6 +305,39 @@ export default function TradeForm({
                     />
                 </Field>
             </div>
+            {/* Live curve estimate — recomputes as you type */}
+            {estimate && (
+                <div className="border border-border bg-base/60 px-3 py-2 text-[12px] tabular text-phosphor-dim">
+                    {estimate.kind === "buy" ? (
+                        <>
+                            <span className="text-phosphor-faint">est. receive</span>{" "}
+                            <span className="text-green-bright">
+                                ≈ {unitsToString(estimate.tokensOut, decimals, 2)} {symbol}
+                            </span>
+                            <span className="text-phosphor-faint"> · fee </span>
+                            <span>{mistToSui(estimate.fee, 5)} SUI</span>
+                            <span className="text-phosphor-faint"> · min after slippage </span>
+                            <span className="text-amber-bright">
+                                {unitsToString(minOut, decimals, 2)} {symbol}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="text-phosphor-faint">est. receive</span>{" "}
+                            <span className="text-amber-bright">
+                                ≈ {mistToSui(estimate.suiOut, 5)} SUI
+                            </span>
+                            <span className="text-phosphor-faint"> · fee </span>
+                            <span>{mistToSui(estimate.fee, 5)} SUI</span>
+                            <span className="text-phosphor-faint"> · min after slippage </span>
+                            <span className="text-amber-bright">
+                                {mistToSui(minOut, 5)} SUI
+                            </span>
+                        </>
+                    )}
+                </div>
+            )}
+
             <div className="flex items-center justify-between">
                 <span className="text-[10.5px] uppercase tracking-[0.18em] text-phosphor-faint">
                     {side === "buy"
@@ -315,10 +397,15 @@ function parseSuiToMist(s: string): bigint {
 
 function parseUnits(s: string, decimals: number): bigint {
     const trimmed = s.trim();
-    if (!trimmed) return 0n;
+    if (trimmed.length === 0) return 0n;
+    // Reject scientific notation, signs, and multi-dot inputs to match the
+    // strict numeric form the form labels promise.
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+        throw new Error(`invalid amount "${s}"`);
+    }
     const [whole, frac = ""] = trimmed.split(".");
     const fracPadded = (frac + "0".repeat(decimals)).slice(0, decimals);
-    const wholeBig = BigInt(whole || "0");
+    const wholeBig = BigInt(whole);
     const fracBig = BigInt(fracPadded || "0");
     return wholeBig * 10n ** BigInt(decimals) + fracBig;
 }

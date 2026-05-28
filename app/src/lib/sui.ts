@@ -16,15 +16,32 @@ type JsonRpcResponse<T> = {
 
 let nextId = 1;
 
+/** Per-request timeout for Sui RPC calls. Public testnet fullnodes can be
+ *  flaky; we'd rather fail fast and let the page re-poll than hang. */
+const RPC_TIMEOUT_MS = 20_000;
+
 async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(SUI_RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: nextId++, method, params }),
-    // Each request is one round-trip to a public RPC; no point caching at
-    // the framework level. Callers throttle via revalidate / poll cadence.
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(SUI_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: nextId++, method, params }),
+      // Each request is one round-trip to a public RPC; no point caching at
+      // the framework level. Callers throttle via revalidate / poll cadence.
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`Sui RPC timeout (${RPC_TIMEOUT_MS}ms) on ${method}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new Error(`Sui RPC HTTP ${res.status} on ${method}`);
   const body: JsonRpcResponse<T> = await res.json();
   if (body.error) {

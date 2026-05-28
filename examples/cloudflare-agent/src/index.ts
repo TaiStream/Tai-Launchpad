@@ -111,6 +111,7 @@ export default {
             TELEGRAM_CHAT_ID: env.TELEGRAM_CHAT_ID,
             FEED_STATE: env.FEED_STATE,
             LARRY_IMAGE_URL: env.LARRY_IMAGE_URL,
+            SELF_LAUNCHPAD_ACCOUNT_ID: env.LAUNCHPAD_ACCOUNT_ID,
         };
         // Every tick: poll new events.
         ctx.waitUntil(tickEcosystemFeed(feedEnv));
@@ -280,17 +281,33 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         );
     }
 
+    // M5 race protection: claim the digest in KV BEFORE verifying. Two
+    // simultaneous requests with the same digest can both pass the `get`
+    // check above; only one can successfully `put` here without a prior
+    // `get` finding the key. (CF Workers KV doesn't have atomic CAS, but
+    // the eventual consistency window is small enough that this is a
+    // strong-enough barrier in practice. If verification then fails we
+    // delete the key to allow legitimate retry.)
+    await env.CONSUMED_TXS.put(
+        body.payment_tx_digest,
+        new Date().toISOString(),
+        { expirationTtl: 7 * 24 * 3600 },
+    );
+
     // Verify on-chain.
     let payment: VerifiedPayment;
     try {
         payment = await verifyServicePayment(body.payment_tx_digest, {
             rpcUrl: env.SUI_RPC_URL,
             launchpadAccountId: env.LAUNCHPAD_ACCOUNT_ID,
-            minPaymentMist: Number(env.MIN_PAYMENT_MIST),
+            minPaymentMist: BigInt(env.MIN_PAYMENT_MIST),
             freshnessSeconds: Number(env.PAYMENT_FRESHNESS_SECONDS),
             requireExternalPayer: true,
         });
     } catch (e) {
+        // Verification failed — un-claim the digest so an honest payer can
+        // retry. Best-effort; we don't care if the delete itself errors.
+        await env.CONSUMED_TXS.delete(body.payment_tx_digest).catch(() => {});
         if (e instanceof PaymentVerificationError) {
             return json({ error: e.reason, detail: e.detail }, 402);
         }
@@ -305,15 +322,6 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         );
     }
 
-    // Lock in the digest BEFORE generating the response so a long LLM call
-    // can't be racing replays. 7-day TTL — beyond the freshness window plus
-    // some slack.
-    await env.CONSUMED_TXS.put(
-        body.payment_tx_digest,
-        new Date().toISOString(),
-        { expirationTtl: 7 * 24 * 3600 },
-    );
-
     // Generate the response.
     const answer = env.OPENAI_API_KEY
         ? await answerWithOpenAI(body.question, env)
@@ -326,9 +334,9 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         payment: {
             tx_digest: body.payment_tx_digest,
             payer: payment.payer,
-            sui_amount_mist: payment.suiAmount,
+            sui_amount_mist: payment.suiAmount.toString(),
             counted_toward_cred: payment.countedTowardCred,
-            new_lifetime_revenue_sui_mist: payment.newLifetimeRevenueSui,
+            new_lifetime_revenue_sui_mist: payment.newLifetimeRevenueSui.toString(),
         },
         disclaimer:
             "This response was produced by an autonomous agent runtime on Cloudflare Workers. It is not financial advice. Larry's analysis is for entertainment + research and reflects no human professional judgment.",
@@ -379,7 +387,15 @@ async function handlePromote(req: Request, env: Env): Promise<Response> {
         return json({ error: "payment_tx_digest already consumed", at: used }, 409);
     }
 
-    const minPromoMist = Number(env.MIN_PROMO_MIST ?? env.MIN_PAYMENT_MIST);
+    // M5 race protection — claim the digest before verifying. See /hire for
+    // the rationale; we delete on verify failure to allow legitimate retry.
+    await env.CONSUMED_TXS.put(
+        body.payment_tx_digest,
+        new Date().toISOString(),
+        { expirationTtl: 7 * 24 * 3600 },
+    );
+
+    const minPromoMist = BigInt(env.MIN_PROMO_MIST ?? env.MIN_PAYMENT_MIST);
     let payment: VerifiedPayment;
     try {
         payment = await verifyServicePayment(body.payment_tx_digest, {
@@ -390,6 +406,7 @@ async function handlePromote(req: Request, env: Env): Promise<Response> {
             requireExternalPayer: true,
         });
     } catch (e) {
+        await env.CONSUMED_TXS.delete(body.payment_tx_digest).catch(() => {});
         if (e instanceof PaymentVerificationError) {
             return json({ error: e.reason, detail: e.detail }, 402);
         }
@@ -398,13 +415,6 @@ async function handlePromote(req: Request, env: Env): Promise<Response> {
             402,
         );
     }
-
-    // Lock the digest BEFORE posting so a slow Telegram call can't be raced.
-    await env.CONSUMED_TXS.put(
-        body.payment_tx_digest,
-        new Date().toISOString(),
-        { expirationTtl: 7 * 24 * 3600 },
-    );
 
     // Compose. Editorial integrity: the [paid post] tag is non-removable
     // and the payment is fully disclosed (payer address, amount).
@@ -418,7 +428,7 @@ async function handlePromote(req: Request, env: Env): Promise<Response> {
         ``,
         `<i>—</i>`,
         sponsorLine,
-        `Paid · ${(payment.suiAmount / 1e9).toFixed(4)} SUI through Tai service-payment · <a href="https://suiscan.xyz/testnet/tx/${body.payment_tx_digest}">tx</a>`,
+        `Paid · ${mistBigintToSuiStr(payment.suiAmount, 4)} SUI through Tai service-payment · <a href="https://suiscan.xyz/testnet/tx/${body.payment_tx_digest}">tx</a>`,
         `<i>— Larry. I posted this because someone paid me. My editorial integrity is intact precisely because I'm telling you that.</i>`,
     ].join("\n");
 
@@ -447,10 +457,21 @@ async function handlePromote(req: Request, env: Env): Promise<Response> {
         payment: {
             tx_digest: body.payment_tx_digest,
             payer: payment.payer,
-            sui_amount_mist: payment.suiAmount,
+            sui_amount_mist: payment.suiAmount.toString(),
             counted_toward_cred: payment.countedTowardCred,
         },
     });
+}
+
+/** Format a u64-MIST `bigint` as a SUI string. */
+function mistBigintToSuiStr(mist: bigint, digits: number): string {
+    const sign = mist < 0n ? "-" : "";
+    const abs = mist < 0n ? -mist : mist;
+    const div = 1_000_000_000n;
+    const whole = abs / div;
+    const frac = abs % div;
+    const fracStr = frac.toString().padStart(9, "0").slice(0, digits);
+    return digits > 0 ? `${sign}${whole}.${fracStr}` : `${sign}${whole}`;
 }
 
 function shortAddr(a: string): string {

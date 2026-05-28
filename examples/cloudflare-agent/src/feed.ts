@@ -65,6 +65,13 @@ const EVENT_KINDS: { kind: EventKind; module: string }[] = [
 const MIN_TRADE_MIST = 50_000_000;          // 0.05 SUI
 const MIN_SERVICE_PAYMENT_MIST = 10_000_000; // 0.01 SUI
 
+// Per-tick post cap. Larry queries 30 events per (package, kind) — with 3
+// packages × 6 event types that's up to 540 events on a cold start. Telegram
+// rate-limits at ~20 msg/min/channel. Cap posts per tick so we don't fight
+// the rate limit; events that exceed the cap get marked-as-seen *without*
+// posting to avoid an unbounded backlog.
+const MAX_POSTS_PER_TICK = 6;
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Public entry points
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +84,8 @@ export interface FeedEnv {
     FEED_STATE: KVNamespace;
     /** Optional override for the post image. Defaults to Larry's mascot. */
     LARRY_IMAGE_URL?: string;
+    /** Larry's own launchpad account id, so we can tag self-events. */
+    SELF_LAUNCHPAD_ACCOUNT_ID?: string;
 }
 
 /** Per-tick polling — collect new events, post each in Larry's voice. */
@@ -89,12 +98,22 @@ export async function tickEcosystemFeed(env: FeedEnv): Promise<void> {
     const events = await collectNewEvents(env);
     // Post oldest-first so the channel reads chronologically.
     events.sort((a, b) => Number(a.timestampMs) - Number(b.timestampMs));
+
+    let posted = 0;
     for (const ev of events) {
-        const message = renderEvent(ev);
+        const message = renderEvent(ev, env.SELF_LAUNCHPAD_ACCOUNT_ID);
         if (!message) continue;
+        if (posted >= MAX_POSTS_PER_TICK) {
+            // Excess events on a cold start: mark seen without posting so
+            // the cron doesn't repeat them next tick. We deliberately
+            // sacrifice old events when the queue is over the cap.
+            await markSeen(env.FEED_STATE, ev);
+            continue;
+        }
         try {
             await sendPhoto(tg, imageUrl, message);
             await markSeen(env.FEED_STATE, ev);
+            posted++;
         } catch (e) {
             // Don't mark as seen — let the next tick retry.
             console.error("telegram send failed", e);
@@ -196,21 +215,33 @@ async function queryEvents(
 //  Formatting (Larry's voice)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function renderEvent(ev: RawEvent): string | null {
+function renderEvent(ev: RawEvent, selfLaunchpadId?: string): string | null {
+    const isSelf = (id: unknown) =>
+        typeof selfLaunchpadId === "string" &&
+        typeof id === "string" &&
+        normalizeAddress(id) === normalizeAddress(selfLaunchpadId);
     switch (ev.kind) {
         case "LaunchEvent":
             return renderLaunch(ev);
         case "TradeEvent":
-            return renderTrade(ev);
+            return renderTrade(ev, isSelf(ev.parsed["launchpad_id"]));
         case "ServicePaymentEvent":
-            return renderServicePayment(ev);
+            return renderServicePayment(ev, isSelf(ev.parsed["launchpad_id"]));
         case "WorkOrderCreatedEvent":
-            return renderWorkOrderCreated(ev);
+            return renderWorkOrderCreated(ev, isSelf(ev.parsed["payee_launchpad_account_id"]));
         case "WorkOrderReleasedEvent":
-            return renderWorkOrderReleased(ev);
+            return renderWorkOrderReleased(ev, isSelf(ev.parsed["payee_launchpad_account_id"]));
         case "WorkOrderDisputedEvent":
             return renderWorkOrderDisputed(ev);
     }
+}
+
+/** Sui addresses round-trip with or without 0x prefix and with leading-zero
+ *  compression. Normalize to lowercase, 0x-prefixed, 64-char hex. */
+function normalizeAddress(a: string): string {
+    let h = a.trim().toLowerCase();
+    if (h.startsWith("0x")) h = h.slice(2);
+    return "0x" + h.padStart(64, "0");
 }
 
 function renderLaunch(ev: RawEvent): string {
@@ -231,7 +262,7 @@ function renderLaunch(ev: RawEvent): string {
     ].join("\n");
 }
 
-function renderTrade(ev: RawEvent): string | null {
+function renderTrade(ev: RawEvent, isSelf: boolean): string | null {
     const p = ev.parsed;
     const isBuy = p["is_buy"] === true;
     const sui = isBuy
@@ -246,8 +277,9 @@ function renderTrade(ev: RawEvent): string | null {
     const fee = BigInt(String(p["fee_sui"] ?? "0"));
     const realSui = BigInt(String(p["new_real_sui_balance"] ?? "0"));
     const verb = isBuy ? "bought into" : "sold out of";
+    const selfTag = isSelf ? " <i>(that's me)</i>" : "";
     return [
-        `<b>Someone ${verb} an agent.</b>`,
+        `<b>Someone ${verb} an agent.</b>${selfTag}`,
         ``,
         `${isBuy ? "Paid" : "Received"} · ${mistToSui(sui)} SUI`,
         `${isBuy ? "Got" : "Sold"} · ${formatTokens(tokens)} tokens`,
@@ -261,7 +293,7 @@ function renderTrade(ev: RawEvent): string | null {
     ].join("\n");
 }
 
-function renderServicePayment(ev: RawEvent): string | null {
+function renderServicePayment(ev: RawEvent, isSelf: boolean): string | null {
     const p = ev.parsed;
     const sui = BigInt(String(p["sui_amount"] ?? "0"));
     if (sui < BigInt(MIN_SERVICE_PAYMENT_MIST)) return null;
@@ -269,8 +301,9 @@ function renderServicePayment(ev: RawEvent): string | null {
     const payer = String(p["payer"] ?? "?");
     const counted = p["counted_toward_cred"] === true;
     const lifetime = BigInt(String(p["new_lifetime_revenue_sui"] ?? "0"));
+    const selfTag = isSelf ? " <i>(that's me)</i>" : "";
     return [
-        `<b>An agent just got hired.</b>`,
+        `<b>An agent just got hired.</b>${selfTag}`,
         ``,
         `Amount · ${mistToSui(sui, 4)} SUI`,
         `Lifetime · ${mistToSui(lifetime, 4)} SUI ${counted ? "" : "<i>(self-payment — NAV grew, cred did not)</i>"}`,
@@ -282,15 +315,16 @@ function renderServicePayment(ev: RawEvent): string | null {
     ].join("\n");
 }
 
-function renderWorkOrderCreated(ev: RawEvent): string {
+function renderWorkOrderCreated(ev: RawEvent, isSelf: boolean): string {
     const p = ev.parsed;
     const amount = BigInt(String(p["amount"] ?? "0"));
     const workOrderId = String(p["work_order_id"]);
     const launchpadId = String(p["payee_launchpad_account_id"]);
     const buyer = String(p["buyer"] ?? "?");
     const disputeMs = Number(String(p["dispute_window_ms"] ?? "0"));
+    const selfTag = isSelf ? " <i>(for me)</i>" : "";
     return [
-        `<b>A new escrow hire just landed.</b>`,
+        `<b>A new escrow hire just landed.</b>${selfTag}`,
         ``,
         `Locked · ${mistToSui(amount, 4)} SUI`,
         `Dispute window · ${formatDuration(disputeMs)}`,
@@ -302,13 +336,14 @@ function renderWorkOrderCreated(ev: RawEvent): string {
     ].join("\n");
 }
 
-function renderWorkOrderReleased(ev: RawEvent): string {
+function renderWorkOrderReleased(ev: RawEvent, isSelf: boolean): string {
     const p = ev.parsed;
     const amount = BigInt(String(p["amount"] ?? "0"));
     const workOrderId = String(p["work_order_id"]);
     const launchpadId = String(p["payee_launchpad_account_id"]);
+    const selfTag = isSelf ? " <i>(to me)</i>" : "";
     return [
-        `<b>An escrow just released.</b>`,
+        `<b>An escrow just released.</b>${selfTag}`,
         ``,
         `Routed · ${mistToSui(amount, 4)} SUI through the service-payment split.`,
         `Agent's NAV grew. Cred ticked up. Everyone went home.`,
