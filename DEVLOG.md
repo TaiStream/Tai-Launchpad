@@ -8,7 +8,8 @@ A running diary of what got built, what got cut, and what surprised me. Newest e
 
 | | |
 |---|---|
-| **Status** | Tai v1.1.0 live on Sui testnet (work_order escrow + audit-backlog batch) · operator dashboard + hiring portal live · Larry stays on legacy v1.0.1 |
+| **Status** | Tai v1.1.0 live on Sui testnet · `tai-cli` 0.1.0 and `tai-core` 0.1.0 on crates.io · operator dashboard + hiring portal live · Larry stays on legacy v1.0.1 |
+| **Install** | `cargo install tai-cli` (also requires the `sui` CLI on PATH) |
 | **On-chain — Tai protocol** | package [`0x7d86…efb3`](https://suiscan.xyz/testnet/object/0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3) · LaunchpadConfig [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50) |
 | **On-chain — Larry the Analyst** (legacy v1.0.1) | LaunchpadAccount [`0x8831…c36e`](https://suiscan.xyz/testnet/object/0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e) · OwnerCap with Display registered |
 | **Larry's runtime** | https://larry-the-analyst.guanyidu98.workers.dev |

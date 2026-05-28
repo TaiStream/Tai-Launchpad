@@ -86,7 +86,9 @@ jobs:
   publish-tai-core:
     name: Publish tai-core
     needs: verify
-    if: ${{ ! inputs.skip_tai_core }}
+    # `inputs.skip_tai_core` is null on tag-triggered runs; we evaluate
+    # to false in that case so tag-triggered runs always publish tai-core.
+    if: ${{ inputs.skip_tai_core != true }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,19 +102,21 @@ jobs:
           workspaces: rust
 
       - name: Publish tai-core (dry-run)
-        if: ${{ inputs.dry_run }}
+        if: ${{ inputs.dry_run == true }}
         working-directory: rust/tai-core
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --dry-run
 
       - name: Publish tai-core
-        if: ${{ ! inputs.dry_run }}
+        if: ${{ inputs.dry_run != true }}
         working-directory: rust/tai-core
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
 
       - name: Wait for crates.io index sync
-        if: ${{ ! inputs.dry_run }}
+        if: ${{ inputs.dry_run != true }}
         run: |
           echo "Sleeping 60 s so crates.io's sparse index sees the new tai-core version..."
           sleep 60
@@ -139,12 +143,14 @@ jobs:
           workspaces: rust
 
       - name: Publish tai-cli (dry-run)
-        if: ${{ inputs.dry_run }}
+        if: ${{ inputs.dry_run == true }}
         working-directory: rust/tai-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --dry-run
 
       - name: Publish tai-cli
-        if: ${{ ! inputs.dry_run }}
+        if: ${{ inputs.dry_run != true }}
         working-directory: rust/tai-cli
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -153,9 +159,11 @@ jobs:
   github-release:
     name: Create GitHub Release
     needs: [verify, publish-tai-cli]
+    # Only fire on tag-triggered real publishes — dispatch runs never
+    # create a Release (you can do that by hand in the GitHub UI).
     if: |
-      ${{ ! inputs.dry_run }} &&
       github.event_name == 'push' &&
+      inputs.dry_run != true &&
       needs.publish-tai-cli.result == 'success'
     runs-on: ubuntu-latest
     permissions:
@@ -168,6 +176,8 @@ jobs:
           name: Tai ${{ github.ref_name }}
           body: |
             `tai-core` and `tai-cli` ${{ needs.verify.outputs.version }} published to crates.io.
+
+            Install: `cargo install tai-cli`
 
             See [DEVLOG.md](https://github.com/TaiStream/Tai-Launchpad/blob/main/DEVLOG.md) for what's in this release.
           generate_release_notes: true

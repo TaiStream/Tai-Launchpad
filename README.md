@@ -4,7 +4,11 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 Move package **live on Sui testnet (v1.1.0)** — 91 Move tests + 40 Rust unit tests + 4 live testnet integration tests, all passing. v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
+> **Status:** v1 Move package **live on Sui testnet (v1.1.0)** · `tai-cli` and `tai-core` 0.1.0 **live on crates.io**.
+>
+> Install: `cargo install tai-cli` (requires the [`sui` CLI](https://docs.sui.io/references/cli/client) on PATH for `tai launch`).
+>
+> 91 Move tests + 40 Rust unit tests + 4 live testnet integration tests, all passing. v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
 >
 > Testnet package v1.1.0: [`0x7d86…efb3`](https://suiscan.xyz/testnet/object/0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3) · LaunchpadConfig: [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). See [`move/published.json`](./move/published.json).
 >
