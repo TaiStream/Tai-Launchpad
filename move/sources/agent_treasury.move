@@ -29,7 +29,20 @@ module tai::agent_treasury {
     const EOperatorCapExpired: u64 = 108;
     const EOperatorTargetNotAllowed: u64 = 109;
     const EOperatorDailyLimitExceeded: u64 = 115;
+    const EOperatorTtlTooLong: u64 = 116;
+    const EOperatorTargetsTooMany: u64 = 117;
+    const EOperatorCapNotActive: u64 = 118;
+    const EOperatorTokenDailyLimitExceeded: u64 = 119;
     const EInsufficientLiquidity: u64 = 120;
+
+    /// Maximum allowed TTL on an OperatorCap (1 year in milliseconds). Bounds
+    /// `now + operator_ttl_ms` arithmetic and forces explicit rotation cadence.
+    const MAX_OPERATOR_TTL_MS: u64 = 31_536_000_000;
+
+    /// Maximum allowed_targets length on an OperatorCap. Bounds the cost of
+    /// `contains` lookups on every spend. Sixty-four targets is generous —
+    /// a real agent rotates fewer counterparties through any given cap.
+    const MAX_ALLOWED_TARGETS: u64 = 64;
 
     public fun e_not_owner_cap(): u64 { ENotOwnerCap }
     public fun e_not_operator_cap(): u64 { ENotOperatorCap }
@@ -37,7 +50,13 @@ module tai::agent_treasury {
     public fun e_operator_cap_expired(): u64 { EOperatorCapExpired }
     public fun e_operator_target_not_allowed(): u64 { EOperatorTargetNotAllowed }
     public fun e_operator_daily_limit_exceeded(): u64 { EOperatorDailyLimitExceeded }
+    public fun e_operator_token_daily_limit_exceeded(): u64 { EOperatorTokenDailyLimitExceeded }
+    public fun e_operator_ttl_too_long(): u64 { EOperatorTtlTooLong }
+    public fun e_operator_targets_too_many(): u64 { EOperatorTargetsTooMany }
+    public fun e_operator_cap_not_active(): u64 { EOperatorCapNotActive }
     public fun e_insufficient_liquidity(): u64 { EInsufficientLiquidity }
+    public fun max_operator_ttl_ms(): u64 { MAX_OPERATOR_TTL_MS }
+    public fun max_allowed_targets(): u64 { MAX_ALLOWED_TARGETS }
 
     // ============================= Capabilities ============================
 
@@ -52,11 +71,17 @@ module tai::agent_treasury {
     /// Daily-ops capability with on-chain policy. Held by the agent's runtime
     /// (or a delegate). Spend limit + allowlist + TTL enforced by Move at
     /// every call to `operator_spend_sui` / `operator_spend_token`.
+    ///
+    /// Token spend has its own daily budget — denominated in the agent's
+    /// own coin base units. A cap with `daily_limit_token == 0` cannot
+    /// spend any token, only SUI.
     public struct OperatorCap<phantom T> has key, store {
         id: UID,
         agent_treasury_id: ID,
         daily_limit_sui: u64,
         spent_today_sui: u64,
+        daily_limit_token: u64,
+        spent_today_token: u64,
         epoch_day: u64,                  // floor(clock_ms / 86_400_000)
         allowed_targets: vector<address>,
         expires_at_ms: u64,              // 0 = no expiry
@@ -120,6 +145,8 @@ module tai::agent_treasury {
     public fun operator_cap_agent_treasury_id<T>(c: &OperatorCap<T>): ID { c.agent_treasury_id }
     public fun operator_cap_daily_limit<T>(c: &OperatorCap<T>): u64 { c.daily_limit_sui }
     public fun operator_cap_spent_today<T>(c: &OperatorCap<T>): u64 { c.spent_today_sui }
+    public fun operator_cap_daily_limit_token<T>(c: &OperatorCap<T>): u64 { c.daily_limit_token }
+    public fun operator_cap_spent_today_token<T>(c: &OperatorCap<T>): u64 { c.spent_today_token }
     public fun operator_cap_epoch_day<T>(c: &OperatorCap<T>): u64 { c.epoch_day }
     public fun operator_cap_allowed_targets<T>(c: &OperatorCap<T>): vector<address> {
         c.allowed_targets
@@ -141,6 +168,7 @@ module tai::agent_treasury {
         owner_cap_recipient: address,
         operator_recipient: Option<address>,
         operator_daily_limit_sui: u64,
+        operator_daily_limit_token: u64,
         operator_allowed_targets: vector<address>,
         operator_ttl_ms: u64,
         clock: &Clock,
@@ -166,6 +194,11 @@ module tai::agent_treasury {
         };
 
         if (operator_recipient.is_some()) {
+            assert!(operator_ttl_ms <= MAX_OPERATOR_TTL_MS, EOperatorTtlTooLong);
+            assert!(
+                operator_allowed_targets.length() <= MAX_ALLOWED_TARGETS,
+                EOperatorTargetsTooMany,
+            );
             let recipient = *operator_recipient.borrow();
             let op_cap_uid = object::new(ctx);
             let op_cap_id = op_cap_uid.to_inner();
@@ -176,6 +209,8 @@ module tai::agent_treasury {
                 agent_treasury_id: treasury_id,
                 daily_limit_sui: operator_daily_limit_sui,
                 spent_today_sui: 0,
+                daily_limit_token: operator_daily_limit_token,
+                spent_today_token: 0,
                 epoch_day: now / 86_400_000,
                 allowed_targets: operator_allowed_targets,
                 expires_at_ms: expires_at,
@@ -285,12 +320,18 @@ module tai::agent_treasury {
         owner_cap: &OwnerCap<T>,
         recipient: address,
         daily_limit_sui: u64,
+        daily_limit_token: u64,
         allowed_targets: vector<address>,
         ttl_ms: u64,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
         assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
+        assert!(ttl_ms <= MAX_OPERATOR_TTL_MS, EOperatorTtlTooLong);
+        assert!(
+            allowed_targets.length() <= MAX_ALLOWED_TARGETS,
+            EOperatorTargetsTooMany,
+        );
         let now = clock::timestamp_ms(clock);
         let expires_at = if (ttl_ms == 0) 0 else now + ttl_ms;
         let op_cap_uid = object::new(ctx);
@@ -300,6 +341,8 @@ module tai::agent_treasury {
             agent_treasury_id: object::id(treasury),
             daily_limit_sui,
             spent_today_sui: 0,
+            daily_limit_token,
+            spent_today_token: 0,
             epoch_day: now / 86_400_000,
             allowed_targets,
             expires_at_ms: expires_at,
@@ -316,6 +359,29 @@ module tai::agent_treasury {
         transfer::public_transfer(op_cap, recipient);
     }
 
+    /// OwnerCap-gated mutator for an existing OperatorCap's allowed_targets
+    /// vector. Lets the owner add/remove targets without revoking + reissuing.
+    /// The OperatorCap object must be passed by &mut so the holder still
+    /// owns it after this returns. Cap must be in the active set.
+    public fun update_operator_cap_targets<T>(
+        treasury: &mut AgentTreasury<T>,
+        owner_cap: &OwnerCap<T>,
+        op_cap: &mut OperatorCap<T>,
+        new_targets: vector<address>,
+    ) {
+        assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
+        assert!(op_cap.agent_treasury_id == object::id(treasury), ENotOperatorCap);
+        assert!(
+            treasury.active_operator_cap_ids.contains(&object::id(op_cap)),
+            EOperatorCapNotActive,
+        );
+        assert!(
+            new_targets.length() <= MAX_ALLOWED_TARGETS,
+            EOperatorTargetsTooMany,
+        );
+        op_cap.allowed_targets = new_targets;
+    }
+
     /// Remove an OperatorCap from the active set. The cap object itself
     /// stays in its holder's inventory but presenting it via spend functions
     /// will fail (EOperatorCapRevoked).
@@ -326,7 +392,7 @@ module tai::agent_treasury {
     ) {
         assert!(owner_cap.agent_treasury_id == object::id(treasury), ENotOwnerCap);
         let (found, idx) = treasury.active_operator_cap_ids.index_of(&cap_id);
-        assert!(found, EOperatorCapRevoked);
+        assert!(found, EOperatorCapNotActive);
         treasury.active_operator_cap_ids.remove(idx);
         event::emit(OperatorCapRevokedEvent {
             agent_treasury_id: object::id(treasury),
@@ -367,11 +433,13 @@ module tai::agent_treasury {
         };
         // 4.
         assert!(op_cap.allowed_targets.contains(&to), EOperatorTargetNotAllowed);
-        // 5. Daily epoch rollover before checking the limit.
+        // 5. Daily epoch rollover before checking the limit. Both SUI and
+        //    token budgets reset together on the same day boundary.
         let current_day = now / 86_400_000;
         if (current_day > op_cap.epoch_day) {
             op_cap.epoch_day = current_day;
             op_cap.spent_today_sui = 0;
+            op_cap.spent_today_token = 0;
         };
         assert!(
             op_cap.spent_today_sui + amount <= op_cap.daily_limit_sui,
@@ -385,6 +453,51 @@ module tai::agent_treasury {
         event::emit(TreasuryWithdrawEvent {
             agent_treasury_id: object::id(treasury),
             coin_type: 0,
+            amount,
+            to,
+            via: 1,
+        });
+    }
+
+    /// Token-denominated mirror of `operator_spend_sui`. Spends the agent's
+    /// own `T` token under the same per-cap policy. Daily limit is denominated
+    /// in T base units via `daily_limit_token`.
+    #[allow(lint(self_transfer))]
+    public fun operator_spend_token<T>(
+        treasury: &mut AgentTreasury<T>,
+        op_cap: &mut OperatorCap<T>,
+        amount: u64,
+        to: address,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(op_cap.agent_treasury_id == object::id(treasury), ENotOperatorCap);
+        assert!(
+            treasury.active_operator_cap_ids.contains(&object::id(op_cap)),
+            EOperatorCapRevoked,
+        );
+        let now = clock::timestamp_ms(clock);
+        if (op_cap.expires_at_ms != 0) {
+            assert!(now < op_cap.expires_at_ms, EOperatorCapExpired);
+        };
+        assert!(op_cap.allowed_targets.contains(&to), EOperatorTargetNotAllowed);
+        let current_day = now / 86_400_000;
+        if (current_day > op_cap.epoch_day) {
+            op_cap.epoch_day = current_day;
+            op_cap.spent_today_sui = 0;
+            op_cap.spent_today_token = 0;
+        };
+        assert!(
+            op_cap.spent_today_token + amount <= op_cap.daily_limit_token,
+            EOperatorTokenDailyLimitExceeded,
+        );
+        op_cap.spent_today_token = op_cap.spent_today_token + amount;
+        assert!(balance::value(&treasury.token_balance) >= amount, EInsufficientLiquidity);
+        let payout = balance::split(&mut treasury.token_balance, amount);
+        transfer::public_transfer(coin::from_balance(payout, ctx), to);
+        event::emit(TreasuryWithdrawEvent {
+            agent_treasury_id: object::id(treasury),
+            coin_type: 1,
             amount,
             to,
             via: 1,

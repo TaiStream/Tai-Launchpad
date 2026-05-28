@@ -71,7 +71,10 @@ impl LaunchpadConfigView {
     }
 }
 
-fn decode_launchpad_config(raw: &Value, expected_id: ObjectId) -> Result<LaunchpadConfigView, TaiError> {
+fn decode_launchpad_config(
+    raw: &Value,
+    expected_id: ObjectId,
+) -> Result<LaunchpadConfigView, TaiError> {
     let data = raw
         .get("data")
         .ok_or_else(|| TaiError::Decode("missing `data` in getObject response".into()))?;
@@ -167,8 +170,7 @@ fn parse_u8(fields: &Value, key: &str) -> Result<u8, TaiError> {
         .get(key)
         .ok_or_else(|| TaiError::Decode(format!("missing field `{}`", key)))?;
     if let Some(n) = v.as_u64() {
-        return u8::try_from(n)
-            .map_err(|_| TaiError::Decode(format!("u8 overflow on `{}`", key)));
+        return u8::try_from(n).map_err(|_| TaiError::Decode(format!("u8 overflow on `{}`", key)));
     }
     if let Some(s) = v.as_str() {
         return s
@@ -377,7 +379,10 @@ fn decode_launchpad_account(
     let content = data
         .get("content")
         .ok_or_else(|| TaiError::Decode("missing `content`".into()))?;
-    let data_type = content.get("dataType").and_then(|v| v.as_str()).unwrap_or("");
+    let data_type = content
+        .get("dataType")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     if data_type != "moveObject" {
         return Err(TaiError::Decode(format!(
             "expected moveObject, got {}",
@@ -480,7 +485,10 @@ fn decode_agent_treasury(
     let content = data
         .get("content")
         .ok_or_else(|| TaiError::Decode("missing `content`".into()))?;
-    let data_type = content.get("dataType").and_then(|v| v.as_str()).unwrap_or("");
+    let data_type = content
+        .get("dataType")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
     if data_type != "moveObject" {
         return Err(TaiError::Decode(format!(
             "expected moveObject, got {}",
@@ -586,10 +594,9 @@ mod tests {
                 }
             }
         });
-        let id: ObjectId =
-            "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680"
-                .parse()
-                .unwrap();
+        let id: ObjectId = "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680"
+            .parse()
+            .unwrap();
         let cfg = decode_launchpad_config(&fixture, id).unwrap();
 
         assert_eq!(cfg.trade_fee_bps, 100);
@@ -803,14 +810,22 @@ mod tests {
 
     #[test]
     fn hire_quote_at_target_doubles_nav() {
-        let q = hire_quote(&account_with(1_000_000, 1_000_000_000_000, 1_000_000_000_000));
+        let q = hire_quote(&account_with(
+            1_000_000,
+            1_000_000_000_000,
+            1_000_000_000_000,
+        ));
         assert_eq!(q.multiplier_bps, 20_000);
         assert_eq!(q.hire_price_sui, 2_000_000);
     }
 
     #[test]
     fn hire_quote_above_target_saturates_at_two_x() {
-        let q = hire_quote(&account_with(1_000_000, 5_000_000_000_000, 1_000_000_000_000));
+        let q = hire_quote(&account_with(
+            1_000_000,
+            5_000_000_000_000,
+            1_000_000_000_000,
+        ));
         assert_eq!(q.multiplier_bps, 20_000);
         assert_eq!(q.hire_price_sui, 2_000_000);
     }

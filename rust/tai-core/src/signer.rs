@@ -26,8 +26,8 @@
 use crate::error::TaiError;
 use crate::ids::{SuiAddress, SUI_ADDR_LEN};
 use async_trait::async_trait;
-use blake2::{Blake2b, Digest};
 use blake2::digest::consts::U32;
+use blake2::{Blake2b, Digest};
 use ed25519_dalek::{Signature as EdSignature, Signer as EdSigner, SigningKey, VerifyingKey};
 use std::path::Path;
 
@@ -94,13 +94,31 @@ impl Ed25519FileSigner {
         let key = SigningKey::from_bytes(&seed);
         let pubkey = key.verifying_key();
         let address = address_from_ed25519_pubkey(&pubkey);
-        Ed25519FileSigner { key, pubkey, address }
+        Ed25519FileSigner {
+            key,
+            pubkey,
+            address,
+        }
     }
 
     /// Load a key from a file. Accepts raw 32-byte seed OR a hex-encoded
     /// seed in UTF-8.
+    ///
+    /// On Unix, warns to stderr if the file is readable by group or others
+    /// (mode bits not in `0o600`). The load still proceeds — refusing
+    /// outright would be hostile to ad-hoc testing — but the warning gives
+    /// the user a chance to fix it before signing anything that costs
+    /// money.
     pub async fn load_from_file(path: impl AsRef<Path>) -> Result<Self, TaiError> {
-        let raw = tokio::fs::read(path.as_ref()).await?;
+        let path_ref = path.as_ref();
+        check_key_file_permissions(path_ref).await;
+        let raw = tokio::fs::read(path_ref).await?;
+        if raw.is_empty() {
+            return Err(TaiError::Signer(format!(
+                "key file is empty: {} — place a 32-byte seed (raw or hex) there",
+                path_ref.display()
+            )));
+        }
         let seed = parse_seed_bytes(&raw)?;
         Ok(Self::from_seed(seed))
     }
@@ -135,6 +153,63 @@ pub fn address_from_ed25519_pubkey(pk: &VerifyingKey) -> SuiAddress {
     let mut bytes = [0u8; SUI_ADDR_LEN];
     bytes.copy_from_slice(&out);
     SuiAddress::from_bytes(bytes)
+}
+
+/// Write a 32-byte Ed25519 seed to disk in hex form, with permissions
+/// restricted to the owner (`0o600`) on Unix.
+///
+/// Creates parent directories if missing. Returns `Err` if the file already
+/// exists (callers should pass an unused path).
+pub async fn save_seed_to_file(seed: &[u8; 32], path: impl AsRef<Path>) -> Result<(), TaiError> {
+    let path_ref = path.as_ref();
+    if path_ref.exists() {
+        return Err(TaiError::Signer(format!(
+            "refusing to overwrite existing key file at {}",
+            path_ref.display()
+        )));
+    }
+    if let Some(parent) = path_ref.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    let hex_str = hex::encode(seed);
+    tokio::fs::write(path_ref, &hex_str).await?;
+    set_owner_only_perms(path_ref).await;
+    Ok(())
+}
+
+#[cfg(unix)]
+async fn check_key_file_permissions(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let Ok(meta) = tokio::fs::metadata(path).await else {
+        return;
+    };
+    let mode = meta.permissions().mode() & 0o777;
+    if mode & 0o077 != 0 {
+        eprintln!(
+            "[tai] warning: key file {} has mode {:o} — group/world bits set. \
+             Recommended: chmod 600 {}",
+            path.display(),
+            mode,
+            path.display(),
+        );
+    }
+}
+
+#[cfg(not(unix))]
+async fn check_key_file_permissions(_path: &Path) {
+    // No-op on non-Unix; Windows ACLs are out of scope for v1.
+}
+
+#[cfg(unix)]
+async fn set_owner_only_perms(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let perms = std::fs::Permissions::from_mode(0o600);
+    let _ = tokio::fs::set_permissions(path, perms).await;
+}
+
+#[cfg(not(unix))]
+async fn set_owner_only_perms(_path: &Path) {
+    // No-op on non-Unix; Windows ACLs are out of scope for v1.
 }
 
 fn parse_seed_bytes(raw: &[u8]) -> Result<[u8; 32], TaiError> {
@@ -183,46 +258,59 @@ fn parse_seed_bytes(raw: &[u8]) -> Result<[u8; 32], TaiError> {
 
 /// Inherits the active key from `~/.sui/sui_config/sui.keystore`.
 ///
-/// Not yet implemented — landing in v1.1 alongside the CLI.
+/// Not yet implemented — landing in a future release. Methods return
+/// `TaiError::Signer` instead of panicking so this type is safe to
+/// construct from external callers.
 pub struct SuiKeystoreSigner;
+
+const SUI_KEYSTORE_UNIMPL: &str =
+    "SuiKeystoreSigner is not implemented in this version; use Ed25519FileSigner";
 
 #[async_trait]
 impl Signer for SuiKeystoreSigner {
     fn address(&self) -> SuiAddress {
-        todo!("sui-keystore signer ships in v1.1")
+        // address() is sync and infallible by trait signature. We return a
+        // zero address as a benign sentinel; the next `sign()` call will
+        // fail cleanly with a TaiError::Signer.
+        SuiAddress::from_bytes([0u8; SUI_ADDR_LEN])
     }
     async fn sign(&self, _digest: &[u8; 32]) -> Result<SuiSignature, TaiError> {
-        todo!("sui-keystore signer ships in v1.1")
+        Err(TaiError::Signer(SUI_KEYSTORE_UNIMPL.into()))
     }
 }
 
 /// Signs via Turnkey's MPC API + policy engine.
 ///
-/// Not yet implemented — landing in v1.1 alongside the CLI.
+/// Not yet implemented — landing in a future release.
 pub struct TurnkeySigner;
+
+const TURNKEY_UNIMPL: &str =
+    "TurnkeySigner is not implemented in this version; use Ed25519FileSigner";
 
 #[async_trait]
 impl Signer for TurnkeySigner {
     fn address(&self) -> SuiAddress {
-        todo!("Turnkey signer ships in v1.1")
+        SuiAddress::from_bytes([0u8; SUI_ADDR_LEN])
     }
     async fn sign(&self, _digest: &[u8; 32]) -> Result<SuiSignature, TaiError> {
-        todo!("Turnkey signer ships in v1.1")
+        Err(TaiError::Signer(TURNKEY_UNIMPL.into()))
     }
 }
 
 /// Signs via a TEE-attested endpoint (Phala Cloud + Mysten Nautilus).
 ///
-/// Not yet implemented — landing in v1.1 alongside the CLI.
+/// Not yet implemented — landing in a future release.
 pub struct TeeSigner;
+
+const TEE_UNIMPL: &str = "TeeSigner is not implemented in this version; use Ed25519FileSigner";
 
 #[async_trait]
 impl Signer for TeeSigner {
     fn address(&self) -> SuiAddress {
-        todo!("TEE signer ships in v1.1")
+        SuiAddress::from_bytes([0u8; SUI_ADDR_LEN])
     }
     async fn sign(&self, _digest: &[u8; 32]) -> Result<SuiSignature, TaiError> {
-        todo!("TEE signer ships in v1.1")
+        Err(TaiError::Signer(TEE_UNIMPL.into()))
     }
 }
 

@@ -26,14 +26,18 @@ pub mod ids;
 pub mod reads;
 pub mod rpc;
 pub mod signer;
+pub mod work_order;
 
 pub use client::{ExecutionResult, MoveCall, RequestType, TaiClient, SUI_CLOCK_OBJECT_ID};
 pub use config::{Network, TaiConfig};
 pub use error::TaiError;
 pub use ids::{ObjectId, SuiAddress};
-pub use reads::{hire_quote, AgentTreasuryView, HireQuote, LaunchpadAccountView, LaunchpadConfigView};
+pub use reads::{
+    hire_quote, AgentTreasuryView, HireQuote, LaunchpadAccountView, LaunchpadConfigView,
+};
 pub use rpc::RpcClient;
-pub use signer::{Ed25519FileSigner, Signer};
+pub use signer::{save_seed_to_file, Ed25519FileSigner, Signer};
+pub use work_order::{WorkOrderStatus, WorkOrderView};
 
 /// Crate-wide [`Result`] alias.
 pub type Result<T> = std::result::Result<T, TaiError>;

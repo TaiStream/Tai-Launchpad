@@ -1,10 +1,15 @@
-# Larry the Analyst — Cloudflare Worker runtime
+# Larry the Analyst — Tai ecosystem's analyst-in-residence
 
-Reference implementation of a Tai-launched AI agent hosted on Cloudflare Workers.
+Reference implementation of a Tai-launched AI agent hosted on Cloudflare Workers, **with a real job**: Larry is the editorial layer for the Tai ecosystem. Every launch, trade, paid hire, and escrow event on chain → an on-brand post to his Telegram channel.
 
-This Worker is the smallest meaningful "agent runtime" we could ship — under 350 lines of TypeScript, no private keys held server-side, no on-chain transactions sent by the Worker itself. The hirer pays Tai directly from their own wallet; the Worker verifies the payment on-chain and responds.
+Two earning surfaces:
 
-It's the simplest deployment shape for an agent that wants the Tai economic primitives without operating a TEE or trusted compute.
+- **`POST /hire`** — direct Q&A, hirer pays via `record_service_payment_sui`, Larry verifies + responds.
+- **`POST /promote`** — sponsored post in the Telegram channel, paid via `record_service_payment_sui`, Larry verifies + posts with `[paid post]` tag and full sponsor disclosure. **Editorial integrity is the disclosure** — Larry never hides that a promo was paid for.
+
+Both flows route through the standard service-payment split (40 NAV / 50 creator / 10 platform). Larry's NAV grows on every hire and every promo. The same NAV → cred multiplier → next-hire-price feedback loop applies to both.
+
+The Worker holds no signing keys — every transaction is signed by the hirer or the sponsor from their own wallet. Larry only **reads** chain state and **posts** to Telegram.
 
 ---
 
@@ -55,11 +60,34 @@ npm install
 # Create the KV namespace for storing consumed tx digests
 npx wrangler kv:namespace create CONSUMED_TXS
 
-# Copy the id wrangler prints into wrangler.toml's [[kv_namespaces]] id field
+# Create the KV namespace for the ecosystem-feed event dedupe
+npx wrangler kv:namespace create FEED_STATE
 
-# (Optional) For real LLM responses:
+# Paste both ids into wrangler.toml's [[kv_namespaces]] entries.
+
+# Enable the Telegram channel (required for the scheduled feed + /promote).
+# Create a bot via @BotFather, add it to your channel as admin, then:
+npx wrangler secret put TELEGRAM_BOT_TOKEN     # 1234567890:ABCDEF...
+npx wrangler secret put TELEGRAM_CHAT_ID       # @LarryTheAnalyst or -100...
+
+# (Optional) For richer /hire and /promote responses:
 npx wrangler secret put OPENAI_API_KEY
 ```
+
+When the Telegram secrets are absent, the scheduled handler no-ops and `/promote` returns 503 — the rest of Larry (splash, `/info`, `/health`, `/hire`) works as before. Useful for local-only or pre-channel testing.
+
+### Cron triggers
+
+`wrangler.toml` declares two cron schedules:
+
+| Cron | What |
+|---|---|
+| `*/5 * * * *` | Poll Sui RPC across all known Tai packages for new events, post each in Larry's voice |
+| `0 0 * * *` | Daily 24h digest at 00:00 UTC: total launches / trades / hires / volumes |
+
+Events covered: `LaunchEvent`, `TradeEvent`, `ServicePaymentEvent`, `WorkOrderCreatedEvent`, `WorkOrderReleasedEvent`, `WorkOrderDisputedEvent`. Trades and service payments below the spam-floor (0.05 SUI and 0.01 SUI respectively) are silently skipped.
+
+Dedupe lives in the `FEED_STATE` KV — each `(txDigest, eventSeq)` is recorded with a 7-day TTL so polling overlap doesn't double-post.
 
 ---
 

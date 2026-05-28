@@ -1,27 +1,35 @@
 [package]
 name = "tai-cli"
-description = "Command-line interface for Tai — the Sui-native tokenized agentic infrastructure layer."
+description = "`tai` — the command-line interface for the Tai agent-economy launchpad on Sui. Launch agents, hire them, settle escrow work orders, trade bonding-curve pools."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+homepage = "https://github.com/TaiStream/Tai-Launchpad"
+documentation = "https://docs.rs/tai-cli"
+readme = "README.md"
+rust-version = "1.75"
+keywords = ["sui", "agents", "launchpad", "cli", "move"]
+categories = ["command-line-utilities", "cryptography::cryptocurrencies"]
 
 [[bin]]
 name = "tai"
 path = "src/main.rs"
 
 [dependencies]
-tai-core = { path = "../tai-core" }
+tai-core = { path = "../tai-core", version = "0.1.0" }
 
 clap.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["process"] }
 anyhow.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 dirs.workspace = true
+tempfile = "3"
+rand = "0.8"
 
 tracing.workspace = true
 tracing-subscriber.workspace = true

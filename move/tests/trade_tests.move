@@ -30,7 +30,7 @@ module tai::trade_tests {
             option::none<ID>(),
             CREATOR,
             option::none<address>(),
-            0, vector[], 0,
+            0, 0, vector[], 0,
             &clock, ts::ctx(sc),
         );
         ts::return_shared(config);

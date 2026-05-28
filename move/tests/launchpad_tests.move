@@ -199,6 +199,49 @@ module tai::launchpad_tests {
     }
 
     #[test]
+    #[expected_failure(abort_code = tai::launchpad::EFeeBpsTooHigh)]
+    fun trade_fee_above_cap_aborts() {
+        let mut sc = ts::begin(ADMIN);
+        launchpad::init_for_testing(ts::ctx(&mut sc));
+
+        ts::next_tx(&mut sc, ADMIN);
+        let mut config = ts::take_shared<LaunchpadConfig>(&sc);
+        // MAX_TRADE_FEE_BPS is 1000 (10%). 1001 must abort.
+        launchpad::set_trade_fee_bps(&mut config, 1001, ts::ctx(&mut sc));
+
+        ts::return_shared(config);
+        ts::end(sc);
+    }
+
+    #[test]
+    fun fresh_config_has_current_version() {
+        let mut sc = ts::begin(ADMIN);
+        launchpad::init_for_testing(ts::ctx(&mut sc));
+
+        ts::next_tx(&mut sc, ADMIN);
+        let config = ts::take_shared<LaunchpadConfig>(&sc);
+        assert!(launchpad::config_version(&config) == launchpad::current_version(), 0);
+
+        ts::return_shared(config);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::launchpad::EAlreadyCurrentVersion)]
+    fun migrate_config_aborts_when_already_current() {
+        let mut sc = ts::begin(ADMIN);
+        launchpad::init_for_testing(ts::ctx(&mut sc));
+
+        ts::next_tx(&mut sc, ADMIN);
+        let mut config = ts::take_shared<LaunchpadConfig>(&sc);
+        // Fresh init sets version = CURRENT_VERSION, so migrate must abort.
+        launchpad::migrate_config(&mut config, ts::ctx(&mut sc));
+
+        ts::return_shared(config);
+        ts::end(sc);
+    }
+
+    #[test]
     fun admin_sets_cred_revenue_target() {
         let mut sc = ts::begin(ADMIN);
         launchpad::init_for_testing(ts::ctx(&mut sc));
@@ -227,14 +270,21 @@ module tai::launchpad_tests {
     }
 
     #[test]
-    fun admin_transfers_admin() {
+    fun admin_two_step_handover_succeeds() {
         let mut sc = ts::begin(ADMIN);
         launchpad::init_for_testing(ts::ctx(&mut sc));
 
         ts::next_tx(&mut sc, ADMIN);
         let mut config = ts::take_shared<LaunchpadConfig>(&sc);
-        launchpad::transfer_admin(&mut config, NEW_ADMIN, ts::ctx(&mut sc));
-        assert!(launchpad::config_admin(&config) == NEW_ADMIN, 0);
+        launchpad::propose_admin(&mut config, NEW_ADMIN, ts::ctx(&mut sc));
+        assert!(launchpad::config_admin(&config) == ADMIN, 0);
+        assert!(launchpad::config_pending_admin(&config).is_some(), 1);
+
+        // Pending admin completes the handover from their own address.
+        ts::next_tx(&mut sc, NEW_ADMIN);
+        launchpad::accept_admin(&mut config, ts::ctx(&mut sc));
+        assert!(launchpad::config_admin(&config) == NEW_ADMIN, 2);
+        assert!(launchpad::config_pending_admin(&config).is_none(), 3);
 
         ts::return_shared(config);
         ts::end(sc);
@@ -242,13 +292,60 @@ module tai::launchpad_tests {
 
     #[test]
     #[expected_failure(abort_code = tai::launchpad::ENotAdmin)]
-    fun non_admin_cannot_transfer_admin() {
+    fun non_admin_cannot_propose_admin() {
         let mut sc = ts::begin(ADMIN);
         launchpad::init_for_testing(ts::ctx(&mut sc));
 
         ts::next_tx(&mut sc, NEW_ADMIN);
         let mut config = ts::take_shared<LaunchpadConfig>(&sc);
-        launchpad::transfer_admin(&mut config, NEW_ADMIN, ts::ctx(&mut sc));
+        launchpad::propose_admin(&mut config, NEW_ADMIN, ts::ctx(&mut sc));
+
+        ts::return_shared(config);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::launchpad::ENotPendingAdmin)]
+    fun wrong_caller_cannot_accept_admin() {
+        let mut sc = ts::begin(ADMIN);
+        launchpad::init_for_testing(ts::ctx(&mut sc));
+
+        ts::next_tx(&mut sc, ADMIN);
+        let mut config = ts::take_shared<LaunchpadConfig>(&sc);
+        launchpad::propose_admin(&mut config, NEW_ADMIN, ts::ctx(&mut sc));
+
+        // Some other party tries to accept — must abort.
+        ts::next_tx(&mut sc, @0xBAD);
+        launchpad::accept_admin(&mut config, ts::ctx(&mut sc));
+
+        ts::return_shared(config);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::launchpad::ENoPendingAdmin)]
+    fun accept_admin_without_proposal_aborts() {
+        let mut sc = ts::begin(ADMIN);
+        launchpad::init_for_testing(ts::ctx(&mut sc));
+
+        ts::next_tx(&mut sc, NEW_ADMIN);
+        let mut config = ts::take_shared<LaunchpadConfig>(&sc);
+        launchpad::accept_admin(&mut config, ts::ctx(&mut sc));
+
+        ts::return_shared(config);
+        ts::end(sc);
+    }
+
+    #[test]
+    fun admin_cancels_pending_admin() {
+        let mut sc = ts::begin(ADMIN);
+        launchpad::init_for_testing(ts::ctx(&mut sc));
+
+        ts::next_tx(&mut sc, ADMIN);
+        let mut config = ts::take_shared<LaunchpadConfig>(&sc);
+        launchpad::propose_admin(&mut config, NEW_ADMIN, ts::ctx(&mut sc));
+        launchpad::cancel_pending_admin(&mut config, ts::ctx(&mut sc));
+        assert!(launchpad::config_pending_admin(&config).is_none(), 0);
 
         ts::return_shared(config);
         ts::end(sc);

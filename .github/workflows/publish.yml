@@ -1,0 +1,173 @@
+name: Publish to crates.io
+
+# Triggered two ways:
+#   1. Push a tag like `v0.1.0` — automatic publish for that version.
+#   2. Manual dispatch from the Actions UI — useful for the first publish
+#      where you want to confirm before any artifact lands on crates.io.
+#
+# The workflow publishes `tai-core` first, waits 60 s for the crates.io
+# index to sync, then publishes `tai-cli` which depends on it. If either
+# step fails, the workflow stops — the partially-published state is fine
+# (crates.io versions are immutable; the failing step can be retried).
+#
+# Required secret:
+#   CARGO_REGISTRY_TOKEN — your crates.io API token. Create one at
+#   <https://crates.io/me> and add it as a repo or org secret named
+#   exactly `CARGO_REGISTRY_TOKEN`.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run as a dry-run (no upload)'
+        type: boolean
+        default: false
+      skip_tai_core:
+        description: 'Skip tai-core (use if already on crates.io at this version)'
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: Verify workspace + version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Read workspace version
+        id: read_version
+        working-directory: rust
+        run: |
+          set -euo pipefail
+          V=$(grep -E '^version' Cargo.toml | head -1 | sed -E 's/.*"(.*)".*/\1/')
+          if [ -z "$V" ]; then
+            echo "could not read workspace version" >&2
+            exit 1
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Workspace version: $V"
+
+      - name: Verify tag matches Cargo.toml version (tag triggers only)
+        if: github.event_name == 'push'
+        env:
+          WORKSPACE_VERSION: ${{ steps.read_version.outputs.version }}
+        run: |
+          set -euo pipefail
+          # $GITHUB_REF_NAME is set automatically by Actions to e.g. "v0.1.0".
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$TAG_VERSION" != "$WORKSPACE_VERSION" ]; then
+            echo "::error::tag $GITHUB_REF_NAME (=>$TAG_VERSION) does not match Cargo.toml workspace.package.version ($WORKSPACE_VERSION)"
+            exit 1
+          fi
+          echo "tag matches workspace version: $TAG_VERSION"
+
+      - name: Build + test
+        working-directory: rust
+        run: |
+          cargo build --release
+          cargo test --release --lib
+
+  publish-tai-core:
+    name: Publish tai-core
+    needs: verify
+    if: ${{ ! inputs.skip_tai_core }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Publish tai-core (dry-run)
+        if: ${{ inputs.dry_run }}
+        working-directory: rust/tai-core
+        run: cargo publish --dry-run
+
+      - name: Publish tai-core
+        if: ${{ ! inputs.dry_run }}
+        working-directory: rust/tai-core
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
+
+      - name: Wait for crates.io index sync
+        if: ${{ ! inputs.dry_run }}
+        run: |
+          echo "Sleeping 60 s so crates.io's sparse index sees the new tai-core version..."
+          sleep 60
+
+  publish-tai-cli:
+    name: Publish tai-cli
+    needs: [verify, publish-tai-core]
+    # publish-tai-cli runs even if publish-tai-core was skipped (when
+    # skip_tai_core is true and tai-core is already on crates.io).
+    if: |
+      always() &&
+      needs.verify.result == 'success' &&
+      (needs.publish-tai-core.result == 'success' || needs.publish-tai-core.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Publish tai-cli (dry-run)
+        if: ${{ inputs.dry_run }}
+        working-directory: rust/tai-cli
+        run: cargo publish --dry-run
+
+      - name: Publish tai-cli
+        if: ${{ ! inputs.dry_run }}
+        working-directory: rust/tai-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
+
+  github-release:
+    name: Create GitHub Release
+    needs: [verify, publish-tai-cli]
+    if: |
+      ${{ ! inputs.dry_run }} &&
+      github.event_name == 'push' &&
+      needs.publish-tai-cli.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release via softprops/action-gh-release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Tai ${{ github.ref_name }}
+          body: |
+            `tai-core` and `tai-cli` ${{ needs.verify.outputs.version }} published to crates.io.
+
+            See [DEVLOG.md](https://github.com/TaiStream/Tai-Launchpad/blob/main/DEVLOG.md) for what's in this release.
+          generate_release_notes: true

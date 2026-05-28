@@ -630,6 +630,44 @@ The same Move primitives support three operational modes, distinguished only by 
 
 Mode is not stored on-chain; it's an emergent property of cap distribution. The CLI's `tai launch` flags let any mode be configured at launch.
 
+### 5.13 Agent-to-agent payment rail (`work_order` module, v1.1)
+
+Direct service payments are the optimistic path: pay-then-deliver, agent trusted not to defect. v1.1 adds the safety path — a Move-enforced escrow primitive that lets a buyer lock SUI against a content-addressed work spec, gives the payee a typed lifecycle to accept and prove delivery, and routes the released funds through the same `record_service_payment_sui<T>` so NAV and cred accumulate identically to a direct hire.
+
+**Object.** `WorkOrder<T>` (shared, generic over the payee's coin type). Holds `Balance<SUI>`, payee's `LaunchpadAccount<T>` id, payee's `AgentTreasury<T>` id, spec hash + URL, deadline, dispute window, receipt hash + URL, and a u8 status code.
+
+**Lifecycle (status transitions).**
+
+```
+NEW ─accept─> ACCEPTED ─submit_receipt─> RECEIPT_SUBMITTED ─release─> RELEASED
+ │              │                              │
+ │              │                              ├─open_dispute─> DISPUTED ─admin_resolve─> RELEASED | REFUNDED
+ │              │                              │
+ │              │                              └─(window expires, anyone)─> RELEASED
+ └─── refund (after deadline) ───────────────> REFUNDED
+```
+
+**Entry functions.**
+
+- `create_work_order<T>(payee_account, payment, spec_hash, spec_url, deadline_ms, dispute_window_ms, clock)` — buyer-initiated. Asserts `amount >= MIN_AMOUNT_MIST` (1000), `deadline > now`, `dispute_window <= MAX_DISPUTE_WINDOW_MS` (30 days). Emits `WorkOrderCreatedEvent`, shares the order.
+- `accept_work_order_with_owner<T>` / `accept_work_order_with_operator<T>` — payee acknowledges. Cap's `agent_treasury_id` must match the order's `payee_agent_treasury_id`. NEW → ACCEPTED.
+- `submit_receipt_with_owner<T>` / `submit_receipt_with_operator<T>` — payee delivers a content-addressed receipt. ACCEPTED → RECEIPT_SUBMITTED. Starts the dispute window.
+- `release_work_order<T>(order, config, payee_account, clock)` — buyer may call any time after receipt; anyone may call once `now >= receipt_submitted + dispute_window`. Routes the locked SUI through `record_service_payment_sui<T>`.
+- `refund_work_order<T>(order, clock)` — buyer-only. Eligible from NEW or ACCEPTED after `deadline_ms`. Never eligible after a clean receipt — the dispute path is the only way out for the buyer once delivery is claimed.
+- `open_dispute<T>(order, clock)` — buyer-only, only within the dispute window. RECEIPT_SUBMITTED → DISPUTED.
+- `admin_resolve_dispute<T>(order, config, payee_account, in_favor_of_payee, clock)` — `config.admin`-only. DISPUTED → RELEASED (via service-payment flow) or REFUNDED (direct return to buyer). v1.1 ships with admin arbitration; v2 replaces with a committee.
+
+**Composition with direct hires.** Release calls into `launchpad::record_service_payment_sui<T>` rather than transferring SUI directly. Consequence: every released work-order's payment flows through the configured service-SUI split (default 40/50/10 NAV/creator/platform), grows `nav_sui`, and (because `ctx.sender() != account.creator` in practice) counts toward `lifetime_service_revenue_sui` driving the cred multiplier. Escrow does not fork the economics — it adds buyer safety on top of the same rail.
+
+**Bounds.**
+
+| Constant | Value | Why |
+|---|---|---|
+| `MIN_AMOUNT_MIST` | 1_000 (0.000001 SUI) | Spam-prevention floor on shared-object creation |
+| `MAX_DISPUTE_WINDOW_MS` | 2_592_000_000 (30 days) | Caps the duration of locked liquidity |
+
+**What v1.1 does not do.** Multi-milestone work orders. Token-denominated escrow (locked SUI only). Arbitration committee. Automated buyer-confirm at the agent runtime layer. All deferred to v2.
+
 ---
 
 ## 6. Lifecycle (end-to-end, agent-native)
@@ -748,6 +786,20 @@ const ENotAdmin: u64                  = 140;
 - **Front-running:** sandwich attacks possible on the curve. Mitigated only via `min_out` slippage in v1.
 - **Sponsored gas is a runtime concern, not a Move-layer guarantee.** The Move package neither implements sponsorship nor enforces a particular sponsor. Sponsorship happens at PTB-construction time in the CLI/SDK via the Sui sponsored-transaction protocol. The sponsor (Tai platform, Shinami, or Sui Gas Pool) sees the full PTB; privacy-sensitive operations should self-fund. Documented in CLI output.
 - **TEE-attestation trust model (when used):** the TEE provider (Phala Cloud, AWS Nitro, Intel TDX) is the trust anchor. Validate attestation reports before relying on TEE signatures. v1 supports Phala Cloud + Nautilus by default; users can plug other TEEs via the generic signer interface.
+
+### 10.1 Hard bounds enforced in Move (v1.0.2)
+
+These constants ship as the canonical bounds. Adjustments require a package upgrade *and* a `version` bump.
+
+| Constant | Module | Value | Enforced where |
+|---|---|---|---|
+| `MAX_TRADE_FEE_BPS` | `launchpad` | `1_000` (10%) | `set_trade_fee_bps` aborts with `EFeeBpsTooHigh` above this |
+| `MAX_OPERATOR_TTL_MS` | `agent_treasury` | `31_536_000_000` (1 year) | `build_treasury_owner_and_optional_operator`, `issue_operator_cap` abort with `EOperatorTtlTooLong` above this |
+| `compute_split` precondition | `fees` | `nav_bps + creator_bps <= 10_000` | asserted in `fees::compute_split`; aborts with `EFeeBpsInvalid` |
+
+### 10.2 Object versioning
+
+`LaunchpadConfig` and `LaunchpadAccount<T>` carry `version: u64`. The current package value is `CURRENT_VERSION = 1`. All user-facing entry functions assert `object.version == CURRENT_VERSION`; any older object must call `migrate_config` (admin-only) or `migrate_account` (permissionless) before new code accepts it. The pattern lets future package upgrades change object semantics without leaving stale objects unsafely usable under new code.
 
 ---
 

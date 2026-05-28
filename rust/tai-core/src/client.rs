@@ -67,11 +67,7 @@ pub struct MoveCall {
 
 impl MoveCall {
     /// Construct a Move call with the default gas budget and auto-selected gas coin.
-    pub fn new(
-        package: ObjectId,
-        module: impl Into<String>,
-        function: impl Into<String>,
-    ) -> Self {
+    pub fn new(package: ObjectId, module: impl Into<String>, function: impl Into<String>) -> Self {
         MoveCall {
             package,
             module: module.into(),
@@ -100,9 +96,13 @@ impl MoveCall {
         self.arg(json!(id.to_string()))
     }
 
-    /// Append a pure u64 argument (Sui RPC accepts these as numbers).
+    /// Append a pure u64 argument. Sui's `unsafe_moveCall` is strict about
+    /// numeric arg encoding — it rejects JSON numbers (`0`) for u64 with
+    /// `"Unexpected arg Number(0) for expected type U64"` and only accepts
+    /// strings (`"0"`). Stringify always so we don't trip on edge cases
+    /// like the operator-daily-limit-of-zero in a sovereign launch.
     pub fn arg_u64(self, n: u64) -> Self {
-        self.arg(json!(n))
+        self.arg(json!(n.to_string()))
     }
 
     /// Append a pure address argument.
@@ -136,6 +136,19 @@ impl MoveCall {
     pub fn arg_vec_id(self, ids: &[ObjectId]) -> Self {
         let items: Vec<String> = ids.iter().map(|i| i.to_string()).collect();
         self.arg(json!(items))
+    }
+
+    /// Append a pure `vector<u8>` argument (sent as JSON array of numbers
+    /// rather than base64, which the Sui RPC also accepts and is easier to
+    /// read in tx replays).
+    pub fn arg_vec_u8(self, bytes: &[u8]) -> Self {
+        let items: Vec<u8> = bytes.to_vec();
+        self.arg(json!(items))
+    }
+
+    /// Append a pure `String` argument.
+    pub fn arg_string(self, s: &str) -> Self {
+        self.arg(json!(s))
     }
 
     /// Override the gas budget.
@@ -355,6 +368,50 @@ pub fn transaction_digest(tx_bytes: &[u8]) -> [u8; 32] {
 // ============================================================================
 
 impl TaiClient {
+    /// `launch_agent_coin<T>(config, treasury_cap, metadata, coin_type_name,
+    ///                        linked_identity, owner_cap_recipient,
+    ///                        operator_recipient, operator_daily_limit_sui,
+    ///                        operator_daily_limit_token, operator_allowed_targets,
+    ///                        operator_ttl_ms, clock)`.
+    ///
+    /// Consumes a freshly-minted `TreasuryCap<T>` + its `CoinMetadata<T>`.
+    /// Emits a `LaunchEvent`; the caller can pull the resulting object ids
+    /// from the tx effects.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn launch_agent_coin(
+        &self,
+        coin_type: &str,
+        treasury_cap_id: ObjectId,
+        coin_metadata_id: ObjectId,
+        coin_type_name: String,
+        linked_identity: Option<ObjectId>,
+        owner_cap_recipient: SuiAddress,
+        operator_recipient: Option<SuiAddress>,
+        operator_daily_limit_sui: u64,
+        operator_daily_limit_token: u64,
+        operator_allowed_targets: &[SuiAddress],
+        operator_ttl_ms: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "launch_agent_coin")
+            .type_arg(coin_type)
+            .arg_object(self.config.config_id)
+            .arg_object(treasury_cap_id)
+            .arg_object(coin_metadata_id)
+            .arg_string(&coin_type_name)
+            .arg_option_id(linked_identity)
+            .arg_addr(owner_cap_recipient)
+            .arg(json!(operator_recipient
+                .map(|a| vec![a.to_string()])
+                .unwrap_or_default()))
+            .arg_u64(operator_daily_limit_sui)
+            .arg_u64(operator_daily_limit_token)
+            .arg_vec_addr(operator_allowed_targets)
+            .arg_u64(operator_ttl_ms)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
     /// `record_service_payment_sui<T>(config, account, payment, clock)`.
     pub async fn record_service_payment_sui(
         &self,
@@ -362,13 +419,18 @@ impl TaiClient {
         launchpad_account_id: ObjectId,
         payment_coin_id: ObjectId,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "launchpad", "record_service_payment_sui")
-            .type_arg(coin_type)
-            .arg_object(self.config.config_id)
-            .arg_object(launchpad_account_id)
-            .arg_object(payment_coin_id)
-            .arg(json!(SUI_CLOCK_OBJECT_ID));
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "launchpad",
+            "record_service_payment_sui",
+        )
+        .type_arg(coin_type)
+        .arg_object(self.config.config_id)
+        .arg_object(launchpad_account_id)
+        .arg_object(payment_coin_id)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `buy<T>(config, account, payment_coin, min_tokens_out, clock)`.
@@ -386,7 +448,8 @@ impl TaiClient {
             .arg_object(payment_coin_id)
             .arg_u64(min_tokens_out)
             .arg(json!(SUI_CLOCK_OBJECT_ID));
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `sell<T>(config, account, tokens_coin, min_sui_out, clock)`.
@@ -404,7 +467,8 @@ impl TaiClient {
             .arg_object(tokens_coin_id)
             .arg_u64(min_sui_out)
             .arg(json!(SUI_CLOCK_OBJECT_ID));
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_access_config<T>(account, threshold, accept_coin)`. Creator-only.
@@ -420,7 +484,8 @@ impl TaiClient {
             .arg_object(launchpad_account_id)
             .arg_u64(threshold)
             .arg_bool(accept_coin_payments);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `withdraw_sui<T>(treasury, owner_cap, amount, to)`. OwnerCap-gated.
@@ -438,7 +503,8 @@ impl TaiClient {
             .arg_object(owner_cap_id)
             .arg_u64(amount)
             .arg_addr(to);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `top_up_sui<T>(treasury, payment)` — permissionless.
@@ -452,7 +518,8 @@ impl TaiClient {
             .type_arg(coin_type)
             .arg_object(treasury_id)
             .arg_object(payment_coin_id);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `top_up_token<T>(treasury, payment)` — permissionless.
@@ -466,7 +533,8 @@ impl TaiClient {
             .type_arg(coin_type)
             .arg_object(treasury_id)
             .arg_object(payment_coin_id);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `withdraw_token<T>(treasury, owner_cap, amount, to)`. OwnerCap-gated.
@@ -484,7 +552,8 @@ impl TaiClient {
             .arg_object(owner_cap_id)
             .arg_u64(amount)
             .arg_addr(to);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `claim_received_sui<T>(treasury, Receiving<Coin<SUI>>)`.
@@ -497,11 +566,16 @@ impl TaiClient {
         treasury_id: ObjectId,
         received_coin_id: ObjectId,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "agent_treasury", "claim_received_sui")
-            .type_arg(coin_type)
-            .arg_object(treasury_id)
-            .arg_object(received_coin_id);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "agent_treasury",
+            "claim_received_sui",
+        )
+        .type_arg(coin_type)
+        .arg_object(treasury_id)
+        .arg_object(received_coin_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `claim_received_token<T>(treasury, Receiving<Coin<T>>)`.
@@ -511,15 +585,20 @@ impl TaiClient {
         treasury_id: ObjectId,
         received_coin_id: ObjectId,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "agent_treasury", "claim_received_token")
-            .type_arg(coin_type)
-            .arg_object(treasury_id)
-            .arg_object(received_coin_id);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "agent_treasury",
+            "claim_received_token",
+        )
+        .type_arg(coin_type)
+        .arg_object(treasury_id)
+        .arg_object(received_coin_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `issue_operator_cap<T>(treasury, owner_cap, recipient, daily_limit_sui,
-    /// allowed_targets, ttl_ms, clock)`. OwnerCap-gated.
+    /// daily_limit_token, allowed_targets, ttl_ms, clock)`. OwnerCap-gated.
     pub async fn issue_operator_cap(
         &self,
         coin_type: &str,
@@ -527,19 +606,26 @@ impl TaiClient {
         owner_cap_id: ObjectId,
         recipient: SuiAddress,
         daily_limit_sui: u64,
+        daily_limit_token: u64,
         allowed_targets: &[SuiAddress],
         ttl_ms: u64,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "agent_treasury", "issue_operator_cap")
-            .type_arg(coin_type)
-            .arg_object(treasury_id)
-            .arg_object(owner_cap_id)
-            .arg_addr(recipient)
-            .arg_u64(daily_limit_sui)
-            .arg_vec_addr(allowed_targets)
-            .arg_u64(ttl_ms)
-            .arg(json!(SUI_CLOCK_OBJECT_ID));
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "agent_treasury",
+            "issue_operator_cap",
+        )
+        .type_arg(coin_type)
+        .arg_object(treasury_id)
+        .arg_object(owner_cap_id)
+        .arg_addr(recipient)
+        .arg_u64(daily_limit_sui)
+        .arg_u64(daily_limit_token)
+        .arg_vec_addr(allowed_targets)
+        .arg_u64(ttl_ms)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `revoke_operator_cap<T>(treasury, owner_cap, cap_id)`. OwnerCap-gated.
@@ -550,12 +636,17 @@ impl TaiClient {
         owner_cap_id: ObjectId,
         cap_id: ObjectId,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "agent_treasury", "revoke_operator_cap")
-            .type_arg(coin_type)
-            .arg_object(treasury_id)
-            .arg_object(owner_cap_id)
-            .arg_object(cap_id);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "agent_treasury",
+            "revoke_operator_cap",
+        )
+        .type_arg(coin_type)
+        .arg_object(treasury_id)
+        .arg_object(owner_cap_id)
+        .arg_object(cap_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `operator_spend_sui<T>(treasury, op_cap, amount, to, clock)`.
@@ -569,14 +660,19 @@ impl TaiClient {
         amount: u64,
         to: SuiAddress,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "agent_treasury", "operator_spend_sui")
-            .type_arg(coin_type)
-            .arg_object(treasury_id)
-            .arg_object(operator_cap_id)
-            .arg_u64(amount)
-            .arg_addr(to)
-            .arg(json!(SUI_CLOCK_OBJECT_ID));
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "agent_treasury",
+            "operator_spend_sui",
+        )
+        .type_arg(coin_type)
+        .arg_object(treasury_id)
+        .arg_object(operator_cap_id)
+        .arg_u64(amount)
+        .arg_addr(to)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `record_service_payment_token<T>(config, account, holder, payment, clock)`.
@@ -587,14 +683,19 @@ impl TaiClient {
         treasury_cap_holder_id: ObjectId,
         payment_coin_id: ObjectId,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "launchpad", "record_service_payment_token")
-            .type_arg(coin_type)
-            .arg_object(self.config.config_id)
-            .arg_object(launchpad_account_id)
-            .arg_object(treasury_cap_holder_id)
-            .arg_object(payment_coin_id)
-            .arg(json!(SUI_CLOCK_OBJECT_ID));
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "launchpad",
+            "record_service_payment_token",
+        )
+        .type_arg(coin_type)
+        .arg_object(self.config.config_id)
+        .arg_object(launchpad_account_id)
+        .arg_object(treasury_cap_holder_id)
+        .arg_object(payment_coin_id)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_linked_identity<T>(account, Option<ID>)`. Creator-only.
@@ -608,7 +709,8 @@ impl TaiClient {
             .type_arg(coin_type)
             .arg_object(launchpad_account_id)
             .arg_option_id(identity);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     // ------------------------------------------------------------------
@@ -623,7 +725,8 @@ impl TaiClient {
         let call = MoveCall::new(self.config.package_id, "launchpad", "set_platform_treasury")
             .arg_object(self.config.config_id)
             .arg_addr(new_treasury);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_trade_shares(config, nav_bps, creator_bps, platform_bps)`. Admin-only.
@@ -638,7 +741,8 @@ impl TaiClient {
             .arg_u64(nav_bps)
             .arg_u64(creator_bps)
             .arg_u64(platform_bps);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_service_shares(config, nav_bps, creator_bps, platform_bps)`. Admin-only.
@@ -653,7 +757,8 @@ impl TaiClient {
             .arg_u64(nav_bps)
             .arg_u64(creator_bps)
             .arg_u64(platform_bps);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_token_service_shares(config, nav_bps, burn_bps, creator_bps)`. Admin-only.
@@ -663,23 +768,26 @@ impl TaiClient {
         burn_bps: u64,
         creator_bps: u64,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "launchpad", "set_token_service_shares")
-            .arg_object(self.config.config_id)
-            .arg_u64(nav_bps)
-            .arg_u64(burn_bps)
-            .arg_u64(creator_bps);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "launchpad",
+            "set_token_service_shares",
+        )
+        .arg_object(self.config.config_id)
+        .arg_u64(nav_bps)
+        .arg_u64(burn_bps)
+        .arg_u64(creator_bps);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_trade_fee_bps(config, bps)`. Admin-only.
-    pub async fn admin_set_trade_fee_bps(
-        &self,
-        bps: u64,
-    ) -> Result<ExecutionResult, TaiError> {
+    pub async fn admin_set_trade_fee_bps(&self, bps: u64) -> Result<ExecutionResult, TaiError> {
         let call = MoveCall::new(self.config.package_id, "launchpad", "set_trade_fee_bps")
             .arg_object(self.config.config_id)
             .arg_u64(bps);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
     /// `set_cred_revenue_target(config, target)`. Admin-only.
@@ -687,21 +795,246 @@ impl TaiClient {
         &self,
         target: u64,
     ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "launchpad", "set_cred_revenue_target")
-            .arg_object(self.config.config_id)
-            .arg_u64(target);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        let call = MoveCall::new(
+            self.config.package_id,
+            "launchpad",
+            "set_cred_revenue_target",
+        )
+        .arg_object(self.config.config_id)
+        .arg_u64(target);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 
-    /// `transfer_admin(config, new_admin)`. Admin-only.
-    pub async fn admin_transfer_admin(
-        &self,
-        new_admin: SuiAddress,
-    ) -> Result<ExecutionResult, TaiError> {
-        let call = MoveCall::new(self.config.package_id, "launchpad", "transfer_admin")
+    /// `propose_admin(config, new_admin)`. Admin-only — step 1 of two-step
+    /// transfer. Pending admin must then call `accept_admin`.
+    pub async fn propose_admin(&self, new_admin: SuiAddress) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "propose_admin")
             .arg_object(self.config.config_id)
             .arg_addr(new_admin);
-        self.execute_move_call(call, RequestType::WaitForLocalExecution).await
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `accept_admin(config)`. Must be called by the pending-admin address.
+    pub async fn accept_admin(&self) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "accept_admin")
+            .arg_object(self.config.config_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `cancel_pending_admin(config)`. Admin-only.
+    pub async fn cancel_pending_admin(&self) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "cancel_pending_admin")
+            .arg_object(self.config.config_id);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `set_creator<T>(account, new_creator)`. Creator-only.
+    pub async fn set_creator(
+        &self,
+        coin_type: &str,
+        launchpad_account_id: ObjectId,
+        new_creator: SuiAddress,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "launchpad", "set_creator")
+            .type_arg(coin_type)
+            .arg_object(launchpad_account_id)
+            .arg_addr(new_creator);
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    // ========================================================================
+    //  work_order
+    // ========================================================================
+
+    /// `create_work_order<T>(payee_account, payment, spec_hash, spec_url,
+    ///                       deadline_ms, dispute_window_ms, clock)`.
+    /// Buyer locks SUI; returns an ExecutionResult whose effects expose the
+    /// newly-shared WorkOrder<T> object id.
+    pub async fn work_order_create(
+        &self,
+        coin_type: &str,
+        payee_launchpad_account_id: ObjectId,
+        payment_coin_id: ObjectId,
+        spec_hash: &[u8],
+        spec_url: &str,
+        deadline_ms: u64,
+        dispute_window_ms: u64,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "work_order", "create_work_order")
+            .type_arg(coin_type)
+            .arg_object(payee_launchpad_account_id)
+            .arg_object(payment_coin_id)
+            .arg_vec_u8(spec_hash)
+            .arg_string(spec_url)
+            .arg_u64(deadline_ms)
+            .arg_u64(dispute_window_ms)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `accept_work_order_with_owner<T>(order, owner_cap, clock)`.
+    pub async fn work_order_accept_with_owner(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+        owner_cap_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(
+            self.config.package_id,
+            "work_order",
+            "accept_work_order_with_owner",
+        )
+        .type_arg(coin_type)
+        .arg_object(order_id)
+        .arg_object(owner_cap_id)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `accept_work_order_with_operator<T>(order, op_cap, clock)`.
+    pub async fn work_order_accept_with_operator(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+        op_cap_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(
+            self.config.package_id,
+            "work_order",
+            "accept_work_order_with_operator",
+        )
+        .type_arg(coin_type)
+        .arg_object(order_id)
+        .arg_object(op_cap_id)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `submit_receipt_with_owner<T>(order, owner_cap, receipt_hash,
+    ///                                receipt_url, clock)`.
+    pub async fn work_order_submit_receipt_with_owner(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+        owner_cap_id: ObjectId,
+        receipt_hash: &[u8],
+        receipt_url: &str,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(
+            self.config.package_id,
+            "work_order",
+            "submit_receipt_with_owner",
+        )
+        .type_arg(coin_type)
+        .arg_object(order_id)
+        .arg_object(owner_cap_id)
+        .arg_vec_u8(receipt_hash)
+        .arg_string(receipt_url)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `submit_receipt_with_operator<T>(order, op_cap, receipt_hash, url, clk)`.
+    pub async fn work_order_submit_receipt_with_operator(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+        op_cap_id: ObjectId,
+        receipt_hash: &[u8],
+        receipt_url: &str,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(
+            self.config.package_id,
+            "work_order",
+            "submit_receipt_with_operator",
+        )
+        .type_arg(coin_type)
+        .arg_object(order_id)
+        .arg_object(op_cap_id)
+        .arg_vec_u8(receipt_hash)
+        .arg_string(receipt_url)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `release_work_order<T>(order, config, payee_account, clock)`.
+    /// Buyer may call any time after receipt; anyone may call after window.
+    /// Routes locked SUI through `record_service_payment_sui<T>`.
+    pub async fn work_order_release(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+        payee_launchpad_account_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "work_order", "release_work_order")
+            .type_arg(coin_type)
+            .arg_object(order_id)
+            .arg_object(self.config.config_id)
+            .arg_object(payee_launchpad_account_id)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `refund_work_order<T>(order, clock)`. Buyer-only, after deadline.
+    pub async fn work_order_refund(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "work_order", "refund_work_order")
+            .type_arg(coin_type)
+            .arg_object(order_id)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `open_dispute<T>(order, clock)`. Buyer-only, during dispute window.
+    pub async fn work_order_open_dispute(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(self.config.package_id, "work_order", "open_dispute")
+            .type_arg(coin_type)
+            .arg_object(order_id)
+            .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
+    }
+
+    /// `admin_resolve_dispute<T>(order, config, payee_account, in_favor_of_payee, clock)`.
+    pub async fn work_order_admin_resolve(
+        &self,
+        coin_type: &str,
+        order_id: ObjectId,
+        payee_launchpad_account_id: ObjectId,
+        in_favor_of_payee: bool,
+    ) -> Result<ExecutionResult, TaiError> {
+        let call = MoveCall::new(
+            self.config.package_id,
+            "work_order",
+            "admin_resolve_dispute",
+        )
+        .type_arg(coin_type)
+        .arg_object(order_id)
+        .arg_object(self.config.config_id)
+        .arg_object(payee_launchpad_account_id)
+        .arg_bool(in_favor_of_payee)
+        .arg(json!(SUI_CLOCK_OBJECT_ID));
+        self.execute_move_call(call, RequestType::WaitForLocalExecution)
+            .await
     }
 }
 
@@ -814,8 +1147,7 @@ mod tests {
     fn arg_option_id_encodes_some_as_single_element_array() {
         let pkg: ObjectId = "0x1".parse().unwrap();
         let id: ObjectId = "0xfeed".parse().unwrap();
-        let call =
-            MoveCall::new(pkg, "launchpad", "set_linked_identity").arg_option_id(Some(id));
+        let call = MoveCall::new(pkg, "launchpad", "set_linked_identity").arg_option_id(Some(id));
         let arr = call.arguments[0].as_array().unwrap();
         assert_eq!(arr.len(), 1);
         assert_eq!(
@@ -829,8 +1161,7 @@ mod tests {
         let pkg: ObjectId = "0x1".parse().unwrap();
         let a: SuiAddress = "0xab".parse().unwrap();
         let b: SuiAddress = "0xcd".parse().unwrap();
-        let call = MoveCall::new(pkg, "agent_treasury", "issue_operator_cap")
-            .arg_vec_addr(&[a, b]);
+        let call = MoveCall::new(pkg, "agent_treasury", "issue_operator_cap").arg_vec_addr(&[a, b]);
         let arr = call.arguments[0].as_array().unwrap();
         assert_eq!(arr.len(), 2);
         assert!(arr[0].as_str().unwrap().ends_with("ab"));
@@ -842,8 +1173,7 @@ mod tests {
         let pkg: ObjectId = "0x1".parse().unwrap();
         let a: ObjectId = "0xa1".parse().unwrap();
         let b: ObjectId = "0xb2".parse().unwrap();
-        let call =
-            MoveCall::new(pkg, "agent_treasury", "issue_operator_cap").arg_vec_id(&[a, b]);
+        let call = MoveCall::new(pkg, "agent_treasury", "issue_operator_cap").arg_vec_id(&[a, b]);
         let arr = call.arguments[0].as_array().unwrap();
         assert_eq!(arr.len(), 2);
     }

@@ -1,0 +1,20 @@
+{
+  "name": "tai-sovereign-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tai sovereign-mode reference agent. Owns its own OwnerCap + OperatorCap; signs transactions from inside its runtime; designed for TEE deployment (Phala Cloud / Nautilus / AWS Nitro).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.4.0",
+    "@noble/ed25519": "^2.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240419.0",
+    "typescript": "^5.4.5",
+    "wrangler": "^3.57.0"
+  }
+}

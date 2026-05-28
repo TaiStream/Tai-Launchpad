@@ -35,7 +35,7 @@ module tai::launch_tests {
             option::none<ID>(),
             CREATOR,                    // owner_cap_recipient
             option::none<address>(),    // operator_recipient = none
-            0, vector[], 0,             // operator scope unused
+            0, 0, vector[], 0,             // operator scope unused
             &clock,
             ts::ctx(&mut sc),
         );
@@ -115,6 +115,7 @@ module tai::launch_tests {
             HUMAN,                                  // owner -> human
             option::some(AGENT_RUNTIME),            // operator -> agent runtime
             10_000_000_000,                         // 10 SUI daily limit
+            0,                                       // 0 token daily limit
             vector[@0xDE57, @0xBEEF],               // allowlist
             30 * 86_400_000,                        // 30 days TTL
             &clock, ts::ctx(&mut sc),
@@ -169,7 +170,7 @@ module tai::launch_tests {
             &config, cap, &metadata,
             std::string::utf8(b"x"), option::none<ID>(),
             CREATOR, option::none<address>(),
-            0, vector[], 0,
+            0, 0, vector[], 0,
             &clock, ts::ctx(&mut sc),
         );
 

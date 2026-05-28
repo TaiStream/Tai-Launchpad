@@ -4,29 +4,47 @@ compatibility_date = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
 
 # KV namespace for tracking which payment txs have been consumed so the
-# same on-chain receipt can't be replayed against multiple /hire calls.
-# Bind via `wrangler kv:namespace create CONSUMED_TXS`, then paste the
-# resulting id below before deploying.
+# same on-chain receipt can't be replayed against multiple /hire or
+# /promote calls.
 [[kv_namespaces]]
 binding = "CONSUMED_TXS"
 id = "ebbfd5b9068d4b9f9485b2b8deb8df1b"
 
-# Public, non-secret runtime config. Override in `wrangler.toml` overrides
-# (or via the dashboard) when launching a different agent.
+# KV namespace for the ecosystem-feed event dedupe. Each (txDigest,
+# eventSeq) Larry has already posted lives here with a 7-day TTL so the
+# 5-minute poll doesn't double-post on overlap. Bind via
+# `wrangler kv:namespace create FEED_STATE`, paste the id below.
+[[kv_namespaces]]
+binding = "FEED_STATE"
+id = "c324e5a3e9b54fffb5cf1859a4a5d59e"
+
+# Single 5-minute cron. The handler does:
+#   - every tick: poll events, post new ones
+#   - additionally, if no daily digest has fired today (UTC), fire one.
+# Two-cron split was nicer but Cloudflare caps accounts at 5 crons total.
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Public, non-secret runtime config.
 [vars]
 SUI_RPC_URL = "https://fullnode.testnet.sui.io"
 TAI_PACKAGE_ID = "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909"
 LAUNCHPAD_ACCOUNT_ID = "0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e"
 AGENT_NAME = "Larry the Analyst"
-AGENT_PERSONA = "You are Larry the Analyst — a Tai-launched, sovereign-mode, on-chain AI agent specializing in dry, slightly sarcastic financial analysis. You speak in concise, well-structured paragraphs. You never claim certainty about future prices. You always disclose that you are an agent and that your responses are not financial advice."
-MIN_PAYMENT_MIST = "100000000"
+AGENT_PERSONA = "You are Larry the Analyst, a Tai-launched, sovereign-mode, on-chain AI agent who serves as the Tai ecosystem's analyst-in-residence. You post launches, trades, hires, and escrow activity to the Telegram channel in a dry, slightly sarcastic voice. When hired for direct Q&A you give concise, well-structured analysis. You never claim certainty about future prices and always disclose that you are an agent. You also accept sponsored posts via /promote, which you always tag clearly as paid - your editorial integrity is precisely that you disclose."
+MIN_PAYMENT_MIST = "100000000"       # 0.1 SUI floor for direct /hire
+MIN_PROMO_MIST = "500000000"         # 0.5 SUI floor for /promote sponsored posts
 PAYMENT_FRESHNESS_SECONDS = "600"
 
-# Secrets — DO NOT commit. Configure via `wrangler secret put NAME`.
-# Optional: if OPENAI_API_KEY is set, /hire calls OpenAI; otherwise it
-# returns a canned response. Both modes are real demos.
+# Image used for every channel post. Defaults to Larry's mascot on the
+# dashboard CDN. Override with any HTTPS image URL Telegram can fetch.
+LARRY_IMAGE_URL = "https://tai-app-lyart.vercel.app/mascot-square.png"
+
+# Secrets - DO NOT commit. Configure via `wrangler secret put NAME`.
 #
-# Required secrets to add manually:
-#   - (none)
-# Optional secrets:
-#   - OPENAI_API_KEY
+# Required to enable the channel + sponsored posts:
+#   - TELEGRAM_BOT_TOKEN    (from @BotFather)
+#   - TELEGRAM_CHAT_ID      (channel id, e.g. "@LarryTheAnalyst" or "-100...")
+#
+# Optional:
+#   - OPENAI_API_KEY        (richer /hire answers; falls back to canned stub)

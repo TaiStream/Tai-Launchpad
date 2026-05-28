@@ -4,11 +4,13 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 Move package **live on Sui testnet (v1.0.1)** — 66 Move tests + 33 Rust unit tests + 4 live testnet integration tests, all passing.
+> **Status:** v1 Move package **live on Sui testnet (v1.1.0)** — 91 Move tests + 40 Rust unit tests + 4 live testnet integration tests, all passing. v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
 >
-> Testnet package v1.0.1: [`0xb41f…6909`](https://suiscan.xyz/testnet/object/0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909) · LaunchpadConfig: [`0xe2ec…a1f0`](https://suiscan.xyz/testnet/object/0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0). See [`move/published.json`](./move/published.json).
+> Testnet package v1.1.0: [`0x7d86…efb3`](https://suiscan.xyz/testnet/object/0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3) · LaunchpadConfig: [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). See [`move/published.json`](./move/published.json).
 >
-> Reference agent on-chain — Larry the Analyst: [`0x8831…c36e`](https://suiscan.xyz/testnet/object/0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e) (LaunchpadAccount). The OwnerCap has a registered `Display<OwnerCap<LARRY>>` — wallets render it as a rich NFT card. See [`examples/test-agent/`](./examples/test-agent/).
+> Operator dashboard + hiring portal: **https://tai-app-lyart.vercel.app** · `/hire` for escrow-backed agent-to-agent hires.
+>
+> Reference agent on-chain — Larry the Analyst (live on legacy v1.0.1): [`0x8831…c36e`](https://suiscan.xyz/testnet/object/0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e) (LaunchpadAccount). The OwnerCap has a registered `Display<OwnerCap<LARRY>>` — wallets render it as a rich NFT card. See [`examples/test-agent/`](./examples/test-agent/).
 >
 > Next: `tai-cli` (with Phala TEE signer) + WASM-backed `@tai/sdk` + examples. See [`PLAN.md`](./PLAN.md) for the full task schedule.
 
@@ -86,6 +88,27 @@ Mode is not stored on-chain — it's an emergent property of cap distribution at
 - **No Sui-native launchpad ships** programmatic fee redirect + on-chain treasury growing from both trading and operating revenue + a productive-token model + Move-enforced custody under one roof.
 
 Tai fills that gap. The launchpad is also the pool, the NAV is a real on-chain balance, the coin is the hire ticket, and the hire-price view reflects the agent's real track record — a number any Sui contract can read and trust.
+
+---
+
+## The two economies
+
+Every Tai agent runs two parallel economies on the same `LaunchpadAccount<T>`. They share a treasury (NAV) but the protocol distinguishes them where it matters:
+
+**Backer economy** — the bonding-curve pool. Permissionless price discovery; anyone with SUI can buy or sell the agent's coin. Speculation welcome. Each trade pays a 1% fee; 30% of that fee feeds the agent's NAV. Volatility and pump-and-dump are explicit features — they're just another path for SUI to flow into the productive treasury.
+
+**Productive economy** — the service-payment rail. Paid hires (direct or escrowed via `work_order`), sponsored posts, agent-to-agent settlement. Each payment pays a fee; 40% of that fee feeds NAV, and the *full payment amount* increments `lifetime_service_revenue_sui` — the only number that moves the cred multiplier.
+
+```
+hire_price = NAV × cred_multiplier
+where:
+  NAV is fed by BOTH backer trades AND productive payments,
+  but cred_multiplier is fed ONLY by productive payments.
+```
+
+Consequence: two agents with the same NAV can have very different hire prices. An agent fattened by speculation has cred = 1.00x; an agent fattened by real work has cred up to 2.00x. The protocol prices productive wealth higher than speculative wealth — automatically, without policing speculation.
+
+**This is the load-bearing differentiator from pump.fun.** Pump.fun has only the backer economy. Tai has both, composing on the same primitives. Backers and operators don't compete; they both grow the same agent.
 
 ---
 
@@ -167,18 +190,20 @@ The Move package is named **`tai`** (lowercase, Sui convention). Module names: `
 ## v1.x and v2 roadmap (do NOT implement in v1)
 
 - **v1.1: `Tai-Ika-Adapter` package.** Cross-chain agent treasuries via Ika dWallets. BTC / EVM / Solana / EdDSA-family chains. OperatorCap policy applies uniformly across chains.
+- **v1.5: Bonding-curve graduation.** Add `graduate_account<T>(account, dex_router)` — when an agent's `cumulative_volume_sui` crosses a threshold, the locked LP reserve migrates into a Cetus or Aftermath AGENT/SUI pool. Curve trades stop; DEX trades start. NAV continues to accumulate from trade fees on the new pool. Solves the v1 LP-permanent-lock and opens the door to AGENT/USDsui pairs.
+- **v1.5: Stablecoin-denominated service payments.** Add `record_service_payment_stablecoin<S>` + `settle_stablecoin_payment<S>` (deferred-settlement pattern) so the user-facing payment moment can use Sui's protocol-level gasless stablecoin transfer (`coin::send_funds<USDsui>`), with protocol bookkeeping running in a separate sponsored tx.
 - **v1.5: Tai-SAI-Adapter.** Composes SAI cred multiplier with Tai's self-referential cred.
 - **v1.5: Holder distribution claim flow.** Per-holder accrual via dynamic fields or Merkle airdrops.
-- **v1.5: Cetus mirror pool.** Threshold-triggered LP release.
 - **v1.5: USDC-quoted curves and service payments.**
-- **v1.5: One-transaction launch** via on-client bytecode templating.
 - **v1.5: Cred decay.**
 - **v1.5: Kiosk integration** for agent-owned NFTs.
+- **v1.5: Sponsored gas integration** (Shinami / Sui Gas Pool) for everything that doesn't qualify for protocol-level gasless transfers.
 - **v2: DeepBook integration** behind volume gate.
-- **v2: On-chain hire-flow object** (escrow + completion attestation).
 - **v2: Capability lending / skill leasing.**
 - **v2: Sub-agent composition** with parent-child revenue splits.
 - **v2: Collateralization adapter** (NAVI / Suilend).
+- **v2: USDsui-denominated NAV** (`LaunchpadAccount<T, NUM>` generic-over-numeraire).
+- **v2: Multi-milestone work orders** with structured arbitration committee.
 
 See [`SPEC.md`](./SPEC.md) §9 for the full roadmap.
 

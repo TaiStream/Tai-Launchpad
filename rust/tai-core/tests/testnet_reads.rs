@@ -14,8 +14,8 @@
 //!   creator address is also the OwnerCap holder.
 
 use tai_core::{
-    hire_quote, AgentTreasuryView, LaunchpadAccountView, LaunchpadConfigView, ObjectId,
-    RpcClient, TaiConfig,
+    hire_quote, AgentTreasuryView, LaunchpadAccountView, LaunchpadConfigView, ObjectId, RpcClient,
+    TaiConfig,
 };
 
 // IDs from examples/test-agent/published.json (Larry v2 against Tai v1.0.1).
@@ -27,10 +27,8 @@ const LARRY_TREASURY_ID: &str =
     "0x4c5337abcbc0f5db1352ee68d25735f1a35ebca04a92fd04688d26629bc76592";
 const LARRY_OWNER_CAP_ID: &str =
     "0x24c99cfb1bdda10172b93f5fa7493304f05266406454f2731bba938db692e57e";
-const LARRY_HOLDER_ID: &str =
-    "0xf4efb2a129ba420545a3289c6657c54f91cd7d90646e4423f68232625c0a62e5";
-const LARRY_CREATOR: &str =
-    "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14";
+const LARRY_HOLDER_ID: &str = "0xf4efb2a129ba420545a3289c6657c54f91cd7d90646e4423f68232625c0a62e5";
+const LARRY_CREATOR: &str = "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14";
 
 #[tokio::test]
 #[ignore = "hits Sui testnet; run with `cargo test -- --ignored`"]
@@ -65,9 +63,7 @@ async fn live_testnet_launchpad_config_matches_spec_defaults() {
 
     // Sanity: invariants from SPEC §4.1.
     assert_eq!(
-        view.trade_nav_share_bps
-            + view.trade_creator_share_bps
-            + view.trade_platform_share_bps,
+        view.trade_nav_share_bps + view.trade_creator_share_bps + view.trade_platform_share_bps,
         10_000
     );
     assert_eq!(
@@ -101,7 +97,11 @@ async fn live_testnet_larry_launchpad_account_state() {
     let acc = LaunchpadAccountView::fetch(&rpc, id).await.unwrap();
 
     // Type tag carries the LARRY generic.
-    assert!(acc.coin_type.contains("::larry::LARRY"), "got coin_type={}", acc.coin_type);
+    assert!(
+        acc.coin_type.contains("::larry::LARRY"),
+        "got coin_type={}",
+        acc.coin_type
+    );
 
     // Sovereign-mode launch: creator is the publisher.
     assert_eq!(acc.creator.to_string(), LARRY_CREATOR);
@@ -115,17 +115,18 @@ async fn live_testnet_larry_launchpad_account_state() {
     assert_eq!(acc.total_supply, 1_000_000_000_000_000_000);
     assert_eq!(acc.decimals, 9);
 
-    // Fresh pool state at launch.
-    assert_eq!(acc.real_sui, 0);
-    assert_eq!(acc.real_token, 800_000_000_000_000_000);
+    // Pool invariants — these are conservation laws regardless of activity.
+    // real_token + lp_reserve + (tokens distributed via buys) = total_supply.
+    // We just sanity-check that real_token <= initial sale supply (800M) and
+    // lp_reserve is the locked 200M.
+    assert!(acc.real_token <= 800_000_000_000_000_000);
     assert_eq!(acc.lp_reserve, 200_000_000_000_000_000);
-    assert_eq!(acc.nav_sui, 0);
-    assert_eq!(acc.nav_token, 0);
+    // NAV can only grow (no withdraw path), so >= 0 is the only assertion.
+    // We don't pin exact values — Larry's NAV evolves as people hire and trade.
 
     // Default access config: open, no token payments.
     assert_eq!(acc.access_threshold, 0);
     assert!(!acc.accept_coin_payments);
-    assert_eq!(acc.lifetime_service_revenue_sui, 0);
     // Cred target snapshotted from the global config at launch.
     assert_eq!(acc.cred_revenue_target, 1_000_000_000_000);
 
@@ -133,14 +134,19 @@ async fn live_testnet_larry_launchpad_account_state() {
     assert_eq!(acc.virtual_sui_reserves, 10_000_000_000_000);
     assert_eq!(acc.virtual_token_reserves, 1_073_000_000_000_000_000);
 
-    // Counters all zero before any interaction.
-    assert_eq!(acc.total_buys, 0);
-    assert_eq!(acc.total_sells, 0);
-    assert_eq!(acc.total_service_payments_sui, 0);
-    assert_eq!(acc.total_service_payments_token, 0);
-    assert_eq!(acc.cumulative_volume_sui, 0);
-    assert_eq!(acc.cumulative_fees_sui, 0);
+    // Counters only grow monotonically; pinning exact values would race with
+    // organic activity. Just verify they're well-formed.
     assert!(acc.launched_at > 0);
+    // cumulative_volume includes both buys and sells; if there have been any
+    // trades, cumulative_fees should be > 0.
+    if acc.total_buys + acc.total_sells > 0 {
+        assert!(acc.cumulative_volume_sui > 0);
+        assert!(acc.cumulative_fees_sui > 0);
+    }
+    if acc.total_service_payments_sui > 0 {
+        // At least one external hire grew NAV (40% of payment).
+        assert!(acc.nav_sui > 0);
+    }
 
     // Bidirectional linkage to sibling objects.
     let expected_holder: ObjectId = LARRY_HOLDER_ID.parse().unwrap();
@@ -185,11 +191,17 @@ async fn live_testnet_larry_hire_quote_at_baseline_is_one_x() {
     let acc = LaunchpadAccountView::fetch(&rpc, id).await.unwrap();
     let quote = hire_quote(&acc);
 
-    // Fresh launch: NAV = 0, lifetime revenue = 0, so hire_price = 0 and
-    // multiplier sits at the 1.0x baseline.
-    assert_eq!(quote.nav_sui, 0);
-    assert_eq!(quote.lifetime_service_revenue_sui, 0);
+    // Invariants — independent of how much Larry has earned over time:
+    //   - multiplier is in [10_000, 20_000] (1.0x baseline → 2.0x cap)
+    //   - hire_price = nav * multiplier / 10_000 → never less than NAV
+    //   - cred_revenue_target is the launch-time snapshot of config default
     assert_eq!(quote.cred_revenue_target, 1_000_000_000_000);
-    assert_eq!(quote.multiplier_bps, 10_000);
-    assert_eq!(quote.hire_price_sui, 0);
+    assert!(quote.multiplier_bps >= 10_000);
+    assert!(quote.multiplier_bps <= 20_000);
+    assert!(quote.hire_price_sui >= quote.nav_sui);
+    assert_eq!(quote.nav_sui, acc.nav_sui);
+    assert_eq!(
+        quote.lifetime_service_revenue_sui,
+        acc.lifetime_service_revenue_sui
+    );
 }

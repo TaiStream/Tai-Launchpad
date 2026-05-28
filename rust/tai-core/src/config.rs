@@ -61,20 +61,21 @@ pub struct TaiConfig {
 
 impl TaiConfig {
     /// The current canonical testnet deployment of the v1 Tai package.
-    /// Points at v1.0.1 (which adds Display<OwnerCap<T>> support via the
-    /// `tai::publisher` and `tai::agent_display` modules).
+    /// Points at v1.1.0 (work_order escrow module + audit-backlog batch:
+    /// share floors, operator_spend_token, set_creator, two-step admin
+    /// transfer, allowed_targets size cap + mutator, set_dwallets_object_id).
     ///
-    /// Source: `move/published.json` in this repo. Published 2026-05-25 at
-    /// checkpoint 340901378.
+    /// Source: `move/published.json` in this repo. Published 2026-05-26 at
+    /// checkpoint 341424845, tx HgkcB4UURjxHRfAhCebRjKPgrp5zc7VmmM1c33JGPKfA.
     pub fn testnet_v1() -> Self {
         TaiConfig {
             network: Network::Testnet,
             rpc_url: Network::Testnet.default_rpc_url().to_string(),
             package_id: ObjectId::from_bytes(hex_lit(
-                "b41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
+                "7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
             )),
             config_id: ObjectId::from_bytes(hex_lit(
-                "e2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0",
+                "4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
             )),
         }
     }
@@ -111,11 +112,11 @@ mod tests {
         assert_eq!(cfg.network, Network::Testnet);
         assert_eq!(
             cfg.package_id.to_string(),
-            "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909"
+            "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3"
         );
         assert_eq!(
             cfg.config_id.to_string(),
-            "0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0"
+            "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50"
         );
         assert_eq!(cfg.rpc_url, "https://fullnode.testnet.sui.io");
     }

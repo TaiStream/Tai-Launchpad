@@ -27,13 +27,20 @@ module tai::launchpad {
     // Fee / share invariants
     const EFeeBpsInvalid: u64 = 110;
     const EFeeBpsZero: u64 = 111;
+    const EFeeBpsTooHigh: u64 = 112;
     const ECredTargetZero: u64 = 113;
+    const EShareBelowMinimum: u64 = 114;
     // Trading
     const EInsufficientLiquidity: u64 = 120;
     const ESlippageExceeded: u64 = 121;
     const EMathOverflow: u64 = 122;
     // Admin
     const ENotAdmin: u64 = 140;
+    const ENotPendingAdmin: u64 = 141;
+    const ENoPendingAdmin: u64 = 142;
+    // Version
+    const EVersionMismatch: u64 = 150;
+    const EAlreadyCurrentVersion: u64 = 151;
 
     // ============================= Constants ===============================
     // Trade fee defaults
@@ -63,10 +70,28 @@ module tai::launchpad {
 
     const BPS_DENOMINATOR: u64 = 10_000;
 
+    /// Hard upper bound on tradable fee (10%). Bounds admin discretion.
+    const MAX_TRADE_FEE_BPS: u64 = 1_000;
+
+    /// Minimum share each beneficiary must receive on any fee split set by
+    /// admin. Prevents the admin from starving any one party.
+    const MIN_NAV_SHARE_BPS: u64 = 1_000;       // 10%
+    const MIN_CREATOR_SHARE_BPS: u64 = 1_000;   // 10%
+
+    /// Schema version for LaunchpadConfig and LaunchpadAccount<T>. Bumped on
+    /// breaking package upgrades; existing objects must call `migrate_*` before
+    /// new code accepts them. See SPEC §10 (Version migration).
+    const CURRENT_VERSION: u64 = 1;
+
     // ============================= Structs =================================
     public struct LaunchpadConfig has key {
         id: UID,
+        version: u64,
         admin: address,
+        /// Two-step admin transfer (LOW-6). Set by `propose_admin`; cleared
+        /// when `accept_admin` is called by the pending address. `none` means
+        /// no transfer in flight.
+        pending_admin: Option<address>,
         platform_treasury: address,
 
         // Trade fee shares
@@ -100,7 +125,9 @@ module tai::launchpad {
         let sender = ctx.sender();
         let config = LaunchpadConfig {
             id: object::new(ctx),
+            version: CURRENT_VERSION,
             admin: sender,
+            pending_admin: option::none<address>(),
             platform_treasury: sender,
             trade_fee_bps: DEFAULT_TRADE_FEE_BPS,
             trade_nav_share_bps: DEFAULT_TRADE_NAV_BPS,
@@ -122,7 +149,12 @@ module tai::launchpad {
     }
 
     // ============================= Getters =================================
+    public fun config_version(c: &LaunchpadConfig): u64 { c.version }
+    public fun current_version(): u64 { CURRENT_VERSION }
+    public fun max_trade_fee_bps(): u64 { MAX_TRADE_FEE_BPS }
+
     public fun config_admin(c: &LaunchpadConfig): address { c.admin }
+    public fun config_pending_admin(c: &LaunchpadConfig): Option<address> { c.pending_admin }
     public fun config_platform_treasury(c: &LaunchpadConfig): address { c.platform_treasury }
 
     public fun config_trade_fee_bps(c: &LaunchpadConfig): u64 { c.trade_fee_bps }
@@ -154,11 +186,19 @@ module tai::launchpad {
     public fun e_coin_payments_disabled(): u64 { ECoinPaymentsDisabled }
     public fun e_fee_bps_invalid(): u64 { EFeeBpsInvalid }
     public fun e_fee_bps_zero(): u64 { EFeeBpsZero }
+    public fun e_fee_bps_too_high(): u64 { EFeeBpsTooHigh }
     public fun e_cred_target_zero(): u64 { ECredTargetZero }
     public fun e_insufficient_liquidity(): u64 { EInsufficientLiquidity }
     public fun e_slippage_exceeded(): u64 { ESlippageExceeded }
     public fun e_math_overflow(): u64 { EMathOverflow }
     public fun e_not_admin(): u64 { ENotAdmin }
+    public fun e_not_pending_admin(): u64 { ENotPendingAdmin }
+    public fun e_no_pending_admin(): u64 { ENoPendingAdmin }
+    public fun e_share_below_minimum(): u64 { EShareBelowMinimum }
+    public fun e_version_mismatch(): u64 { EVersionMismatch }
+    public fun e_already_current_version(): u64 { EAlreadyCurrentVersion }
+    public fun min_nav_share_bps(): u64 { MIN_NAV_SHARE_BPS }
+    public fun min_creator_share_bps(): u64 { MIN_CREATOR_SHARE_BPS }
 
     // ============================= Admin entry functions ===================
     public fun set_platform_treasury(
@@ -166,6 +206,7 @@ module tai::launchpad {
         new_treasury: address,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
         config.platform_treasury = new_treasury;
     }
@@ -177,8 +218,11 @@ module tai::launchpad {
         platform_bps: u64,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
         assert!(nav_bps + creator_bps + platform_bps == BPS_DENOMINATOR, EFeeBpsInvalid);
+        assert!(nav_bps >= MIN_NAV_SHARE_BPS, EShareBelowMinimum);
+        assert!(creator_bps >= MIN_CREATOR_SHARE_BPS, EShareBelowMinimum);
         config.trade_nav_share_bps = nav_bps;
         config.trade_creator_share_bps = creator_bps;
         config.trade_platform_share_bps = platform_bps;
@@ -191,8 +235,11 @@ module tai::launchpad {
         platform_bps: u64,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
         assert!(nav_bps + creator_bps + platform_bps == BPS_DENOMINATOR, EFeeBpsInvalid);
+        assert!(nav_bps >= MIN_NAV_SHARE_BPS, EShareBelowMinimum);
+        assert!(creator_bps >= MIN_CREATOR_SHARE_BPS, EShareBelowMinimum);
         config.service_nav_share_bps = nav_bps;
         config.service_creator_share_bps = creator_bps;
         config.service_platform_share_bps = platform_bps;
@@ -205,8 +252,11 @@ module tai::launchpad {
         creator_bps: u64,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
         assert!(nav_bps + burn_bps + creator_bps == BPS_DENOMINATOR, EFeeBpsInvalid);
+        assert!(nav_bps >= MIN_NAV_SHARE_BPS, EShareBelowMinimum);
+        assert!(creator_bps >= MIN_CREATOR_SHARE_BPS, EShareBelowMinimum);
         config.token_service_nav_share_bps = nav_bps;
         config.token_service_burn_share_bps = burn_bps;
         config.token_service_creator_share_bps = creator_bps;
@@ -217,8 +267,10 @@ module tai::launchpad {
         bps: u64,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
         assert!(bps > 0, EFeeBpsZero);
+        assert!(bps <= MAX_TRADE_FEE_BPS, EFeeBpsTooHigh);
         config.trade_fee_bps = bps;
     }
 
@@ -227,18 +279,74 @@ module tai::launchpad {
         target: u64,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
         assert!(target > 0, ECredTargetZero);
         config.cred_revenue_target = target;
     }
 
-    public fun transfer_admin(
+    /// Two-step admin transfer — step 1. Current admin nominates a new admin.
+    /// The new admin must then call `accept_admin` to finalize. Cancel by
+    /// calling propose_admin again with the existing admin's address (a
+    /// no-op effectively) or by accepting + reverting.
+    public fun propose_admin(
         config: &mut LaunchpadConfig,
         new_admin: address,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == config.admin, ENotAdmin);
-        config.admin = new_admin;
+        config.pending_admin = option::some<address>(new_admin);
+    }
+
+    /// Two-step admin transfer — step 2. The pending admin completes the
+    /// handover by calling this from their own address.
+    public fun accept_admin(
+        config: &mut LaunchpadConfig,
+        ctx: &mut TxContext,
+    ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(config.pending_admin.is_some(), ENoPendingAdmin);
+        let pending = *config.pending_admin.borrow();
+        assert!(ctx.sender() == pending, ENotPendingAdmin);
+        config.admin = pending;
+        config.pending_admin = option::none<address>();
+    }
+
+    /// Current admin cancels a pending transfer.
+    public fun cancel_pending_admin(
+        config: &mut LaunchpadConfig,
+        ctx: &mut TxContext,
+    ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        config.pending_admin = option::none<address>();
+    }
+
+    // ============================= Version migration =======================
+    /// Bump `LaunchpadConfig.version` from its current value up to
+    /// `CURRENT_VERSION`. Admin-only. Required after a package upgrade that
+    /// bumps `CURRENT_VERSION` before any user-facing entry will accept the
+    /// config again.
+    public fun migrate_config(
+        config: &mut LaunchpadConfig,
+        ctx: &mut TxContext,
+    ) {
+        assert!(ctx.sender() == config.admin, ENotAdmin);
+        assert!(config.version < CURRENT_VERSION, EAlreadyCurrentVersion);
+        config.version = CURRENT_VERSION;
+    }
+
+    /// Bump `LaunchpadAccount<T>.version` from its current value up to
+    /// `CURRENT_VERSION`. Permissionless — bumping the version is benign,
+    /// and an account stuck on an old version is unusable until migrated.
+    /// Future migrations may include per-account data transformation; if so,
+    /// this function bears the burden of doing them atomically.
+    public fun migrate_account<T>(
+        account: &mut LaunchpadAccount<T>,
+    ) {
+        assert!(account.version < CURRENT_VERSION, EAlreadyCurrentVersion);
+        account.version = CURRENT_VERSION;
     }
 
     // ============================= LaunchpadAccount<T> =====================
@@ -253,6 +361,7 @@ module tai::launchpad {
     ///   - dwallets_object_id       <-> RESERVED for v1.1 Ika adapter
     public struct LaunchpadAccount<phantom T> has key {
         id: UID,
+        version: u64,
 
         // Ownership + identity
         creator: address,
@@ -357,7 +466,15 @@ module tai::launchpad {
         linked_identity: Option<ID>,
     }
 
+    #[allow(unused_field)]
+    public struct CreatorTransferredEvent has copy, drop {
+        launchpad_id: ID,
+        old_creator: address,
+        new_creator: address,
+    }
+
     // ============================= Account getters =========================
+    public fun account_version<T>(a: &LaunchpadAccount<T>): u64 { a.version }
     public fun account_creator<T>(a: &LaunchpadAccount<T>): address { a.creator }
     public fun account_linked_identity<T>(a: &LaunchpadAccount<T>): Option<ID> { a.linked_identity }
     public fun account_coin_type_name<T>(a: &LaunchpadAccount<T>): String { a.coin_type_name }
@@ -428,11 +545,13 @@ module tai::launchpad {
         owner_cap_recipient: address,
         operator_recipient: Option<address>,
         operator_daily_limit_sui: u64,
+        operator_daily_limit_token: u64,
         operator_allowed_targets: vector<address>,
         operator_ttl_ms: u64,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(coin::total_supply(&treasury_cap) == 0, ETreasuryCapNotEmpty);
 
         let sender = ctx.sender();
@@ -459,6 +578,7 @@ module tai::launchpad {
                 owner_cap_recipient,
                 operator_recipient,
                 operator_daily_limit_sui,
+                operator_daily_limit_token,
                 operator_allowed_targets,
                 operator_ttl_ms,
                 clock,
@@ -473,6 +593,7 @@ module tai::launchpad {
 
         let account = LaunchpadAccount<T> {
             id: account_uid,
+            version: CURRENT_VERSION,
             creator: sender,
             linked_identity,
             coin_type_name,
@@ -536,6 +657,8 @@ module tai::launchpad {
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
         let sender = ctx.sender();
         let sui_in = coin::value(&payment);
         assert!(sui_in > 0, EInsufficientLiquidity);
@@ -613,6 +736,8 @@ module tai::launchpad {
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
         let sender = ctx.sender();
         let tokens_in = coin::value(&tokens);
         assert!(tokens_in > 0, EInsufficientLiquidity);
@@ -691,6 +816,8 @@ module tai::launchpad {
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
         let payer = ctx.sender();
         let amount = coin::value(&payment);
         assert!(amount > 0, EInsufficientLiquidity);
@@ -746,6 +873,8 @@ module tai::launchpad {
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
+        assert!(config.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
         assert!(account.accept_coin_payments, ECoinPaymentsDisabled);
         assert!(holder.launchpad_account_id == object::id(account), ELaunchpadMismatch);
 
@@ -789,6 +918,7 @@ module tai::launchpad {
         accept_coin: bool,
         ctx: &mut TxContext,
     ) {
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == account.creator, ENotCreator);
         account.access_threshold = threshold;
         account.accept_coin_payments = accept_coin;
@@ -806,6 +936,7 @@ module tai::launchpad {
         identity: Option<ID>,
         ctx: &mut TxContext,
     ) {
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
         assert!(ctx.sender() == account.creator, ENotCreator);
         account.linked_identity = identity;
 
@@ -813,6 +944,40 @@ module tai::launchpad {
             launchpad_id: object::id(account),
             linked_identity: identity,
         });
+    }
+
+    /// Creator-only: hand the creator role to a new address. This is the
+    /// only path to transfer the creator-coin economic stream (creator share
+    /// of every fee split) and creator-only mutator authority. One-step on
+    /// purpose — the creator is the only one who can sign this, so a
+    /// two-step is overkill, but losing the creator key is unrecoverable.
+    public fun set_creator<T>(
+        account: &mut LaunchpadAccount<T>,
+        new_creator: address,
+        ctx: &mut TxContext,
+    ) {
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(ctx.sender() == account.creator, ENotCreator);
+        let old = account.creator;
+        account.creator = new_creator;
+        event::emit(CreatorTransferredEvent {
+            launchpad_id: object::id(account),
+            old_creator: old,
+            new_creator,
+        });
+    }
+
+    /// Creator-only: set or clear the dWallets pointer reserved for the v1.1
+    /// Ika adapter. Until the adapter ships, this is a free-form pointer the
+    /// creator owns.
+    public fun set_dwallets_object_id<T>(
+        account: &mut LaunchpadAccount<T>,
+        id: Option<ID>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(account.version == CURRENT_VERSION, EVersionMismatch);
+        assert!(ctx.sender() == account.creator, ENotCreator);
+        account.dwallets_object_id = id;
     }
 
     // ============================= Test helpers ============================

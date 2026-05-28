@@ -1,11 +1,17 @@
 [package]
 name = "tai-core"
-description = "Core library for Tai — PTB builders, signers, indexer client, OTW templater for the Tai launchpad on Sui."
+description = "Core library for Tai — PTB builders, signers, JSON-RPC client, and typed reads for the Tai agent-economy launchpad on Sui."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+homepage = "https://github.com/TaiStream/Tai-Launchpad"
+documentation = "https://docs.rs/tai-core"
+readme = "README.md"
+rust-version = "1.75"
+keywords = ["sui", "agents", "launchpad", "move", "ai"]
+categories = ["api-bindings", "cryptography::cryptocurrencies"]
 
 [lib]
 name = "tai_core"

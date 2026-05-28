@@ -51,3 +51,4 @@ coverage/
 examples/cloudflare-agent/node_modules/
 examples/cloudflare-agent/.wrangler/
 examples/cloudflare-agent/dist/
+.vercel

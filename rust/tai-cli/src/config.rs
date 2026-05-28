@@ -46,8 +46,8 @@ pub fn default_keys_dir() -> Result<PathBuf> {
 }
 
 pub fn load(path: &Path) -> Result<CliConfig> {
-    let raw = std::fs::read_to_string(path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let raw =
+        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     let cfg: CliConfig = toml::from_str(&raw).context("parsing config.toml")?;
     Ok(cfg)
 }
@@ -58,7 +58,6 @@ pub fn save(path: &Path, cfg: &CliConfig) -> Result<()> {
             .with_context(|| format!("creating {}", parent.display()))?;
     }
     let toml_str = toml::to_string_pretty(cfg).context("serializing config")?;
-    std::fs::write(path, toml_str)
-        .with_context(|| format!("writing {}", path.display()))?;
+    std::fs::write(path, toml_str).with_context(|| format!("writing {}", path.display()))?;
     Ok(())
 }

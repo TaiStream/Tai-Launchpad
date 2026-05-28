@@ -182,10 +182,9 @@ mod tests {
 
     #[test]
     fn json_roundtrip() {
-        let id: ObjectId =
-            "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d"
-                .parse()
-                .unwrap();
+        let id: ObjectId = "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d"
+            .parse()
+            .unwrap();
         let json = serde_json::to_string(&id).unwrap();
         assert_eq!(
             json,

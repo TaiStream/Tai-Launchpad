@@ -42,7 +42,7 @@ module tai::treasury_tests {
             option::none<ID>(),
             CREATOR,
             option::none<address>(),
-            0, vector[], 0,
+            0, 0, vector[], 0,
             &clock, ts::ctx(sc),
         );
         ts::return_shared(config);
@@ -232,6 +232,7 @@ module tai::treasury_tests {
             &mut treasury, &owner_cap,
             OPERATOR,
             TEN_SUI_MIST,
+            0,
             vector[RECIPIENT_A, RECIPIENT_B],
             THIRTY_DAYS_MS,
             &clock, ts::ctx(&mut sc),
@@ -253,6 +254,30 @@ module tai::treasury_tests {
     }
 
     #[test]
+    #[expected_failure(abort_code = tai::agent_treasury::EOperatorTtlTooLong)]
+    fun issue_operator_cap_aborts_when_ttl_exceeds_one_year() {
+        let mut sc = ts::begin(ADMIN);
+        let clock = launch_fresh(&mut sc);
+
+        ts::next_tx(&mut sc, CREATOR);
+        let mut treasury = ts::take_shared<AgentTreasury<TEST_COIN>>(&sc);
+        let owner_cap = ts::take_from_address<OwnerCap<TEST_COIN>>(&sc, CREATOR);
+
+        // MAX_OPERATOR_TTL_MS is 31_536_000_000 (1 year). +1 must abort.
+        treas::issue_operator_cap<TEST_COIN>(
+            &mut treasury, &owner_cap,
+            OPERATOR, TEN_SUI_MIST, 0, vector[RECIPIENT_A],
+            31_536_000_001,
+            &clock, ts::ctx(&mut sc),
+        );
+
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(treasury);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
     fun owner_revokes_operator_cap_removes_from_active_set() {
         let mut sc = ts::begin(ADMIN);
         let clock = launch_fresh(&mut sc);
@@ -263,7 +288,7 @@ module tai::treasury_tests {
 
         treas::issue_operator_cap<TEST_COIN>(
             &mut treasury, &owner_cap,
-            OPERATOR, TEN_SUI_MIST, vector[RECIPIENT_A], THIRTY_DAYS_MS,
+            OPERATOR, TEN_SUI_MIST, 0, vector[RECIPIENT_A], THIRTY_DAYS_MS,
             &clock, ts::ctx(&mut sc),
         );
 
@@ -297,7 +322,7 @@ module tai::treasury_tests {
         // Issue operator cap.
         treas::issue_operator_cap<TEST_COIN>(
             &mut treasury, &owner_cap,
-            OPERATOR, TEN_SUI_MIST,
+            OPERATOR, TEN_SUI_MIST, 0,
             vector[RECIPIENT_A, RECIPIENT_B],
             THIRTY_DAYS_MS,
             &clock, ts::ctx(sc),

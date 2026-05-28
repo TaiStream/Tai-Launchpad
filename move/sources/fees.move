@@ -15,9 +15,11 @@ module tai::fees {
     use sui::sui::SUI;
 
     const EMathOverflow: u64 = 122;
+    const EFeeBpsInvalid: u64 = 110;
     const MAX_U64: u128 = 18_446_744_073_709_551_615;
 
     public fun e_math_overflow(): u64 { EMathOverflow }
+    public fun e_fee_bps_invalid(): u64 { EFeeBpsInvalid }
 
     public struct Split has copy, drop {
         nav: u64,
@@ -33,6 +35,10 @@ module tai::fees {
     /// Both multiplications use u128 intermediates. The remainder is computed
     /// as `total - nav - creator`, so the three parts sum exactly to `total`.
     public fun compute_split(total: u64, nav_bps: u64, creator_bps: u64): Split {
+        // Defensive bound: catches misuse of compute_split with bps that would
+        // make `total - nav - creator` underflow. Callers in tai::launchpad
+        // already enforce sum == 10_000, but compute_split is public.
+        assert!(nav_bps + creator_bps <= 10_000, EFeeBpsInvalid);
         let nav_u128 = ((total as u128) * (nav_bps as u128)) / 10_000u128;
         let creator_u128 = ((total as u128) * (creator_bps as u128)) / 10_000u128;
         assert!(nav_u128 <= MAX_U64, EMathOverflow);

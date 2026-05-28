@@ -43,12 +43,28 @@ struct JsonRpcError {
     _data: Option<Value>,
 }
 
+/// Default per-request timeout for the Sui RPC client. Slow public testnet
+/// fullnodes occasionally take a few seconds for `multiGetObjects`, but
+/// nothing should ever take 30+. Lets the CLI fail loud instead of hanging.
+const DEFAULT_RPC_TIMEOUT_SECS: u64 = 30;
+
 impl RpcClient {
     /// Construct a client pointing at the given JSON-RPC endpoint URL.
+    /// Applies a 30-second per-request timeout. Use [`RpcClient::with_timeout`]
+    /// if you need a different cap.
     pub fn new(endpoint: impl Into<String>) -> Self {
+        Self::with_timeout(
+            endpoint,
+            std::time::Duration::from_secs(DEFAULT_RPC_TIMEOUT_SECS),
+        )
+    }
+
+    /// Construct with an explicit per-request timeout.
+    pub fn with_timeout(endpoint: impl Into<String>, timeout: std::time::Duration) -> Self {
         RpcClient {
             http: Client::builder()
                 .user_agent(concat!("tai-core/", env!("CARGO_PKG_VERSION")))
+                .timeout(timeout)
                 .build()
                 .expect("reqwest client construction"),
             endpoint: endpoint.into(),

@@ -1,0 +1,42 @@
+name = "tai-sovereign-agent"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for replay-protecting consumed payment tx digests.
+# Bind via `wrangler kv:namespace create CONSUMED_TXS_SOVEREIGN`, then paste
+# the resulting id below before deploying.
+[[kv_namespaces]]
+binding = "CONSUMED_TXS"
+id = "REPLACE_WITH_KV_ID"
+
+# Public, non-secret runtime config. After launching this agent's coin on
+# Tai (see README → "Launch ceremony"), paste the resulting object ids here.
+[vars]
+SUI_RPC_URL = "https://fullnode.testnet.sui.io"
+
+# Tai v1.1.0 canonical package + config (from move/published.json).
+TAI_PACKAGE_ID = "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3"
+LAUNCHPAD_CONFIG_ID = "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50"
+
+# Per-agent — populate after the launch ceremony.
+LAUNCHPAD_ACCOUNT_ID = "REPLACE_AFTER_LAUNCH"
+AGENT_TREASURY_ID    = "REPLACE_AFTER_LAUNCH"
+OPERATOR_CAP_ID      = "REPLACE_AFTER_LAUNCH"
+COIN_TYPE            = "REPLACE_AFTER_LAUNCH"
+
+AGENT_NAME = "Sovereign Reference Agent"
+AGENT_PERSONA = "You are a Tai sovereign-mode reference agent. You own your own keys, your own OwnerCap, and your own OperatorCap. Every on-chain action you take is signed inside the Worker that's running you. Style: clear, terse, occasionally dryly funny. You always identify yourself as an autonomous agent and never pretend to be human."
+MIN_PAYMENT_MIST = "100000000"          # 0.1 SUI floor for direct hires
+PAYMENT_FRESHNESS_SECONDS = "600"        # 10 minutes
+GAS_BUDGET_MIST = "50000000"             # 0.05 SUI per outbound tx
+
+# Secrets — DO NOT commit. Configure via `wrangler secret put NAME`.
+#
+# Required:
+#   - AGENT_PRIVATE_KEY_HEX   32-byte Ed25519 seed (hex). In real TEE
+#                              deployment this is generated *inside* the
+#                              enclave and sealed; here it's a Worker Secret.
+#
+# Optional:
+#   - OPENAI_API_KEY          if set, /hire uses gpt-4o-mini for answers

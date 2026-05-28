@@ -1,18 +1,28 @@
 {
-  "version": "v1.0.1",
+  "version": "v1.1.0",
   "notes": [
-    "Tai v1.0.1 adds two modules over v1.0.0: tai::publisher (claims the Publisher cap via OTW at publish time) and tai::agent_display (registers Display<OwnerCap<T>> per agent so wallets render the OwnerCap as a rich NFT-style card).",
-    "v1.0.1 was a fresh republish (NOT a Sui package upgrade) because OTW-init in newly-added modules is not yet supported by upgrade-time module additions on the protocol the v1.0.0 package was deployed at. The v1.0.0 package at 0x7d41…4f8d remains on-chain as a historical artifact but is no longer the canonical deployment."
+    "Tai v1.1.0 ships the agent-to-agent payment rail and the audit-backlog batch:",
+    "  - NEW MODULE tai::work_order — escrow primitive with full state machine (NEW→ACCEPTED→RECEIPT_SUBMITTED→RELEASED|REFUNDED|DISPUTED). Release routes locked SUI through record_service_payment_sui so NAV and cred accumulate exactly as in direct hires.",
+    "  - MEDIUM-2: minimum NAV + creator share floors (1000 bps each) on every admin share setter.",
+    "  - MEDIUM-3: operator_spend_token with its own daily_limit_token field and shared epoch-day rollover.",
+    "  - set_creator: creator handoff path on LaunchpadAccount<T> (emits CreatorTransferredEvent).",
+    "  - LOW-6: two-step admin transfer — propose_admin → accept_admin → cancel_pending_admin (pending_admin field added to LaunchpadConfig).",
+    "  - LOW-1/2: allowed_targets size cap (64) + update_operator_cap_targets mutator.",
+    "  - LOW-7: set_dwallets_object_id creator-only mutator for the v1.1 Ika adapter pointer.",
+    "  - LOW-8: distinct EOperatorCapNotActive error code on revoke (was reusing EOperatorCapRevoked).",
+    "v1.1.0 is a fresh publish (NOT an upgrade) because the work_order module is a new module + OperatorCap struct gained daily_limit_token and spent_today_token fields + LaunchpadConfig gained pending_admin. The v1.0.1 + v1.0.2 packages remain on chain as historical artifacts; Larry stays on v1.0.1. New agents and all work-order activity land on v1.1.0.",
+    "91 Move unit tests pass (74 launchpad-side + 17 new work_order tests covering happy path, operator-cap variant, anyone-finalize-after-window, all refund paths, foreign-cap rejection, dispute → admin resolve in both directions, creation guards)."
   ],
   "testnet": {
-    "package_id": "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
-    "config_id": "0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0",
-    "upgrade_cap_id": "0x6046b65192508a01375810014857e85e02251633929c7fd99a5561b5960b364b",
-    "publisher_id": "0x9d9532b7be93404c773fe4a99e3db51b97e95b82549d47b9c42af326516fd203",
+    "package_id": "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
+    "config_id": "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
+    "upgrade_cap_id": "0x15db65b905cccde75e5f38311b5506d013cb878ec1fea8a143f1747e9b8e5467",
+    "publisher_id": "0x2ce74c8e1ca4658a80286d17bd3182e84dd717ba3032a8b5727b7dcfbc72352f",
     "publisher": "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14",
-    "publish_tx_checkpoint": "340901378",
-    "publish_tx_timestamp_ms": "1779701510462",
-    "publish_cost_mist": 128998680,
+    "publish_tx_digest": "HgkcB4UURjxHRfAhCebRjKPgrp5zc7VmmM1c33JGPKfA",
+    "publish_tx_checkpoint": "341424845",
+    "publish_tx_timestamp_ms": "1779828472966",
+    "publish_cost_mist": 193549880,
     "modules": [
       "agent_display",
       "agent_treasury",
@@ -20,7 +30,8 @@
       "fees",
       "launchpad",
       "publisher",
-      "views"
+      "views",
+      "work_order"
     ]
   },
   "history": {
@@ -28,6 +39,22 @@
       "package_id": "0x7d41072ae77b18b752292b47468e07e6332cd9a6ef9b052752f98f22d9844f8d",
       "config_id": "0x7aab8b56eceb6d12239ea54d52655c0a35b33bc59bc7c7b2111bbeba0ee6c680",
       "status": "superseded_by_v1.0.1"
+    },
+    "v1.0.1_testnet": {
+      "package_id": "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
+      "config_id": "0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0",
+      "upgrade_cap_id": "0x6046b65192508a01375810014857e85e02251633929c7fd99a5561b5960b364b",
+      "publisher_id": "0x9d9532b7be93404c773fe4a99e3db51b97e95b82549d47b9c42af326516fd203",
+      "status": "superseded_by_v1.0.2",
+      "notes": "Larry v2 (LARRY coin) remains live on this package as a legacy reference agent."
+    },
+    "v1.0.2_testnet": {
+      "package_id": "0xa93885e3ec2191336a99dfa9a8f4db2bad4fb03a7431780d9153f9191d555026",
+      "config_id": "0x4a217cd1c02a0f4341802a85129f473ed7cc3990b5d9c2084bee410ea46515d8",
+      "upgrade_cap_id": "0xc334041c275bdc356f94f84e55f2c19e59877de0fd349dd4635634a0646abf6c",
+      "publisher_id": "0xed19b78e2d9ea0f322a59e1762c6ba666ba6e000b970831dc0a3d4af265316ce",
+      "status": "superseded_by_v1.1.0",
+      "notes": "v1.0.2 was the audit-fix batch (trade-fee cap, compute_split assert, operator-TTL clamp, version fields). Superseded by v1.1.0 which adds work_order + the rest of the audit backlog."
     }
   }
 }

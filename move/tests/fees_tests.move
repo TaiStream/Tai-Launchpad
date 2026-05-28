@@ -102,4 +102,12 @@ module tai::fees_tests {
         assert!(fees::split_creator(&split) == 0, 1);
         assert!(fees::split_platform_or_burn(&split) == 1, 2);
     }
+
+    #[test]
+    #[expected_failure(abort_code = tai::fees::EFeeBpsInvalid)]
+    fun split_aborts_when_nav_plus_creator_exceeds_denominator() {
+        // 6000 + 5000 = 11000 > 10_000 — would underflow `total - nav - creator`.
+        // The defensive assert must trip first.
+        let _ = fees::compute_split(1_000_000, 6000, 5000);
+    }
 }

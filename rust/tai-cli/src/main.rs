@@ -14,10 +14,15 @@
 
 mod commands;
 mod config;
+mod launch;
 mod output;
 
 use clap::{Parser, Subcommand};
-use commands::{AccountShowArgs, InitArgs, PaySuiArgs, QuoteArgs};
+use commands::{
+    AccountShowArgs, BuyArgs, HireArgs, InitArgs, LaunchArgs, PaySuiArgs, QuoteArgs, SellArgs,
+    WorkAcceptArgs, WorkDisputeArgs, WorkRefundArgs, WorkReleaseArgs, WorkShowArgs,
+    WorkSubmitReceiptArgs,
+};
 use output::OutputMode;
 
 #[derive(Parser, Debug)]
@@ -55,6 +60,24 @@ enum Command {
     /// Pay an agent for a service. See subcommands.
     #[command(subcommand)]
     Pay(PayCommand),
+
+    /// Generate + publish a fresh coin module for an agent, then chain
+    /// `launch_agent_coin<T>` to create the LaunchpadAccount + treasury +
+    /// caps in one flow. Requires `sui` CLI on PATH.
+    Launch(LaunchArgs),
+
+    /// Buy an agent's coin from the bonding curve. SUI in → tokens out.
+    Buy(BuyArgs),
+
+    /// Sell an agent's coin back to the bonding curve. Tokens in → SUI out.
+    Sell(SellArgs),
+
+    /// Hire an agent with a work-order escrow.
+    Hire(HireArgs),
+
+    /// Work-order operations. See subcommands.
+    #[command(subcommand)]
+    Work(WorkCommand),
 }
 
 #[derive(Subcommand, Debug)]
@@ -71,6 +94,22 @@ enum PayCommand {
     Sui(PaySuiArgs),
 }
 
+#[derive(Subcommand, Debug)]
+enum WorkCommand {
+    /// Read a single WorkOrder<T> by id.
+    Show(WorkShowArgs),
+    /// Payee accepts an open work order using their OwnerCap or OperatorCap.
+    Accept(WorkAcceptArgs),
+    /// Payee submits the receipt that closes their side of the order.
+    SubmitReceipt(WorkSubmitReceiptArgs),
+    /// Buyer or anyone-after-window finalizes — funds route via service-payment.
+    Release(WorkReleaseArgs),
+    /// Buyer reclaims locked funds after deadline (NEW or ACCEPTED only).
+    Refund(WorkRefundArgs),
+    /// Buyer opens a dispute during the post-receipt window. Admin resolves.
+    Dispute(WorkDisputeArgs),
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -83,12 +122,32 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Init(args) => commands::cmd_init(args, cli.output),
+        Command::Init(args) => commands::cmd_init(args, cli.output).await,
         Command::Status => commands::cmd_status(cli.output).await,
         Command::Account(AccountCommand::Show(args)) => {
             commands::cmd_account_show(args, cli.output).await
         }
         Command::Quote(args) => commands::cmd_quote(args, cli.output).await,
         Command::Pay(PayCommand::Sui(args)) => commands::cmd_pay_sui(args, cli.output).await,
+        Command::Launch(args) => commands::cmd_launch(args, cli.output).await,
+        Command::Buy(args) => commands::cmd_buy(args, cli.output).await,
+        Command::Sell(args) => commands::cmd_sell(args, cli.output).await,
+        Command::Hire(args) => commands::cmd_hire(args, cli.output).await,
+        Command::Work(WorkCommand::Show(args)) => commands::cmd_work_show(args, cli.output).await,
+        Command::Work(WorkCommand::Accept(args)) => {
+            commands::cmd_work_accept(args, cli.output).await
+        }
+        Command::Work(WorkCommand::SubmitReceipt(args)) => {
+            commands::cmd_work_submit_receipt(args, cli.output).await
+        }
+        Command::Work(WorkCommand::Release(args)) => {
+            commands::cmd_work_release(args, cli.output).await
+        }
+        Command::Work(WorkCommand::Refund(args)) => {
+            commands::cmd_work_refund(args, cli.output).await
+        }
+        Command::Work(WorkCommand::Dispute(args)) => {
+            commands::cmd_work_dispute(args, cli.output).await
+        }
     }
 }
