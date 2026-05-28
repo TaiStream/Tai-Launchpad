@@ -72,7 +72,7 @@ export default async function AgentPage({
   // Curated override wins (e.g. Larry's blue mascot; Demo's red fish).
   // Otherwise prefer the on-chain Display.image_url. Otherwise fall back to
   // the testnet-early-user cohort art for v1.1.0+ agents (the red fish).
-  const isTestnetCurrent = account.packageVersion === "v1.1.0";
+  const isTestnetCurrent = account.packageVersion === "v1.1";
   const avatarUrl =
     known?.imageOverrideUrl ??
     display?.imageUrl ??

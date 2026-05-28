@@ -28,7 +28,11 @@ const DEFAULT_IMAGE_URL = `${DASHBOARD}/mascot-square.png`;
 
 const PACKAGES = [
     {
-        label: "v1.1.0",
+        // Original-published id for the v1.1 lineage (v1.1.0). Event TYPES
+        // stay anchored here even after the v1.1.1 upgrade, so this is the
+        // correct id to query MoveEventType against. New work orders created
+        // against the upgraded package still emit 0x7d86-typed events.
+        label: "v1.1",
         packageId:
             "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
     },

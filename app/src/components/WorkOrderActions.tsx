@@ -33,11 +33,11 @@ type Result =
     | { kind: "err"; message: string };
 
 function packageFor(version: string): TaiPackageInfo {
-    if (version === "v1.1.0") return TAI.v1_1_0;
+    if (version === "v1.1") return TAI.v1_1;
     if (version === "v1.0.2") return TAI.v1_0_2;
     if (version === "v1.0.1") return TAI.v1_0_1;
     // Default to latest; release will only ever land if Move-side accepts it.
-    return TAI.v1_1_0;
+    return TAI.v1_1;
 }
 
 export default function WorkOrderActions({ order }: { order: WorkOrderView }) {

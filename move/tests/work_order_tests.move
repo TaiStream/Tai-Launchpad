@@ -602,4 +602,84 @@ module tai::work_order_tests {
         clock::destroy_for_testing(clock);
         ts::end(sc);
     }
+
+    #[test]
+    #[expected_failure(abort_code = tai::work_order::EHashTooLong)]
+    fun cannot_create_order_with_oversized_spec_hash() {
+        let mut sc = ts::begin(ADMIN);
+        let clock = launch_solo(&mut sc);
+
+        ts::next_tx(&mut sc, BUYER);
+        let account = ts::take_shared<LaunchpadAccount<TEST_COIN>>(&sc);
+        let payment = mint_sui(&mut sc, ONE_SUI_MIST);
+        // 129 bytes — one over the 128 cap.
+        let mut big_hash = vector::empty<u8>();
+        let mut i = 0;
+        while (i < 129) { big_hash.push_back(7u8); i = i + 1; };
+        wo::create_work_order<TEST_COIN>(
+            &account, payment,
+            big_hash, std::string::utf8(b""),
+            ONE_DAY_MS, SHORT_DISPUTE_MS,
+            &clock, ts::ctx(&mut sc),
+        );
+
+        ts::return_shared(account);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    fun create_order_with_max_spec_hash_succeeds() {
+        let mut sc = ts::begin(ADMIN);
+        let mut clock = launch_solo(&mut sc);
+
+        ts::next_tx(&mut sc, BUYER);
+        let account = ts::take_shared<LaunchpadAccount<TEST_COIN>>(&sc);
+        let payment = mint_sui(&mut sc, ONE_SUI_MIST);
+        // Exactly 128 bytes — at the cap, must succeed.
+        let mut max_hash = vector::empty<u8>();
+        let mut i = 0;
+        while (i < 128) { max_hash.push_back(7u8); i = i + 1; };
+        wo::create_work_order<TEST_COIN>(
+            &account, payment,
+            max_hash, std::string::utf8(b"https://example.com/spec"),
+            ONE_DAY_MS, SHORT_DISPUTE_MS,
+            &clock, ts::ctx(&mut sc),
+        );
+
+        ts::next_tx(&mut sc, BUYER);
+        let order = ts::take_shared<WorkOrder<TEST_COIN>>(&sc);
+        assert!(wo::work_order_spec_hash(&order).length() == 128, 0);
+        ts::return_shared(order);
+
+        ts::return_shared(account);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::work_order::EHashTooLong)]
+    fun cannot_submit_receipt_with_oversized_hash() {
+        let mut sc = ts::begin(ADMIN);
+        let mut clock = launch_solo(&mut sc);
+
+        create_basic_order(&mut sc, &mut clock, ONE_SUI_MIST, ONE_DAY_MS, SHORT_DISPUTE_MS);
+
+        ts::next_tx(&mut sc, CREATOR);
+        let mut order = ts::take_shared<WorkOrder<TEST_COIN>>(&sc);
+        let owner_cap = ts::take_from_address<OwnerCap<TEST_COIN>>(&sc, CREATOR);
+        wo::accept_work_order_with_owner(&mut order, &owner_cap, &clock);
+
+        let mut big = vector::empty<u8>();
+        let mut i = 0;
+        while (i < 129) { big.push_back(1u8); i = i + 1; };
+        wo::submit_receipt_with_owner(
+            &mut order, &owner_cap, big, std::string::utf8(b""), &clock,
+        );
+
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(order);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
 }

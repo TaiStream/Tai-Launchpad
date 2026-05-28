@@ -190,8 +190,10 @@ function coinTypeFromGenericType(type: string): string {
 }
 
 function packageVersionForType(type: string): string {
+  // Object + event TYPES are anchored to the original-published package id,
+  // not the upgraded one — so match against typeOriginId.
   for (const p of ALL_PACKAGES) {
-    if (type.startsWith(`${p.packageId}::`)) return p.label;
+    if (type.startsWith(`${p.typeOriginId}::`)) return p.label;
   }
   return "?";
 }
@@ -450,7 +452,7 @@ export async function fetchAllLaunchEvents(
   const out: LaunchEventInfo[] = [];
   for (const pkg of ALL_PACKAGES) {
     const filter: EventFilter = {
-      MoveEventType: `${pkg.packageId}::launchpad::LaunchEvent`,
+      MoveEventType: `${pkg.typeOriginId}::launchpad::LaunchEvent`,
     };
     try {
       const page = await queryEvents(filter, limit, true);
@@ -545,10 +547,10 @@ export async function fetchAgentEvents(
   const out: AgentEvent[] = [];
   for (const pkg of ALL_PACKAGES) {
     const tradeFilter: EventFilter = {
-      MoveEventType: `${pkg.packageId}::launchpad::TradeEvent`,
+      MoveEventType: `${pkg.typeOriginId}::launchpad::TradeEvent`,
     };
     const serviceFilter: EventFilter = {
-      MoveEventType: `${pkg.packageId}::launchpad::ServicePaymentEvent`,
+      MoveEventType: `${pkg.typeOriginId}::launchpad::ServicePaymentEvent`,
     };
     try {
       const [tp, sp] = await Promise.all([
@@ -726,7 +728,7 @@ export async function fetchAllWorkOrderEvents(): Promise<
   }> = [];
   for (const pkg of ALL_PACKAGES) {
     const filter: EventFilter = {
-      MoveEventType: `${pkg.packageId}::work_order::WorkOrderCreatedEvent`,
+      MoveEventType: `${pkg.typeOriginId}::work_order::WorkOrderCreatedEvent`,
     };
     try {
       const page = await queryEvents(filter, 50, true);

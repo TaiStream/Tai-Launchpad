@@ -153,7 +153,7 @@ export default async function HirePage() {
                   <div className="truncate text-[13.5px] text-phosphor group-hover:text-amber-bright">
                     {a.name}
                   </div>
-                  <Tag variant={a.packageVersion === "v1.1.0" ? "green" : "neutral"}>
+                  <Tag variant={a.packageVersion === "v1.1" ? "green" : "neutral"}>
                     {a.packageVersion}
                   </Tag>
                 </div>

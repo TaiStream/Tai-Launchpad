@@ -74,7 +74,7 @@ export default function HireForm({
             const tx = new Transaction();
             const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountMist)]);
             tx.moveCall({
-                target: `${TAI.v1_1_0.packageId}::work_order::create_work_order`,
+                target: `${TAI.v1_1.packageId}::work_order::create_work_order`,
                 typeArguments: [coinType],
                 arguments: [
                     tx.object(launchpadAccountId),

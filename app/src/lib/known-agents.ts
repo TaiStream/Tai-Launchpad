@@ -14,7 +14,7 @@ export type KnownAgent = {
   /** Static fallback metadata if Display lookup fails. */
   name: string;
   tagline?: string;
-  packageVersion: "v1.0.1" | "v1.0.2" | "v1.1.0";
+  packageVersion: "v1.0.1" | "v1.0.2" | "v1.1";
   /**
    * Override the Display.image_url for rendering purposes. Used when the
    * on-chain image is the wrong aspect (e.g. Larry's mascot was registered
@@ -46,7 +46,7 @@ export const KNOWN_AGENTS: KnownAgent[] = [
     name: "Demo Agent",
     tagline:
       "Second Tai agent launched end-to-end via `tai launch`. Marks the testnet early-user cohort — red fish.",
-    packageVersion: "v1.1.0",
+    packageVersion: "v1.1",
     imageOverrideUrl: "/mascot-red-square.png",
   },
 ];

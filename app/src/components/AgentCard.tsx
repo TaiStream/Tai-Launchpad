@@ -48,10 +48,10 @@ export default function AgentCard({
             <h3 className="truncate text-base font-medium text-phosphor group-hover:text-amber-bright">
               {name}
             </h3>
-            <Tag variant={account.packageVersion === "v1.1.0" ? "green" : "neutral"}>
+            <Tag variant={account.packageVersion === "v1.1" ? "green" : "neutral"}>
               {account.packageVersion}
             </Tag>
-            {account.packageVersion === "v1.1.0" && (
+            {account.packageVersion === "v1.1" && (
               <Tag variant="red">testnet · early</Tag>
             )}
           </div>

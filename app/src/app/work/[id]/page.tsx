@@ -79,7 +79,7 @@ export default async function WorkOrderPage({
               work order
             </h1>
             <StatusBadge status={order.status} />
-            <Tag variant={order.packageVersion === "v1.1.0" ? "green" : "neutral"}>
+            <Tag variant={order.packageVersion === "v1.1" ? "green" : "neutral"}>
               {order.packageVersion}
             </Tag>
           </div>

@@ -1,6 +1,10 @@
 {
-  "version": "v1.1.0",
+  "version": "v1.1.1",
   "notes": [
+    "Tai v1.1.1 is an IN-PLACE UPGRADE of v1.1.0 (first time Tai used `sui client upgrade` rather than a fresh republish — the change is pure validation logic, no struct-layout change, so it is upgrade-compatible). L4 fix: bound spec_hash / receipt_hash to 128 bytes and spec_url / receipt_url to 512 bytes in tai::work_order, closing a buyer-funded shared-object bloat edge. New error codes EHashTooLong (211) / EUrlTooLong (212).",
+    "Because this was an upgrade: the config_id, Larry, Demo, and all existing objects are UNCHANGED. Only the callable package_id moved to 0x74e4…111d. Event + object TYPES stay anchored to the v1.1.0 original-published id 0x7d86…efb3 (Sui anchors type identity to first-publish), so event indexers continue to query against 0x7d86. Callers (tai-cli, dashboard) target 0x74e4 to hit the new validated code.",
+    "94 Move unit tests pass (91 prior + 3 new: oversized-spec-hash reject, max-spec-hash accept, oversized-receipt-hash reject).",
+    "--- v1.1.0 (original publish of this lineage) ---",
     "Tai v1.1.0 ships the agent-to-agent payment rail and the audit-backlog batch:",
     "  - NEW MODULE tai::work_order — escrow primitive with full state machine (NEW→ACCEPTED→RECEIPT_SUBMITTED→RELEASED|REFUNDED|DISPUTED). Release routes locked SUI through record_service_payment_sui so NAV and cred accumulate exactly as in direct hires.",
     "  - MEDIUM-2: minimum NAV + creator share floors (1000 bps each) on every admin share setter.",
@@ -14,13 +18,16 @@
     "91 Move unit tests pass (74 launchpad-side + 17 new work_order tests covering happy path, operator-cap variant, anyone-finalize-after-window, all refund paths, foreign-cap rejection, dispute → admin resolve in both directions, creation guards)."
   ],
   "testnet": {
-    "package_id": "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
+    "package_id": "0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d",
+    "type_origin_id": "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
     "config_id": "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
     "upgrade_cap_id": "0x15db65b905cccde75e5f38311b5506d013cb878ec1fea8a143f1747e9b8e5467",
     "publisher_id": "0x2ce74c8e1ca4658a80286d17bd3182e84dd717ba3032a8b5727b7dcfbc72352f",
     "publisher": "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14",
-    "publish_tx_digest": "HgkcB4UURjxHRfAhCebRjKPgrp5zc7VmmM1c33JGPKfA",
-    "publish_tx_checkpoint": "341424845",
+    "upgrade_tx_digest": "HmVRYzXdgnxTy97h71bUH6N2m567afy1Bc9wjuUjokLn",
+    "upgrade_tx_checkpoint": "342196917",
+    "v1_1_0_publish_tx_digest": "HgkcB4UURjxHRfAhCebRjKPgrp5zc7VmmM1c33JGPKfA",
+    "v1_1_0_publish_tx_checkpoint": "341424845",
     "publish_tx_timestamp_ms": "1779828472966",
     "publish_cost_mist": 193549880,
     "modules": [

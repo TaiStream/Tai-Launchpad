@@ -61,18 +61,21 @@ pub struct TaiConfig {
 
 impl TaiConfig {
     /// The current canonical testnet deployment of the v1 Tai package.
-    /// Points at v1.1.0 (work_order escrow module + audit-backlog batch:
-    /// share floors, operator_spend_token, set_creator, two-step admin
-    /// transfer, allowed_targets size cap + mutator, set_dwallets_object_id).
+    /// Points at v1.1.1 — the in-place upgrade of v1.1.0 that added
+    /// spec/receipt length bounds (L4). The package_id is the upgraded
+    /// package; the config_id is unchanged across the upgrade (Sui
+    /// upgrades don't move existing objects).
     ///
-    /// Source: `move/published.json` in this repo. Published 2026-05-26 at
-    /// checkpoint 341424845, tx HgkcB4UURjxHRfAhCebRjKPgrp5zc7VmmM1c33JGPKfA.
+    /// Source: `move/published.json` in this repo. Upgraded 2026-05-28 at
+    /// checkpoint 342196917, tx HmVRYzXdgnxTy97h71bUH6N2m567afy1Bc9wjuUjokLn.
+    /// Type/event anchor remains the v1.1.0 package
+    /// 0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3.
     pub fn testnet_v1() -> Self {
         TaiConfig {
             network: Network::Testnet,
             rpc_url: Network::Testnet.default_rpc_url().to_string(),
             package_id: ObjectId::from_bytes(hex_lit(
-                "7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
+                "74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d",
             )),
             config_id: ObjectId::from_bytes(hex_lit(
                 "4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
@@ -112,7 +115,7 @@ mod tests {
         assert_eq!(cfg.network, Network::Testnet);
         assert_eq!(
             cfg.package_id.to_string(),
-            "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3"
+            "0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d"
         );
         assert_eq!(
             cfg.config_id.to_string(),

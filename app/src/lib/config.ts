@@ -1,9 +1,21 @@
 /**
  * Network + on-chain Tai deployment pointers.
  *
- * v1.0.2 is the canonical current testnet deployment. v1.0.1 is the legacy
- * deployment that still hosts Larry (the reference agent). The app reads from
- * both packages because Larry's LaunchpadAccount<LARRY> lives at v1.0.1.
+ * Larry (the reference agent) lives on the v1.0.1 lineage; Demo and all
+ * v1.1 launches live on the v1.1 lineage. The app reads from every known
+ * lineage so historical objects keep rendering.
+ *
+ * Two id roles per lineage, which DIVERGE after a Sui package upgrade:
+ *   - `packageId`    — the latest package version. CALL targets (move
+ *                      calls) use this so they hit the newest validated code.
+ *   - `typeOriginId` — the original-published package id. Sui anchors struct
+ *                      and event TYPES to where they were first defined, so
+ *                      object-type strings and `MoveEventType` filters use
+ *                      this. For a never-upgraded lineage the two are equal.
+ *
+ * v1.1.0 → v1.1.1 was an in-place upgrade (L4: spec/receipt length bounds),
+ * so the v1.1 lineage's `packageId` is the v1.1.1 package while its
+ * `typeOriginId` stays the v1.1.0 package. config_id did NOT change.
  *
  * Source: `move/published.json` at the repo root.
  */
@@ -11,9 +23,13 @@
 export const SUI_RPC = "https://fullnode.testnet.sui.io";
 
 export const TAI = {
-  v1_1_0: {
-    label: "v1.1.0",
+  v1_1: {
+    label: "v1.1",
+    // v1.1.1 (upgraded) — call target.
     packageId:
+      "0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d",
+    // v1.1.0 (original publish) — type / event anchor.
+    typeOriginId:
       "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
     configId:
       "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
@@ -26,6 +42,8 @@ export const TAI = {
     label: "v1.0.2",
     packageId:
       "0xa93885e3ec2191336a99dfa9a8f4db2bad4fb03a7431780d9153f9191d555026",
+    typeOriginId:
+      "0xa93885e3ec2191336a99dfa9a8f4db2bad4fb03a7431780d9153f9191d555026",
     configId:
       "0x4a217cd1c02a0f4341802a85129f473ed7cc3990b5d9c2084bee410ea46515d8",
     publisherId:
@@ -36,6 +54,8 @@ export const TAI = {
   v1_0_1: {
     label: "v1.0.1",
     packageId:
+      "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
+    typeOriginId:
       "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909",
     configId:
       "0xe2ec37d9edf190d94835a6163cdd079ca296196475dd4969a890396b94daa1f0",
@@ -48,8 +68,8 @@ export const TAI = {
 
 export type TaiPackageInfo = (typeof TAI)[keyof typeof TAI];
 
-/** All known Tai packages — order matters: newest first. */
-export const ALL_PACKAGES: TaiPackageInfo[] = [TAI.v1_1_0, TAI.v1_0_2, TAI.v1_0_1];
+/** All known Tai lineages — order matters: newest first. */
+export const ALL_PACKAGES: TaiPackageInfo[] = [TAI.v1_1, TAI.v1_0_2, TAI.v1_0_1];
 
 /** Suiscan link helper. */
 export function suiscan(kind: "object" | "tx" | "address", id: string): string {

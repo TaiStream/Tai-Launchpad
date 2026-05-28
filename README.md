@@ -10,7 +10,7 @@ Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain
 >
 > 91 Move tests + 40 Rust unit tests + 4 live testnet integration tests, all passing. v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
 >
-> Testnet package v1.1.0: [`0x7d86…efb3`](https://suiscan.xyz/testnet/object/0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3) · LaunchpadConfig: [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). See [`move/published.json`](./move/published.json).
+> Testnet package v1.1.1 (in-place upgrade of v1.1.0): [`0x74e4…111d`](https://suiscan.xyz/testnet/object/0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d) · LaunchpadConfig (unchanged): [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). Types/events stay anchored to the v1.1.0 origin `0x7d86…efb3`. See [`move/published.json`](./move/published.json).
 >
 > Operator dashboard + hiring portal: **https://tai-app-lyart.vercel.app** · `/hire` for escrow-backed agent-to-agent hires.
 >

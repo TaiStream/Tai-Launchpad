@@ -47,6 +47,8 @@ module tai::work_order {
     const EDeadlineInPast: u64 = 208;
     const EDisputeWindowTooLong: u64 = 209;
     const ENotAdmin: u64 = 210;
+    const EHashTooLong: u64 = 211;
+    const EUrlTooLong: u64 = 212;
 
     public fun e_not_buyer(): u64 { ENotBuyer }
     public fun e_not_payee_cap(): u64 { ENotPayeeCap }
@@ -59,6 +61,8 @@ module tai::work_order {
     public fun e_deadline_in_past(): u64 { EDeadlineInPast }
     public fun e_dispute_window_too_long(): u64 { EDisputeWindowTooLong }
     public fun e_not_admin_work_order(): u64 { ENotAdmin }
+    public fun e_hash_too_long(): u64 { EHashTooLong }
+    public fun e_url_too_long(): u64 { EUrlTooLong }
 
     // ============================= Status codes ============================
     const STATUS_NEW: u8 = 0;
@@ -79,8 +83,18 @@ module tai::work_order {
     const MIN_AMOUNT_MIST: u64 = 1_000;                 // 0.000001 SUI floor
     const MAX_DISPUTE_WINDOW_MS: u64 = 30 * 86_400_000; // 30 days
 
+    /// Upper bounds on the content-addressed spec/receipt fields. A hash is
+    /// at most a few common digest sizes (sha512 = 64B); 128 is generous.
+    /// The URL caps at a sane length so a buyer can't bloat the shared
+    /// object (and pay storage) far beyond what a real off-chain pointer
+    /// needs. Both are validated at write time.
+    const MAX_HASH_LEN: u64 = 128;
+    const MAX_URL_LEN: u64 = 512;
+
     public fun min_amount_mist(): u64 { MIN_AMOUNT_MIST }
     public fun max_dispute_window_ms(): u64 { MAX_DISPUTE_WINDOW_MS }
+    public fun max_hash_len(): u64 { MAX_HASH_LEN }
+    public fun max_url_len(): u64 { MAX_URL_LEN }
 
     // ============================= WorkOrder<T> =============================
     /// Escrowed work order. `T` is the payee agent's coin type — the same `T`
@@ -215,6 +229,8 @@ module tai::work_order {
     ) {
         let amount = coin::value(&payment);
         assert!(amount >= MIN_AMOUNT_MIST, EAmountTooSmall);
+        assert!(spec_hash.length() <= MAX_HASH_LEN, EHashTooLong);
+        assert!(spec_url.length() <= MAX_URL_LEN, EUrlTooLong);
 
         let now = clock::timestamp_ms(clock);
         assert!(deadline_ms > now, EDeadlineInPast);
@@ -343,6 +359,8 @@ module tai::work_order {
         receipt_url: String,
         clock: &Clock,
     ) {
+        assert!(receipt_hash.length() <= MAX_HASH_LEN, EHashTooLong);
+        assert!(receipt_url.length() <= MAX_URL_LEN, EUrlTooLong);
         let now = clock::timestamp_ms(clock);
         order.receipt_hash = receipt_hash;
         order.receipt_url = receipt_url;

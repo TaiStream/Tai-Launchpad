@@ -57,7 +57,7 @@ async function loadRows(): Promise<Row[]> {
         //   2. On-chain Display image
         //   3. Testnet early-user fallback (red fish) for v1.1.0+ agents
         //   4. Letterform sigil (handled by AgentCard)
-        const isTestnetCurrent = account.packageVersion === "v1.1.0";
+        const isTestnetCurrent = account.packageVersion === "v1.1";
         const imageUrl =
           known?.imageOverrideUrl ??
           display?.imageUrl ??
