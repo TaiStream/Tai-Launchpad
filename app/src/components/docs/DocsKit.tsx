@@ -48,7 +48,7 @@ export function H2({ id, children }: { id?: string; children: ReactNode }) {
 
 export function H3({ children }: { children: ReactNode }) {
   return (
-    <h3 className="mt-6 mb-2 text-base font-semibold uppercase tracking-[0.15em] text-amber-bright">
+    <h3 className="mt-6 mb-2 text-[1rem] font-semibold uppercase tracking-[0.15em] text-amber-bright">
       {children}
     </h3>
   );

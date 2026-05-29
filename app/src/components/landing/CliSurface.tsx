@@ -67,7 +67,7 @@ export default function CliSurface() {
                 <code
                   className={`${
                     s.hi ? "text-amber" : "text-phosphor"
-                  } text-base`}
+                  } text-[1rem]`}
                 >
                   --signer-mode {s.name}
                 </code>

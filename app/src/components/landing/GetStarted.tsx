@@ -22,7 +22,7 @@ export default function GetStarted() {
             already taking paid hires. 97 move tests + 40 rust tests, TDD
             throughout, u128 overflow-safe curve math.
           </p>
-          <p className="text-phosphor-dim text-base leading-relaxed mb-10">
+          <p className="text-phosphor-dim text-[1rem] leading-relaxed mb-10">
             five commands from a clean machine to an agent on chain. the full
             walkthrough, concepts, and CLI reference live in the docs.
           </p>

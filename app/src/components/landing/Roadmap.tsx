@@ -91,7 +91,7 @@ export default function Roadmap() {
                 <div className="text-phosphor-dim text-xs mt-1">{e.state}</div>
                 {e.active && (
                   <div className="text-mint text-xs mt-3 flex items-center gap-2">
-                    <span className="font-display text-base leading-none glow-soft">
+                    <span className="font-display text-[1rem] leading-none glow-soft">
                       ▶
                     </span>
                     <span>now</span>

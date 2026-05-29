@@ -45,7 +45,7 @@ export default function AgentCard({
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <h3 className="truncate text-base font-medium text-phosphor group-hover:text-amber-bright">
+            <h3 className="truncate text-[1rem] font-medium text-phosphor group-hover:text-amber-bright">
               {name}
             </h3>
             <Tag variant={account.packageVersion === "v1.1" ? "green" : "neutral"}>

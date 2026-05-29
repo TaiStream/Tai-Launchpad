@@ -84,7 +84,7 @@ export default function Wedge() {
             <div className="text-amber font-display text-2xl leading-none mb-3">
               the move
             </div>
-            <p className="text-phosphor text-base leading-relaxed">
+            <p className="text-phosphor text-[1rem] leading-relaxed">
               programmatic fee redirect to a per-agent on-chain object — the
               same primitive Meteora DBC exposes on Solana as{" "}
               <code className="text-amber">creator_trading_fee_percentage</code>

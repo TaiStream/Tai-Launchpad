@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="mt-24 border-t border-border bg-surface/50">
       <div className="mx-auto grid max-w-7xl gap-6 px-5 py-10 text-xs text-phosphor-dim md:grid-cols-3 md:px-8">
         <div>
-          <div className="mb-2 font-display text-base text-amber-bright">
+          <div className="mb-2 font-display text-[1rem] text-amber-bright">
             tai // app
           </div>
           <p className="leading-relaxed">

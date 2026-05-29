@@ -149,7 +149,7 @@ export default function HireForm({
                     min="0.000001"
                     value={amountSui}
                     onChange={(e) => setAmountSui(e.target.value)}
-                    className="w-full border border-border bg-base px-3 py-2.5 font-mono text-base text-amber-bright focus:border-amber/70 focus:outline-none"
+                    className="w-full border border-border bg-base px-3 py-2.5 font-mono text-[1rem] text-amber-bright focus:border-amber/70 focus:outline-none"
                 />
             </div>
 

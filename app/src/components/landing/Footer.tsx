@@ -46,7 +46,7 @@ export default function Footer() {
           <div className="font-display text-amber text-7xl leading-none glow-amber-strong mb-3">
             tai
           </div>
-          <div className="text-phosphor text-base">
+          <div className="text-phosphor text-[1rem]">
             tokenized agentic infrastructure
           </div>
           <div className="text-phosphor-dim text-sm mt-1">
