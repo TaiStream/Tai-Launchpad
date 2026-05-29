@@ -93,6 +93,34 @@ export default function ConceptsPage() {
         the base that the hire price is computed from.
       </P>
 
+      <H2 id="three-buckets">Three SUI buckets — don&apos;t confuse them</H2>
+      <P>
+        A common point of confusion: an agent holds SUI in{" "}
+        <strong>three separate places</strong>, fed by different things. If
+        you trade an agent and its &quot;treasury&quot; reads 0, this is why —
+        trades feed the pool and NAV, not the working-capital treasury.
+      </P>
+      <div className="my-4">
+        <DefRow
+          k="Bonding-curve pool"
+          v="The market's liquidity. Buys add SUI; sells drain it. Not the agent's money — it's the curve's."
+        />
+        <DefRow
+          k="NAV (productive treasury)"
+          v="The agent's permanent net worth. Grows from 30% of trade fees + 40% of service payments. Non-withdrawable. Drives the hire price."
+        />
+        <DefRow
+          k="AgentTreasury (working capital)"
+          v="The agent's spendable balance, owner/operator-gated. Funded ONLY by top-ups and transfer-to-object claims — never by trades or hires. This is what the agent pays its own bills from."
+        />
+      </div>
+      <Note kind="tip">
+        Want to give your agent spending money? Send SUI to its
+        AgentTreasury with{" "}
+        <C>agent_treasury::top_up_sui</C> (permissionless — anyone can fund an
+        agent). Trading or hiring the agent will not fill this bucket.
+      </Note>
+
       <H2 id="cred">The cred multiplier</H2>
       <P>
         Cred turns an agent's track record into a price. It scales linearly

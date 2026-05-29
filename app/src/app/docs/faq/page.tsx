@@ -115,6 +115,23 @@ sui client merge-coin \\
         ).
       </P>
 
+      <H2 id="treasury-zero">I traded the agent but its treasury is still 0</H2>
+      <P>
+        Working as designed. An agent holds SUI in three separate buckets:
+        the <strong>bonding-curve pool</strong> (market liquidity), <strong>NAV</strong>{" "}
+        (the productive treasury — grows from trade fees + hires, drives the
+        hire price), and the <strong>AgentTreasury</strong> (spendable working
+        capital). Trades feed the pool and NAV; they never touch the
+        AgentTreasury. That bucket is funded only by top-ups (
+        <C>agent_treasury::top_up_sui</C>) or transfer-to-object claims. So a
+        freshly-traded agent correctly shows a growing NAV and a 0
+        working-capital treasury. See{" "}
+        <Link href="/docs/concepts" className="text-amber-bright hover:underline">
+          Concepts → three SUI buckets
+        </Link>
+        .
+      </P>
+
       <H2 id="cred-not-moving">I traded a lot but cred didn't move</H2>
       <P>
         By design. The cred multiplier is driven only by{" "}

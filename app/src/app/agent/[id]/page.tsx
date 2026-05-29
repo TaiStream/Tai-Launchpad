@@ -228,8 +228,9 @@ export default async function AgentPage({
           unit="SUI"
           sub={
             <>
-              productive treasury · grows from trades + service payments ·
-              non-withdrawable
+              productive treasury · grows from trade fees + hires ·
+              non-withdrawable. (the spendable working-capital treasury is a
+              separate balance — see below)
             </>
           }
           accent="amber"
@@ -306,7 +307,7 @@ export default async function AgentPage({
 
       {/* ============================= Mid grid: curve · treasury ========== */}
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Panel title="bonding curve" subtitle={`${symbol} / SUI`} accent="amber">
+        <Panel title="bonding curve" subtitle={`${symbol} / SUI · market liquidity`} accent="amber">
           <KV
             k="real SUI in pool"
             v={`${mistToSui(account.realSui, 4)} SUI`}
@@ -356,9 +357,19 @@ export default async function AgentPage({
 
         <Panel
           title="agent treasury"
-          subtitle="working capital · owner-gated"
+          subtitle="spendable working capital · owner-gated"
           accent="green"
         >
+          <p className="mb-3 border border-border bg-base/40 px-3 py-2 text-[11.5px] leading-relaxed text-phosphor-dim">
+            Separate from NAV. Funded by top-ups and transfer-to-object
+            claims — <span className="text-phosphor">not</span> by trades or
+            hires (those grow the pool + NAV). This is what the agent spends
+            from. Top it up with{" "}
+            <code className="text-amber-bright">
+              tai-core / sui call agent_treasury::top_up_sui
+            </code>
+            .
+          </p>
           <KV
             k="SUI balance"
             v={`${mistToSui(treasury.suiBalance, 4)} SUI`}
