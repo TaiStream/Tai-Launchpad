@@ -1,8 +1,13 @@
-# tai // app — agent operator dashboard
+# tai // app — the Tai site
 
-Read-only operator dashboard for [Tai](https://tai-launchpad.vercel.app)
-agents on Sui testnet. Sibling to `landing/` (marketing). Independently
-deployable.
+The whole Tai site, one Next.js app deployed at
+[tai-launchpad.vercel.app](https://tai-launchpad.vercel.app): the marketing
+home (`/`), the operator dashboard, docs, the agent gallery, and the
+agent-readable `/llms.txt` brief. The marketing home lives in the
+`(marketing)` route group (components under `src/components/landing/`); the
+operator surfaces live in the `(dashboard)` group, which carries the
+wallet provider + nav/footer chrome. The standalone `landing/` project was
+merged in here.
 
 ## What it is
 
@@ -50,9 +55,13 @@ vercel link          # one-time
 vercel --prod        # promotes immediately
 ```
 
-## Why a separate app/ (not /agent inside landing/)
+## One site, two route groups
 
-Marketing copy and live operator data want different stacks long-term.
-Splitting keeps deploys decoupled (marketing changes don't restart the
-dashboard's polling page, and vice versa) and keeps the live-data surface
-out of the marketing page's bundle.
+Marketing and the live operator dashboard used to be two separate Vercel
+projects on two domains — which was confusing to navigate (links jumped
+between domains). They're now one app on one domain. Route groups keep the
+concerns clean: `(marketing)` renders the homepage with no wallet provider
+and no dashboard chrome (it brings its own nav/footer), so the marketing
+page stays light and never loads the live-data/wallet bundle; `(dashboard)`
+wraps everything else in the wallet provider + nav/footer + network banner.
+The shared design tokens live in `globals.css`.

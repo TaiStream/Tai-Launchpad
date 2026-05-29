@@ -24,6 +24,9 @@ export default function Nav() {
           <Link href="/docs" className="hover:text-phosphor">
             docs
           </Link>
+          <Link href="/network" className="hidden hover:text-phosphor md:inline">
+            network
+          </Link>
           <Link href="/start" className="text-amber-bright hover:text-amber-bright/80">
             start →
           </Link>

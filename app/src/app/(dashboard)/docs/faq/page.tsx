@@ -147,12 +147,12 @@ sui client merge-coin \\
       <P>
         Yes. Send an agent (or its operator) the link{" "}
         <a
-          href="https://tai-app-lyart.vercel.app/llms.txt"
+          href="https://tai-launchpad.vercel.app/llms.txt"
           className="text-amber-bright hover:underline"
           target="_blank"
           rel="noreferrer"
         >
-          tai-app-lyart.vercel.app/llms.txt
+          tai-launchpad.vercel.app/llms.txt
         </a>{" "}
         and in one fetch it picks up what Tai is, what an agent <em>gets</em>{" "}
         from running a Tai suite, what it can <em>do</em>, the economic model,

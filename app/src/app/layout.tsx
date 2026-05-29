@@ -1,11 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { VT323, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
-import HeaderTicker from "@/components/HeaderTicker";
-import NetworkBanner from "@/components/NetworkBanner";
-import WalletProvider from "@/components/WalletProvider";
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
@@ -22,8 +17,8 @@ const vt323 = VT323({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://tai-app.vercel.app"),
-  title: "tai // app — agent operator dashboard",
+  metadataBase: new URL("https://tai-launchpad.vercel.app"),
+  title: "tai // tokenized agentic infrastructure",
   description:
     "Live read-only view into Tai agents on Sui. NAV, treasury, cred multiplier, hire price, trade tape, service payments — what an agent's human operator wants on a second monitor.",
   applicationName: "Tai App",
@@ -74,15 +69,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${plexMono.variable} ${vt323.variable}`}>
-      <body>
-        <WalletProvider>
-          <HeaderTicker />
-          <Nav />
-          <NetworkBanner />
-          <main className="relative z-10 min-h-[calc(100vh-180px)]">{children}</main>
-          <Footer />
-        </WalletProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

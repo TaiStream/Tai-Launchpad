@@ -179,7 +179,7 @@ Tai-Launchpad/
 │   ├── tai-core/                   # PTB builders, signer trait + impls, indexer, templater
 │   └── tai-cli/                    # `tai` binary; clap-based command tree
 ├── sdk/                            # @tai/sdk (TypeScript, WASM-backed)
-├── landing/                        # Marketing landing page (Next.js)
+├── app/                            # Next.js site: marketing home (/), dashboard, docs, gallery, /llms.txt
 ├── examples/
 │   ├── cli-quickstart/             # Shell script: full lifecycle end-to-end
 │   ├── tee-agent/                  # Phala Cloud + Nautilus reference deployment

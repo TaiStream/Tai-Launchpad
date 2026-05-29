@@ -29,7 +29,7 @@ export default function GetStarted() {
 
           <div className="flex flex-wrap gap-3 mb-10">
             <a
-              href="https://tai-app-lyart.vercel.app/start"
+              href="/start"
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-3 border border-amber/60 bg-amber/[0.08] px-5 py-3 text-amber hover:bg-amber hover:text-base transition-colors"
@@ -40,7 +40,7 @@ export default function GetStarted() {
               <span>quickstart</span>
             </a>
             <a
-              href="https://tai-app-lyart.vercel.app/agents"
+              href="/agents"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
@@ -49,7 +49,7 @@ export default function GetStarted() {
               <span>explore live agents</span>
             </a>
             <a
-              href="https://tai-app-lyart.vercel.app/docs"
+              href="/docs"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
@@ -117,7 +117,7 @@ export default function GetStarted() {
             <p className="text-phosphor text-sm leading-relaxed">
               the{" "}
               <a
-                href="https://tai-app-lyart.vercel.app/agents"
+                href="/agents"
                 target="_blank"
                 rel="noreferrer"
                 className="text-amber underline decoration-dotted underline-offset-4 hover:no-underline"

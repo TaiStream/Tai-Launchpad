@@ -18,7 +18,7 @@ import { KNOWN_AGENTS } from "@/lib/known-agents";
 
 export const dynamic = "force-static";
 
-const APP = "https://tai-app-lyart.vercel.app";
+const APP = "https://tai-launchpad.vercel.app";
 const SITE = "https://tai-launchpad.vercel.app";
 const REPO = "https://github.com/TaiStream/Tai-Launchpad";
 

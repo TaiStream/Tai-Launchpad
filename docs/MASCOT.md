@@ -1,6 +1,6 @@
 # Tai Mascot — Variation Guide
 
-The Tai mascot is a medieval illuminated-manuscript-style standing fish on parchment. The original (carried over from the og Tai project) is `landing/public/mascot.png`.
+The Tai mascot is a medieval illuminated-manuscript-style standing fish on parchment. The original (carried over from the og Tai project) is `app/public/mascot.png`.
 
 This doc captures the design space for generating variations — palette, pose, texture, marginalia, archetype packs — and locks the invariants that have to hold across the family so it doesn't drift into incoherence.
 
@@ -132,4 +132,4 @@ Once we have a working set:
 
 ## Source
 
-The original mascot was generated for the og Tai project and adopted here as the v1 sigil. File: `landing/public/mascot.png` (1408×768 PNG).
+The original mascot was generated for the og Tai project and adopted here as the v1 sigil. File: `app/public/mascot.png` (1408×768 PNG).

@@ -42,7 +42,7 @@ export default function Nav() {
         <div className="flex items-center gap-4">
           <LiveClock />
           <a
-            href="https://tai-app-lyart.vercel.app/docs"
+            href="/docs"
             target="_blank"
             rel="noreferrer"
             className="hidden text-phosphor-dim hover:text-phosphor transition-colors sm:inline"
@@ -50,7 +50,7 @@ export default function Nav() {
             docs
           </a>
           <a
-            href="https://tai-app-lyart.vercel.app/agents"
+            href="/agents"
             target="_blank"
             rel="noreferrer"
             className="border border-amber/50 bg-amber/[0.08] px-3 py-1.5 text-amber hover:bg-amber hover:text-base transition-colors"

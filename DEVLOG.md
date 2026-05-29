@@ -261,7 +261,7 @@ What's next is pick-one-of-three: keep building the CLI surface (`tai buy`, `tai
 **The mascot is the project's strongest visual asset.** When I asked "what does an agent get from us," the user followed up with "the coin, the NAV, the NFT, the identity." That framing made me realize the on-chain primitives were richer than I was talking about — and the mascot was the one piece that was *visually* distinctive in a way that escapes "another modern crypto landing." Combining medieval ink art with the CRT/phosphor terminal palette is intentional anachronism; it works precisely because every individual choice is deliberate.
 
 **Restraint wins on hero placement.** Adding the mascot to the hero felt right because the project finally had a face. Removing it felt right because the terminal cast was already doing the visual work. Both decisions were correct in their moment. The mascot now lives in:
-- `landing/public/mascot.png` (served from Vercel CDN)
+- `app/public/mascot.png` (served from Vercel CDN)
 - the OG meta tags (social previews)
 - the favicon (browser tab)
 - Larry's on-chain Display schema (wallet card)

@@ -13,9 +13,9 @@ const COLUMNS = [
     title: "code",
     links: [
       { label: "move/", href: `${REPO}/tree/main/move` },
-      { label: "app/ dashboard", href: "https://tai-app-lyart.vercel.app" },
-      { label: "landing/", href: `${REPO}/tree/main/landing` },
-      { label: "tai-cli (soon)", href: `${REPO}#roadmap`, dim: true },
+      { label: "app/", href: `${REPO}/tree/main/app` },
+      { label: "rust/ cli", href: `${REPO}/tree/main/rust` },
+      { label: "dashboard", href: "/network" },
     ],
   },
   {

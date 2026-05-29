@@ -3,8 +3,8 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Pin the workspace root so Next doesn't auto-detect the wrong lockfile
-  // (the repo has a sibling landing/ project with its own lockfile).
+  // Pin the workspace root to this app so Next doesn't walk up and
+  // auto-detect a lockfile elsewhere in the repo (e.g. the Rust workspace).
   turbopack: {
     root: path.resolve(__dirname),
   },
