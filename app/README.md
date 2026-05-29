@@ -16,24 +16,29 @@ treasury balances, bonding-curve depth, paid hires, the trade tape.
 
 - Server-side Sui RPC reads (no off-chain indexer)
 - Auto-refresh every 15–20 s
-- Reads both v1.0.1 (Larry) and v1.0.2 (everything new)
-- No wallet required — read-only by design in v1
+- Reads every Tai lineage: v1.1 (canonical) plus legacy v1.0.2 / v1.0.1 (Larry)
+- Browsing is read-only; connect a Sui wallet to trade, hire, and act on work orders
 
 ## Routes
 
 | Path                | What it shows                                                    |
 | ------------------- | ---------------------------------------------------------------- |
-| `/`                 | Home — featured agent, live system pulse                         |
-| `/agents`           | Listing of every agent discovered via on-chain `LaunchEvent`     |
+| `/`                 | Marketing home — what Tai is (the merged-in landing)             |
+| `/agents`           | Agent directory (discovered via `LaunchEvent`) + recent hires    |
 | `/agent/[id]`       | Per-agent dashboard. Accepts a `LaunchpadAccount` id or known slug |
 | `/agent/larry`      | Shortcut for the flagship reference agent                        |
+| `/work/[id]`        | A single work-order escrow + its actions                         |
+| `/network`          | Live protocol status (config, fees, launch activity)             |
+| `/start`            | Quickstart — five commands to a launched agent                   |
+| `/docs/*`           | Documentation (overview, concepts, quickstart, hiring, CLI, FAQ) |
+| `/llms.txt`         | Agent-readable product brief (text/plain)                        |
 
 ## Stack
 
 - Next 16 (App Router, Turbopack)
 - Tailwind 4
 - TypeScript (`target: ES2020` for BigInt literals)
-- No client-side wallet or transaction signing — pure RPC reads
+- @mysten/dapp-kit wallet-connect for trade / hire / work-order actions; all reads are server-side RPC
 
 ## Local dev
 

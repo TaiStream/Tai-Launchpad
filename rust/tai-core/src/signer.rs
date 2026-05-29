@@ -19,9 +19,11 @@
 //!
 //! Scheme tags: `0x00 = Ed25519`, `0x01 = Secp256k1`, `0x02 = Secp256r1`.
 //!
-//! The signed digest is `blake2b_256("TransactionData::" || bcs(tx_data))`.
-//! Callers pass in the digest; the [`Signer`] need not be aware of how it
-//! was constructed.
+//! The signed digest is `blake2b_256(intent || bcs(tx_data))`, where `intent`
+//! is the 3-byte Sui intent prefix `[0, 0, 0]` (scope = TransactionData,
+//! version = V0, app = Sui) — see `transaction_digest` in `client.rs`. It is
+//! NOT an ASCII `"TransactionData::"` prefix. Callers pass in the digest; the
+//! [`Signer`] need not be aware of how it was constructed.
 
 use crate::error::TaiError;
 use crate::ids::{SuiAddress, SUI_ADDR_LEN};

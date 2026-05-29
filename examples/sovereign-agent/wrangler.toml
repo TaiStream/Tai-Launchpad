@@ -15,8 +15,10 @@ id = "REPLACE_WITH_KV_ID"
 [vars]
 SUI_RPC_URL = "https://fullnode.testnet.sui.io"
 
-# Tai v1.1.0 canonical package + config (from move/published.json).
-TAI_PACKAGE_ID = "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3"
+# Tai callable package (v1.1.1) + config, from move/published.json. This is
+# the CALL target — note it is NOT the typeOrigin id (0x7d86…) that anchors
+# event/struct types; move calls must target the latest validated package.
+TAI_PACKAGE_ID = "0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d"
 LAUNCHPAD_CONFIG_ID = "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50"
 
 # Per-agent — populate after the launch ceremony.

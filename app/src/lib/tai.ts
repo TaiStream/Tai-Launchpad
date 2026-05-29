@@ -13,7 +13,6 @@ import {
   SuiObjectData,
   SuiObjectFields,
   getObject,
-  multiGetObjects,
   queryEvents,
 } from "./sui";
 import { ALL_PACKAGES, TAI } from "./config";

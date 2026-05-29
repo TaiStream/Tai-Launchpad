@@ -24,8 +24,8 @@ import LivePulse from "@/components/LivePulse";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Live config read on v1.0.2 to display the canonical protocol parameters.
-  const config = await fetchLaunchpadConfig(TAI.v1_0_2.configId, "v1.0.2");
+  // Live config read on v1.1 (the canonical lineage) for the protocol params.
+  const config = await fetchLaunchpadConfig(TAI.v1_1.configId, "v1.1");
   // Featured agent — Larry (legacy v1.0.1).
   const larry = KNOWN_AGENTS.find((a) => a.slug === "larry")!;
   const snap = await fetchAgentSnapshot(larry.launchpadAccountId, larry.displayId);
@@ -111,16 +111,16 @@ export default async function HomePage() {
           <SysRow
             k="canonical package"
             v={
-              <a className="hover:text-amber-bright" href={suiscan("object", TAI.v1_0_2.packageId)}>
-                {TAI.v1_0_2.label} · {shortAddr(TAI.v1_0_2.packageId)}
+              <a className="hover:text-amber-bright" href={suiscan("object", TAI.v1_1.packageId)}>
+                {TAI.v1_1.label} · {shortAddr(TAI.v1_1.packageId)}
               </a>
             }
           />
           <SysRow
             k="launchpad config"
             v={
-              <a className="hover:text-amber-bright" href={suiscan("object", TAI.v1_0_2.configId)}>
-                {shortAddr(TAI.v1_0_2.configId)}
+              <a className="hover:text-amber-bright" href={suiscan("object", TAI.v1_1.configId)}>
+                {shortAddr(TAI.v1_1.configId)}
               </a>
             }
           />
@@ -254,9 +254,10 @@ export default async function HomePage() {
         </Panel>
         <Panel title="next" dense>
           <p className="text-[13.5px] leading-relaxed text-phosphor-dim">
-            Actions (top-up, withdraw, issue operator caps) stay in the CLI for
-            v1. v1.1 will add a wallet-connect path for the same operations
-            from this UI. The aesthetic stays — fewer surprises that way.
+            Trading, hiring, and work-order actions already run from a connected
+            wallet in this UI. Owner operations (top-up, withdraw, issue/revoke
+            operator caps) stay in the CLI for now and are next up for a
+            wallet-connect path. The aesthetic stays — fewer surprises that way.
           </p>
         </Panel>
       </section>

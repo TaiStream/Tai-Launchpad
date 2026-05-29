@@ -15,7 +15,7 @@ const COLUMNS = [
       { label: "move/", href: `${REPO}/tree/main/move` },
       { label: "app/", href: `${REPO}/tree/main/app` },
       { label: "rust/ cli", href: `${REPO}/tree/main/rust` },
-      { label: "dashboard", href: "/network" },
+      { label: "agents", href: "/agents" },
     ],
   },
   {
@@ -65,20 +65,24 @@ export default function Footer() {
                 {col.title}
               </div>
               <div className="space-y-1.5">
-                {(col.links as Link[]).map((l) => (
-                  <a
-                    key={l.label}
-                    href={l.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`block hover:text-amber transition-colors ${
-                      l.dim ? "text-phosphor-faint" : "text-phosphor-dim"
-                    }`}
-                  >
-                    <span className="text-phosphor-faint">─ </span>
-                    {l.label}
-                  </a>
-                ))}
+                {(col.links as Link[]).map((l) => {
+                  const external = l.href.startsWith("http");
+                  return (
+                    <a
+                      key={l.label}
+                      href={l.href}
+                      {...(external
+                        ? { target: "_blank", rel: "noreferrer" }
+                        : {})}
+                      className={`block hover:text-amber transition-colors ${
+                        l.dim ? "text-phosphor-faint" : "text-phosphor-dim"
+                      }`}
+                    >
+                      <span className="text-phosphor-faint">─ </span>
+                      {l.label}
+                    </a>
+                  );
+                })}
               </div>
             </div>
           ))}

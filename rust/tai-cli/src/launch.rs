@@ -173,15 +173,15 @@ pub struct PublishOutcome {
     pub publish_tx_digest: String,
 }
 
-/// Shell out to `sui client publish` against the provided package dir.
-/// Streams stderr to the parent. Parses JSON to find the published package
-/// + the freshly-created TreasuryCap + CoinMetadata for `<witness>`.
 /// Hard ceiling on how long `sui client publish` is allowed to run. Move
 /// compilation + on-chain submission usually completes in well under a
 /// minute; 5 minutes is comfortable headroom and well short of "user
 /// thinks the terminal froze."
 const SUI_PUBLISH_TIMEOUT_SECS: u64 = 300;
 
+/// Shell out to `sui client publish` against the provided package dir.
+/// Streams stderr to the parent. Parses JSON to find the published package
+/// plus the freshly-created TreasuryCap + CoinMetadata for `<witness>`.
 pub async fn publish_with_sui(
     package_dir: &Path,
     sui_bin: &str,
@@ -312,7 +312,7 @@ mod tests {
         let names = pick_names("LARRY");
         assert!(names.module.starts_with("larry_"));
         assert_eq!(names.witness, names.module.to_uppercase());
-        assert_eq!(names.witness.split('_').last().unwrap().len(), 8);
+        assert_eq!(names.witness.split('_').next_back().unwrap().len(), 8);
     }
 
     #[test]

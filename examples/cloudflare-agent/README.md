@@ -78,12 +78,12 @@ When the Telegram secrets are absent, the scheduled handler no-ops and `/promote
 
 ### Cron triggers
 
-`wrangler.toml` declares two cron schedules:
+`wrangler.toml` declares a single cron schedule (Cloudflare caps free accounts
+at a handful of crons, so the daily digest piggybacks on the 5-minute tick):
 
 | Cron | What |
 |---|---|
-| `*/5 * * * *` | Poll Sui RPC across all known Tai packages for new events, post each in Larry's voice |
-| `0 0 * * *` | Daily 24h digest at 00:00 UTC: total launches / trades / hires / volumes |
+| `*/5 * * * *` | Poll Sui RPC across all known Tai packages for new events and post each in Larry's voice. Also fires the once-per-UTC-day 24h digest (total launches / trades / hires / volumes) the first time it runs after 00:00 UTC, tracked via `last_digest_date` in KV. |
 
 Events covered: `LaunchEvent`, `TradeEvent`, `ServicePaymentEvent`, `WorkOrderCreatedEvent`, `WorkOrderReleasedEvent`, `WorkOrderDisputedEvent`. Trades and service payments below the spam-floor (0.05 SUI and 0.01 SUI respectively) are silently skipped.
 

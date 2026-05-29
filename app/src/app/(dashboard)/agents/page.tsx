@@ -72,13 +72,16 @@ async function loadRows(): Promise<Row[]> {
     }),
   );
 
+  // Newest lineage first (v1.1 → v1.0.2 → v1.0.1); within a lineage, newest
+  // launch first.
+  const lineageRank = (v: string) =>
+    v === "v1.1" ? 0 : v === "v1.0.2" ? 1 : 2;
   return rows
     .filter((r): r is Row => r !== null)
     .sort((a, b) => {
-      // v1.0.2 above v1.0.1; within same version, newer launches first.
       const v =
-        (a.account.packageVersion === "v1.0.2" ? 0 : 1) -
-        (b.account.packageVersion === "v1.0.2" ? 0 : 1);
+        lineageRank(a.account.packageVersion) -
+        lineageRank(b.account.packageVersion);
       if (v !== 0) return v;
       return a.account.launchedAt < b.account.launchedAt ? 1 : -1;
     });

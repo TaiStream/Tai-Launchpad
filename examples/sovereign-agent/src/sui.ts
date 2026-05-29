@@ -22,18 +22,28 @@ const SERVICE_PAYMENT_EVENT_SUFFIX = "::launchpad::ServicePaymentEvent";
 
 export interface VerifiedPayment {
     payer: string;
-    suiAmount: number;
+    /** MIST. BigInt to preserve full u64 precision (JS `number` loses
+     *  precision above 2^53). Mirrors the cloudflare-agent verifier. */
+    suiAmount: bigint;
     countedTowardCred: boolean;
-    newLifetimeRevenueSui: number;
+    newLifetimeRevenueSui: bigint;
     paymentTimestampMs: number;
 }
 
 export interface VerifyOptions {
     rpcUrl: string;
     launchpadAccountId: string;
-    minPaymentMist: number;
+    /** Minimum acceptable payment in MIST. BigInt for u64 precision. */
+    minPaymentMist: bigint;
     freshnessSeconds: number;
     requireExternalPayer?: boolean;
+}
+
+/** Normalize a Sui id/address for comparison — Sui ids round-trip with or
+ *  without leading-zero compression, so compare on a padded form. */
+function normalizeSuiId(id: string): string {
+    const hex = id.toLowerCase().replace(/^0x/, "");
+    return "0x" + hex.padStart(64, "0");
 }
 
 export class PaymentVerificationError extends Error {
@@ -60,11 +70,13 @@ export async function verifyServicePayment(
         });
     }
     const events: any[] = tx?.events ?? [];
+    const wantLaunchpad = normalizeSuiId(opts.launchpadAccountId);
     const event = events.find(
         (e) =>
             typeof e?.type === "string" &&
             e.type.endsWith(SERVICE_PAYMENT_EVENT_SUFFIX) &&
-            e?.parsedJson?.launchpad_id === opts.launchpadAccountId,
+            typeof e?.parsedJson?.launchpad_id === "string" &&
+            normalizeSuiId(e.parsedJson.launchpad_id) === wantLaunchpad,
     );
     if (!event) {
         throw new PaymentVerificationError(
@@ -72,8 +84,15 @@ export async function verifyServicePayment(
         );
     }
     const parsed = event.parsedJson;
-    const suiAmount = Number(parsed.sui_amount ?? "0");
-    if (!Number.isFinite(suiAmount) || suiAmount <= 0) {
+    // u64 values arrive as decimal strings — parse as BigInt to preserve
+    // full precision against the on-chain u64.
+    let suiAmount: bigint;
+    try {
+        suiAmount = BigInt(String(parsed.sui_amount ?? "0"));
+    } catch {
+        throw new PaymentVerificationError("event has malformed SUI amount", parsed);
+    }
+    if (suiAmount <= 0n) {
         throw new PaymentVerificationError("event has no SUI amount", parsed);
     }
     if (suiAmount < opts.minPaymentMist) {
@@ -87,21 +106,28 @@ export async function verifyServicePayment(
             "payer is the agent's creator (self-payment); external payer required",
         );
     }
+    // Validate the timestamp BEFORE deriving age from it.
     const paymentTimestampMs = Number(parsed.timestamp ?? "0");
-    const ageMs = Date.now() - paymentTimestampMs;
     if (!Number.isFinite(paymentTimestampMs) || paymentTimestampMs <= 0) {
         throw new PaymentVerificationError("event has no timestamp");
     }
+    const ageMs = Date.now() - paymentTimestampMs;
     if (ageMs > opts.freshnessSeconds * 1000) {
         throw new PaymentVerificationError(
             `payment too old: ${Math.floor(ageMs / 1000)}s > ${opts.freshnessSeconds}s`,
         );
     }
+    let newLifetimeRevenueSui: bigint;
+    try {
+        newLifetimeRevenueSui = BigInt(String(parsed.new_lifetime_revenue_sui ?? "0"));
+    } catch {
+        newLifetimeRevenueSui = 0n;
+    }
     return {
         payer: String(parsed.payer),
         suiAmount,
         countedTowardCred,
-        newLifetimeRevenueSui: Number(parsed.new_lifetime_revenue_sui ?? "0"),
+        newLifetimeRevenueSui,
         paymentTimestampMs,
     };
 }

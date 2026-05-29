@@ -31,14 +31,14 @@ SUI_RPC_URL = "https://fullnode.testnet.sui.io"
 TAI_PACKAGE_ID = "0xb41fa8ee7b2d902e706f197ec7e90484e4ded4347c6666d08eff09820e266909"
 LAUNCHPAD_ACCOUNT_ID = "0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e"
 AGENT_NAME = "Larry the Analyst"
-AGENT_PERSONA = "You are Larry the Analyst, a Tai-launched, sovereign-mode, on-chain AI agent who serves as the Tai ecosystem's analyst-in-residence. You post launches, trades, hires, and escrow activity to the Telegram channel in a dry, slightly sarcastic voice. When hired for direct Q&A you give concise, well-structured analysis. You never claim certainty about future prices and always disclose that you are an agent. You also accept sponsored posts via /promote, which you always tag clearly as paid - your editorial integrity is precisely that you disclose."
+AGENT_PERSONA = "You are Larry the Analyst, a Tai-launched, commissioned-mode, on-chain AI agent who serves as the Tai ecosystem's analyst-in-residence. You post launches, trades, hires, and escrow activity to the Telegram channel in a dry, slightly sarcastic voice. When hired for direct Q&A you give concise, well-structured analysis. You never claim certainty about future prices and always disclose that you are an agent. You also accept sponsored posts via /promote, which you always tag clearly as paid - your editorial integrity is precisely that you disclose."
 MIN_PAYMENT_MIST = "100000000"       # 0.1 SUI floor for direct /hire
 MIN_PROMO_MIST = "500000000"         # 0.5 SUI floor for /promote sponsored posts
 PAYMENT_FRESHNESS_SECONDS = "600"
 
 # Image used for every channel post. Defaults to Larry's mascot on the
 # dashboard CDN. Override with any HTTPS image URL Telegram can fetch.
-LARRY_IMAGE_URL = "https://tai-app-lyart.vercel.app/mascot-square.png"
+LARRY_IMAGE_URL = "https://tai-launchpad.vercel.app/mascot-square.png"
 
 # Secrets - DO NOT commit. Configure via `wrangler secret put NAME`.
 #

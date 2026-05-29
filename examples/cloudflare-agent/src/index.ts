@@ -36,7 +36,7 @@ import { postDailyDigest, tickEcosystemFeed } from "./feed";
 import { escapeHtml, sendPhoto, TelegramConfig } from "./telegram";
 
 const DEFAULT_LARRY_IMAGE_URL =
-    "https://tai-app-lyart.vercel.app/mascot-square.png";
+    "https://tai-launchpad.vercel.app/mascot-square.png";
 
 interface Env {
     SUI_RPC_URL: string;

@@ -132,34 +132,3 @@ export async function queryEvents(
 ): Promise<EventPage> {
   return rpc<EventPage>("suix_queryEvents", [filter, null, limit, descending]);
 }
-
-// ============================= sui_getDynamicFields =========================
-
-export type DynamicFieldInfo = {
-  name: { type: string; value: unknown };
-  bcsName: string;
-  type: "DynamicField" | "DynamicObject";
-  objectType: string;
-  objectId: string;
-  version: string;
-  digest: string;
-};
-
-export type DynamicFieldsPage = {
-  data: DynamicFieldInfo[];
-  nextCursor: string | null;
-  hasNextPage: boolean;
-};
-
-export async function getDynamicFields(
-  parent: string,
-  limit = 50,
-): Promise<DynamicFieldsPage> {
-  return rpc<DynamicFieldsPage>("suix_getDynamicFields", [parent, null, limit]);
-}
-
-// ============================= sui_getLatestSuiSystemState ==================
-
-export async function getLatestCheckpointSequenceNumber(): Promise<string> {
-  return rpc<string>("sui_getLatestCheckpointSequenceNumber", []);
-}

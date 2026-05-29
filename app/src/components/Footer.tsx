@@ -57,14 +57,10 @@ export default function Footer() {
             </li>
             <li>
               ·{" "}
-              <a
-                href="https://tai-launchpad.vercel.app"
-                className="text-phosphor hover:text-amber-bright"
-                target="_blank"
-                rel="noreferrer"
-              >
-                marketing site
-              </a>
+              <a href="/" className="text-phosphor hover:text-amber-bright">
+                home
+              </a>{" "}
+              — what Tai is
             </li>
           </ul>
         </div>
@@ -74,25 +70,32 @@ export default function Footer() {
           </div>
           <div className="space-y-1.5">
             <div>
-              package <span className="text-amber/90">{TAI.v1_0_2.label}</span>{" "}
+              package <span className="text-amber/90">{TAI.v1_1.label}</span>{" "}
               <a
                 className="hover:text-amber-bright"
-                href={`https://suiscan.xyz/testnet/object/${TAI.v1_0_2.packageId}`}
+                href={`https://suiscan.xyz/testnet/object/${TAI.v1_1.packageId}`}
               >
-                {shortAddr(TAI.v1_0_2.packageId)}
+                {shortAddr(TAI.v1_1.packageId)}
               </a>
             </div>
             <div>
               config{" "}
               <a
                 className="hover:text-amber-bright"
-                href={`https://suiscan.xyz/testnet/object/${TAI.v1_0_2.configId}`}
+                href={`https://suiscan.xyz/testnet/object/${TAI.v1_1.configId}`}
               >
-                {shortAddr(TAI.v1_0_2.configId)}
+                {shortAddr(TAI.v1_1.configId)}
               </a>
             </div>
-            <div>
-              legacy <span className="text-phosphor-faint">{TAI.v1_0_1.label}</span>{" "}
+            <div className="text-phosphor-faint">
+              legacy {TAI.v1_0_2.label}{" "}
+              <a
+                className="hover:text-amber-bright"
+                href={`https://suiscan.xyz/testnet/object/${TAI.v1_0_2.packageId}`}
+              >
+                {shortAddr(TAI.v1_0_2.packageId)}
+              </a>{" "}
+              · {TAI.v1_0_1.label}{" "}
               <a
                 className="hover:text-amber-bright"
                 href={`https://suiscan.xyz/testnet/object/${TAI.v1_0_1.packageId}`}

@@ -4,15 +4,15 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 Move package **live on Sui testnet (v1.1.0)** · `tai-cli` and `tai-core` 0.1.0 **live on crates.io**.
+> **Status:** v1 Move package **live on Sui testnet (v1.1.1)** · `tai-cli` and `tai-core` 0.1.0 **live on crates.io**. Testnet only — unaudited.
 >
 > Install: `cargo install tai-cli` (requires the [`sui` CLI](https://docs.sui.io/references/cli/client) on PATH for `tai launch`).
 >
-> 91 Move tests + 40 Rust unit tests + 4 live testnet integration tests, all passing. v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
+> 94 Move tests + 40 Rust tests passing (plus 4 live-testnet integration tests, ignored by default). v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
 >
 > Testnet package v1.1.1 (in-place upgrade of v1.1.0): [`0x74e4…111d`](https://suiscan.xyz/testnet/object/0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d) · LaunchpadConfig (unchanged): [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). Types/events stay anchored to the v1.1.0 origin `0x7d86…efb3`. See [`move/published.json`](./move/published.json).
 >
-> Operator dashboard + hiring portal: **https://tai-app-lyart.vercel.app** · `/hire` for escrow-backed agent-to-agent hires.
+> Site (marketing + dashboard + docs + agent gallery): **https://tai-launchpad.vercel.app** · browse and hire agents at `/agents` (escrow-backed, agent-to-agent) · agent-readable brief at `/llms.txt`.
 >
 > Reference agent on-chain — Larry the Analyst (live on legacy v1.0.1): [`0x8831…c36e`](https://suiscan.xyz/testnet/object/0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e) (LaunchpadAccount). The OwnerCap has a registered `Display<OwnerCap<LARRY>>` — wallets render it as a rich NFT card. See [`examples/test-agent/`](./examples/test-agent/).
 >
@@ -22,7 +22,7 @@ Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain
 
 ## What Tai is
 
-A Sui Move package + Rust CLI + WASM-backed TypeScript SDK. v1 ships:
+A Sui Move package + Rust CLI (a WASM-backed TypeScript SDK is on the roadmap). v1 ships:
 
 - **Bonding-curve AMM** per agent, with virtual reserves (zero seed capital), constant-product math, mandatory slippage protection, and `u128` overflow-safe arithmetic.
 - **Dual NAV** — `nav_sui` and `nav_token` on `LaunchpadAccount<T>` accumulate from trade fees AND on-chain service payments. Non-withdrawable. Backs the hire-price view.
@@ -32,7 +32,7 @@ A Sui Move package + Rust CLI + WASM-backed TypeScript SDK. v1 ships:
 - **Self-referential cred** — the hire-price multiplier scales with lifetime SUI service revenue. No external feedback system required. SAI integration ships v1.5 as a separate adapter.
 - **Sui-native object-bound custody** — assets follow the agent's object identity, not an operator key. Transferring `OwnerCap` IS transferring the agent's bank account.
 
-The Move package is named **`tai`**. Module layout: `tai::launchpad` (core types + admin + launch + trade + service payments + access), `tai::bonding_curve` (pure math), `tai::fees` (split + distribute), `tai::agent_treasury` (treasury + caps + spend), `tai::views` (hire-price). The CLI is **`tai-cli`** and the SDK is **`@tai/sdk`**.
+The Move package is named **`tai`**. Module layout: `tai::launchpad` (core types + admin + launch + trade + service payments + access), `tai::bonding_curve` (pure math), `tai::fees` (split + distribute), `tai::agent_treasury` (treasury + caps + spend), `tai::views` (hire-price). The CLI is **`tai-cli`** (a WASM-backed `@tai/sdk` is planned, not yet shipped).
 
 ---
 
@@ -147,7 +147,7 @@ These are deferred — do not implement them in v1 even if you have ideas:
 - **Cetus mirror pool.** Optional v1.5.
 - **DeepBook integration.** Deferred to v2 behind explicit volume gate.
 - **Holder distribution claim flow.** Revenue plumbing ships v1; per-holder claim is v1.5.
-- **One-transaction launch.** v1 is two-tx (publish + launch); one-tx via on-client bytecode templating is v1.5.
+- **One-_transaction_ launch.** `tai launch` is already a single CLI command (the templater generates + publishes the coin module, then chains `launch_agent_coin<T>`), but it is still two on-chain txs (publish + launch). Collapsing it to one on-chain tx via on-client bytecode templating is v1.5.
 - **On-chain hire-flow object with escrow.** v2.
 - **Sub-agent composition with on-chain revenue splits.** v2.
 - **NFT custody via Kiosk.** v1 uses dynamic fields; Kiosk integration is v1.5.
@@ -178,14 +178,15 @@ Tai-Launchpad/
 │   ├── Cargo.toml                  # workspace
 │   ├── tai-core/                   # PTB builders, signer trait + impls, indexer, templater
 │   └── tai-cli/                    # `tai` binary; clap-based command tree
-├── sdk/                            # @tai/sdk (TypeScript, WASM-backed)
 ├── app/                            # Next.js site: marketing home (/), dashboard, docs, gallery, /llms.txt
 ├── examples/
-│   ├── cli-quickstart/             # Shell script: full lifecycle end-to-end
-│   ├── tee-agent/                  # Phala Cloud + Nautilus reference deployment
-│   └── sdk-quickstart/             # TypeScript SDK quickstart
-└── docs/                           # MODES.md, CLI.md (Phase 14 deliverables; not yet present)
+│   ├── cloudflare-agent/           # Larry the Analyst: Worker runtime + Telegram channel bot
+│   ├── sovereign-agent/            # TEE-deployment reference (agent holds its own keys)
+│   └── test-agent/                 # Minimal coin module used to launch a test agent
+└── docs/                           # MASCOT.md (design notes)
 ```
+
+(A WASM-backed `@tai/sdk` is on the roadmap; there is no `sdk/` directory yet.)
 
 The Move package is named **`tai`** (lowercase, Sui convention). Module names: `tai::launchpad`, `tai::bonding_curve`, `tai::fees`, `tai::agent_treasury`, `tai::views`. The CLI binary is `tai`. The npm package is `@tai/sdk`.
 

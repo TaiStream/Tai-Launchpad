@@ -318,7 +318,7 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         payment = await verifyServicePayment(body.payment_tx_digest, {
             rpcUrl: env.SUI_RPC_URL,
             launchpadAccountId: env.LAUNCHPAD_ACCOUNT_ID,
-            minPaymentMist: Number(env.MIN_PAYMENT_MIST),
+            minPaymentMist: BigInt(env.MIN_PAYMENT_MIST),
             freshnessSeconds: Number(env.PAYMENT_FRESHNESS_SECONDS),
             requireExternalPayer: true,
         });
@@ -350,9 +350,9 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         payment: {
             tx_digest: body.payment_tx_digest,
             payer: payment.payer,
-            sui_amount_mist: payment.suiAmount,
+            sui_amount_mist: payment.suiAmount.toString(),
             counted_toward_cred: payment.countedTowardCred,
-            new_lifetime_revenue_sui_mist: payment.newLifetimeRevenueSui,
+            new_lifetime_revenue_sui_mist: payment.newLifetimeRevenueSui.toString(),
         },
     });
 }

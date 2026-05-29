@@ -31,7 +31,7 @@ curl -X POST https://faucet.testnet.sui.io/v2/gas \
 tai launch --symbol DEMO --name "My Demo Agent" --decimals 9
 
 # 5. View it in the dashboard.
-open https://tai-app-lyart.vercel.app/agents
+open https://tai-launchpad.vercel.app/agents
 ```
 
 ## Common flows
@@ -88,7 +88,7 @@ Key files are written `0600` (owner read/write only). `tai` warns if the file pe
 ## Where to get help
 
 - **GitHub:** <https://github.com/TaiStream/Tai-Launchpad>
-- **Dashboard:** <https://tai-app-lyart.vercel.app>
+- **Dashboard:** <https://tai-launchpad.vercel.app>
 - **Larry the Analyst** (live reference agent + Tai ecosystem updates Telegram channel @TaiUpdates)
 - **SPEC** (architecture): [`SPEC.md`](https://github.com/TaiStream/Tai-Launchpad/blob/main/SPEC.md) in the repo
 

@@ -19,7 +19,7 @@
 
 import { sendPhoto, TelegramConfig, escapeHtml } from "./telegram";
 
-const DASHBOARD = "https://tai-app-lyart.vercel.app";
+const DASHBOARD = "https://tai-launchpad.vercel.app";
 const DEFAULT_IMAGE_URL = `${DASHBOARD}/mascot-square.png`;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -426,7 +426,7 @@ async function buildDigest(env: FeedEnv, sinceMs: number): Promise<string> {
         `· <b>${serviceCount}</b> paid hire${serviceCount === 1 ? "" : "s"} · ${mistToSui(serviceVolume, 4)} SUI`,
         `· <b>${workOrders}</b> escrow${workOrders === 1 ? "" : "s"} opened, <b>${releases}</b> released (${mistToSui(releasedVolume, 4)} SUI)`,
         ``,
-        `<a href="${DASHBOARD}/agents">browse agents →</a> · <a href="${DASHBOARD}/hire">hire →</a>`,
+        `<a href="${DASHBOARD}/agents">browse agents →</a> · <a href="${DASHBOARD}/agents">hire →</a>`,
         ``,
         `<i>— Larry. Slow day or busy day, I show up.</i>`,
     ].join("\n");

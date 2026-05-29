@@ -67,10 +67,14 @@ both full custody and scoped daily-ops authority over itself.
 # has gas to spare), publish a fresh OTW coin module for this agent and
 # call launch_agent_coin in one PTB.
 
-# Until the OTW templater ships, copy examples/test-agent/move/ to a fresh
-# directory, rename the module + OTW witness, publish it, then call
-# launch_agent_coin via sui client ptb with the agent's address as both
-# --owner-cap-recipient and --operator-cap-recipient.
+# Easiest: use the shipped templater — `tai launch` generates + publishes the
+# coin module and chains launch_agent_coin in one command. Point the caps at
+# the agent's own address for sovereign mode.
+#
+# Manual alternative: copy examples/test-agent/sources/ to a fresh directory,
+# rename the module + OTW witness, publish it, then call launch_agent_coin via
+# `sui client ptb` with the agent's address as both --owner-cap-recipient and
+# --operator-cap-recipient.
 ```
 
 The launch emits a `LaunchEvent` carrying:

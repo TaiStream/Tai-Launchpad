@@ -374,7 +374,8 @@ impl TaiClient {
     ///                        operator_daily_limit_token, operator_allowed_targets,
     ///                        operator_ttl_ms, clock)`.
     ///
-    /// Consumes a freshly-minted `TreasuryCap<T>` + its `CoinMetadata<T>`.
+    /// Consumes the freshly-minted `TreasuryCap<T>`; borrows `CoinMetadata<T>`
+    /// immutably (the metadata object survives the call).
     /// Emits a `LaunchEvent`; the caller can pull the resulting object ids
     /// from the tx effects.
     #[allow(clippy::too_many_arguments)]
@@ -599,6 +600,8 @@ impl TaiClient {
 
     /// `issue_operator_cap<T>(treasury, owner_cap, recipient, daily_limit_sui,
     /// daily_limit_token, allowed_targets, ttl_ms, clock)`. OwnerCap-gated.
+    /// Arg count mirrors the on-chain function arity.
+    #[allow(clippy::too_many_arguments)]
     pub async fn issue_operator_cap(
         &self,
         coin_type: &str,
@@ -854,7 +857,8 @@ impl TaiClient {
     /// `create_work_order<T>(payee_account, payment, spec_hash, spec_url,
     ///                       deadline_ms, dispute_window_ms, clock)`.
     /// Buyer locks SUI; returns an ExecutionResult whose effects expose the
-    /// newly-shared WorkOrder<T> object id.
+    /// newly-shared WorkOrder<T> object id. Arg count mirrors the on-chain fn.
+    #[allow(clippy::too_many_arguments)]
     pub async fn work_order_create(
         &self,
         coin_type: &str,

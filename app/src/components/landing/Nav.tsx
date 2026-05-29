@@ -43,16 +43,12 @@ export default function Nav() {
           <LiveClock />
           <a
             href="/docs"
-            target="_blank"
-            rel="noreferrer"
             className="hidden text-phosphor-dim hover:text-phosphor transition-colors sm:inline"
           >
             docs
           </a>
           <a
             href="/agents"
-            target="_blank"
-            rel="noreferrer"
             className="border border-amber/50 bg-amber/[0.08] px-3 py-1.5 text-amber hover:bg-amber hover:text-base transition-colors"
           >
             live app <span aria-hidden>→</span>
