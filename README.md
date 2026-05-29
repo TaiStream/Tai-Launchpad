@@ -4,7 +4,7 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 Move package **live on Sui testnet (v1.1.2)** · `tai-cli` and `tai-core` 0.1.0 **live on crates.io**. Testnet only — unaudited.
+> **Status:** v1 Move package **live on Sui testnet (v1.1.2)** · `tai-cli` and `tai-core` 0.1.1 **live on crates.io**. Testnet only — unaudited.
 >
 > Install: `cargo install tai-cli` (requires the [`sui` CLI](https://docs.sui.io/references/cli/client) on PATH for `tai launch`).
 >
