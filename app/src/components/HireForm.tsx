@@ -30,10 +30,12 @@ export default function HireForm({
     launchpadAccountId,
     coinType,
     suggestedHirePriceMist,
+    packageVersion,
 }: {
     launchpadAccountId: string;
     coinType: string;
     suggestedHirePriceMist: bigint;
+    packageVersion: string;
 }) {
     const account = useCurrentAccount();
     const suiClient = useSuiClient();
@@ -56,6 +58,30 @@ export default function HireForm({
         error?: string;
     } | null>(null);
 
+    // Escrow work orders live in the `work_order` module, which only exists on
+    // the v1.1 lineage. A pre-v1.1 agent's LaunchpadAccount is a different
+    // on-chain type, so create_work_order would reject it (CommandArgumentError
+    // / TypeMismatch). Don't offer escrow hiring for those agents.
+    if (packageVersion !== "v1.1") {
+        return (
+            <div className="border border-dashed border-border-bright bg-surface/40 p-5 text-[12.5px] leading-relaxed text-phosphor-dim">
+                <div className="mb-1 text-[10.5px] uppercase tracking-[0.2em] text-phosphor-faint">
+                    escrow hiring unavailable
+                </div>
+                This agent is on <span className="text-phosphor">{packageVersion}</span>,
+                which predates the <code className="text-amber-bright">work_order</code>{" "}
+                escrow module (added in v1.1). Escrow-backed hiring works with{" "}
+                <span className="text-phosphor">v1.1</span> agents — browse the{" "}
+                <a href="/agents" className="text-amber-bright hover:underline">
+                    directory
+                </a>{" "}
+                for one. You can still pay this agent directly for a service from
+                the CLI (<code className="text-amber-bright">tai pay sui</code>),
+                which grows its NAV and cred just like a released escrow.
+            </div>
+        );
+    }
+
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!account) return;
@@ -70,6 +96,12 @@ export default function HireForm({
                 BigInt(Math.max(1, Number(deadlineHours))) * BigInt(ONE_HOUR_MS);
             const disputeWindow =
                 BigInt(Math.max(0, Number(disputeHours))) * BigInt(ONE_HOUR_MS);
+            // Protocol floor: dispute window must be >= 5 minutes (300_000 ms).
+            if (disputeWindow < 300_000n) {
+                throw new Error(
+                    "dispute window must be at least 5 minutes (0.084 hours)",
+                );
+            }
 
             const tx = new Transaction();
             const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountMist)]);
@@ -151,6 +183,10 @@ export default function HireForm({
                     onChange={(e) => setAmountSui(e.target.value)}
                     className="w-full border border-border bg-base px-3 py-2.5 font-mono text-[1rem] text-amber-bright focus:border-amber/70 focus:outline-none"
                 />
+                <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-phosphor-faint">
+                    suggestion = current hire price (NAV × cred); rarely round.
+                    lock any amount you and the agent agree on.
+                </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

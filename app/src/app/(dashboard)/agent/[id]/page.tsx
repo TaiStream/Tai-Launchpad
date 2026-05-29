@@ -301,6 +301,7 @@ export default async function AgentPage({
             launchpadAccountId={account.objectId}
             coinType={account.coinType}
             suggestedHirePriceMist={hirePrice}
+            packageVersion={account.packageVersion}
           />
         </Panel>
       </section>
