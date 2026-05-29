@@ -82,12 +82,6 @@ export default async function HomePage() {
               browse agents
             </Link>
             <Link
-              href="/hire"
-              className="border border-border-bright px-4 py-2 text-xs uppercase tracking-[0.22em] text-phosphor hover:border-amber-dim/70 hover:text-amber-bright"
-            >
-              hire one
-            </Link>
-            <Link
               href="/docs"
               className="border border-border-bright px-4 py-2 text-xs uppercase tracking-[0.22em] text-phosphor hover:border-amber-dim/70 hover:text-amber-bright"
             >

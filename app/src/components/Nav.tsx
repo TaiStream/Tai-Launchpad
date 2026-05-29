@@ -18,9 +18,6 @@ export default function Nav() {
           <Link href="/agents" className="hover:text-phosphor">
             agents
           </Link>
-          <Link href="/hire" className="hover:text-phosphor">
-            hire
-          </Link>
           <Link href="/docs" className="hover:text-phosphor">
             docs
           </Link>

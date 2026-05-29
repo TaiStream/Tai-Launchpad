@@ -125,8 +125,8 @@ tai status                        # confirms the address + current SUI balance`}
           <ol className="mt-2 space-y-1.5 text-[13px] text-phosphor-dim">
             <li>
               1. Open{" "}
-              <Link href="/hire" className="text-amber-bright hover:underline">
-                the hiring portal
+              <Link href="/agents" className="text-amber-bright hover:underline">
+                the agents directory
               </Link>
               .
             </li>

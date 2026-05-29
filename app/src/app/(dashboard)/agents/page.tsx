@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   fetchAllLaunchEvents,
+  fetchAllWorkOrderEvents,
   fetchLaunchpadAccount,
   fetchDisplay,
   LaunchpadAccountView,
@@ -11,6 +12,8 @@ import {
   TESTNET_EARLY_USER_IMAGE_URL,
   findKnown,
 } from "@/lib/known-agents";
+import { mistToSui, shortAddr, timeAgo, utcStamp } from "@/lib/format";
+import { Tag } from "@/components/primitives";
 import AgentCard from "@/components/AgentCard";
 import AutoRefresh from "@/components/AutoRefresh";
 
@@ -84,6 +87,15 @@ async function loadRows(): Promise<Row[]> {
 export default async function AgentsPage() {
   const rows = await loadRows();
 
+  // Chain-wide recent hires (escrow work orders), folded in from the old
+  // /hire page — it's the one piece of hiring info not on a per-agent page.
+  let recent: Awaited<ReturnType<typeof fetchAllWorkOrderEvents>> = [];
+  try {
+    recent = await fetchAllWorkOrderEvents();
+  } catch {
+    /* swallow — directory still renders */
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-5 py-12 md:px-8">
       <AutoRefresh intervalMs={20_000} />
@@ -140,6 +152,59 @@ export default async function AgentsPage() {
           ))}
         </div>
       )}
+
+      <section className="mt-14">
+        <div className="mb-3 flex items-end justify-between border-b border-border pb-2">
+          <h2 className="font-display text-2xl text-phosphor md:text-3xl">
+            recent hires
+          </h2>
+          <span className="text-[11px] uppercase tracking-[0.22em] text-phosphor-faint">
+            chain-wide · escrow work orders
+          </span>
+        </div>
+        <p className="mb-4 max-w-2xl text-[12.5px] leading-relaxed text-phosphor-dim">
+          Hiring an agent locks SUI in a Move-enforced escrow that releases on
+          confirmation (or after the dispute window). Open any agent above to
+          hire it; see{" "}
+          <Link href="/docs/hiring" className="text-amber-bright hover:underline">
+            how escrow works
+          </Link>
+          .
+        </p>
+        {recent.length === 0 ? (
+          <div className="border border-dashed border-border-bright bg-surface/40 p-8 text-center text-[12.5px] text-phosphor-dim">
+            no work orders yet. be the first — open an agent and hire it.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border/60 border border-border bg-surface/70">
+            {recent.slice(0, 20).map((w) => (
+              <li key={w.objectId} className="px-4 py-2.5 text-[12.5px]">
+                <Link
+                  href={`/work/${w.objectId}`}
+                  className="grid grid-cols-[110px_1fr_140px_120px_110px] items-center gap-3 hover:text-amber-bright"
+                >
+                  <Tag variant="violet">{w.packageVersion}</Tag>
+                  <span className="truncate text-phosphor">
+                    {shortAddr(w.objectId, 6, 6)}
+                  </span>
+                  <span className="text-phosphor-dim">
+                    buyer {shortAddr(w.buyer)}
+                  </span>
+                  <span className="text-right text-amber-bright tabular">
+                    {mistToSui(w.amount, 3)} SUI
+                  </span>
+                  <span
+                    className="text-right text-phosphor-faint"
+                    title={utcStamp(w.createdAtMs)}
+                  >
+                    {timeAgo(w.createdAtMs)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**" },
     ],
   },
+  async redirects() {
+    return [
+      // The standalone hiring portal was merged into the agents directory.
+      { source: "/hire", destination: "/agents", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -523,9 +523,10 @@ export default async function AgentPage({
         >
           {workOrders.length === 0 ? (
             <div className="border border-dashed border-border-bright bg-surface/40 p-6 text-center text-[12.5px] text-phosphor-dim">
-              No work-order escrows targeting this agent.{" "}
-              <Link href="/hire" className="text-amber-bright hover:text-amber-bright/80">
-                open the hiring portal →
+              No work-order escrows targeting this agent. Be the first — hire it
+              with the card above.{" "}
+              <Link href="/docs/hiring" className="text-amber-bright hover:text-amber-bright/80">
+                how escrow works →
               </Link>
             </div>
           ) : (

@@ -59,9 +59,6 @@ export default function DocsSidebar() {
         <Link href="/agents" className="block py-1 hover:text-amber-bright">
           → browse agents
         </Link>
-        <Link href="/hire" className="block py-1 hover:text-amber-bright">
-          → hire one
-        </Link>
         <a
           href="https://github.com/TaiStream/Tai-Launchpad"
           className="block py-1 hover:text-amber-bright"

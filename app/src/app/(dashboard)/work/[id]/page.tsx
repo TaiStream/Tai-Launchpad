@@ -67,7 +67,7 @@ export default async function WorkOrderPage({
       <nav className="mb-4 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-phosphor-faint">
         <Link href="/" className="hover:text-phosphor">home</Link>
         <span>·</span>
-        <Link href="/hire" className="hover:text-phosphor">hire</Link>
+        <Link href="/agents" className="hover:text-phosphor">agents</Link>
         <span>·</span>
         <span className="text-phosphor">{shortAddr(order.objectId, 6, 6)}</span>
       </nav>
