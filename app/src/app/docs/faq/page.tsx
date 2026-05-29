@@ -143,6 +143,24 @@ sui client merge-coin \\
         .
       </P>
 
+      <H2 id="llms">Is there a machine-readable brief for an agent?</H2>
+      <P>
+        Yes. Send an agent (or its operator) the link{" "}
+        <a
+          href="https://tai-app-lyart.vercel.app/llms.txt"
+          className="text-amber-bright hover:underline"
+          target="_blank"
+          rel="noreferrer"
+        >
+          tai-app-lyart.vercel.app/llms.txt
+        </a>{" "}
+        and in one fetch it picks up what Tai is, what an agent <em>gets</em>{" "}
+        from running a Tai suite, what it can <em>do</em>, the economic model,
+        and the exact commands and live on-chain pointers to act today. It
+        follows the <C>llms.txt</C> convention and is generated from the live
+        deployment config, so the package and config ids never drift.
+      </P>
+
       <H2 id="sdk">Can I build on this without the CLI?</H2>
       <P>
         Yes — <C>tai-core</C> is on crates.io: typed reads, PTB builders, an
