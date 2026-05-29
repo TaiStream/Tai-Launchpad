@@ -24,6 +24,7 @@ import LivePulse from "@/components/LivePulse";
 import AutoRefresh from "@/components/AutoRefresh";
 import ActivityFeed from "@/components/ActivityFeed";
 import HireForm from "@/components/HireForm";
+import DirectPayForm from "@/components/DirectPayForm";
 import TradeForm from "@/components/TradeForm";
 
 export const dynamic = "force-dynamic";
@@ -297,16 +298,25 @@ export default async function AgentPage({
           subtitle={
             account.packageVersion === "v1.1"
               ? "escrow · settles via service-payment"
-              : "direct payment only · escrow needs v1.1"
+              : "direct service payment · no escrow hold"
           }
           accent="amber"
         >
-          <HireForm
-            launchpadAccountId={account.objectId}
-            coinType={account.coinType}
-            suggestedHirePriceMist={hirePrice}
-            packageVersion={account.packageVersion}
-          />
+          {account.packageVersion === "v1.1" ? (
+            <HireForm
+              launchpadAccountId={account.objectId}
+              coinType={account.coinType}
+              suggestedHirePriceMist={hirePrice}
+              packageVersion={account.packageVersion}
+            />
+          ) : (
+            <DirectPayForm
+              launchpadAccountId={account.objectId}
+              coinType={account.coinType}
+              suggestedHirePriceMist={hirePrice}
+              packageVersion={account.packageVersion}
+            />
+          )}
         </Panel>
       </section>
 
