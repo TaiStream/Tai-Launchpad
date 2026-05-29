@@ -8,8 +8,8 @@
  *
  * This lets the sovereign agent take actions on chain from its own keys:
  *   - operator_spend_sui from its own treasury (pay third parties)
- *   - accept_work_order_with_operator (acknowledge an escrow hire)
- *   - submit_receipt_with_operator (deliver work in a work order)
+ *   - accept_work_order_with_operator_v2 (acknowledge an escrow hire)
+ *   - submit_receipt_with_operator_v2 (deliver work in a work order)
  */
 
 import { AgentSigner } from "./signer";
@@ -279,9 +279,16 @@ export async function acceptWorkOrder(
     return submitMoveCall(ctx.rpcUrl, signer, {
         packageId: ctx.taiPackageId,
         module: "work_order",
-        function: "accept_work_order_with_operator",
+        // v2 verifies the cap against the treasury's active set (rejects
+        // revoked/expired caps); requires the agent treasury object.
+        function: "accept_work_order_with_operator_v2",
         typeArguments: [ctx.coinType],
-        arguments: [workOrderId, ctx.operatorCapId, SUI_CLOCK_OBJECT_ID],
+        arguments: [
+            workOrderId,
+            ctx.operatorCapId,
+            ctx.agentTreasuryId,
+            SUI_CLOCK_OBJECT_ID,
+        ],
         gasBudget: ctx.gasBudget,
     });
 }
@@ -300,11 +307,12 @@ export async function submitWorkOrderReceipt(
     return submitMoveCall(ctx.rpcUrl, signer, {
         packageId: ctx.taiPackageId,
         module: "work_order",
-        function: "submit_receipt_with_operator",
+        function: "submit_receipt_with_operator_v2",
         typeArguments: [ctx.coinType],
         arguments: [
             workOrderId,
             ctx.operatorCapId,
+            ctx.agentTreasuryId,
             Array.from(receiptHash),
             receiptUrl,
             SUI_CLOCK_OBJECT_ID,
