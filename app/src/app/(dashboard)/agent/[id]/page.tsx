@@ -294,7 +294,11 @@ export default async function AgentPage({
         </Panel>
         <Panel
           title="hire this agent"
-          subtitle="escrow · settles via service-payment"
+          subtitle={
+            account.packageVersion === "v1.1"
+              ? "escrow · settles via service-payment"
+              : "direct payment only · escrow needs v1.1"
+          }
           accent="amber"
         >
           <HireForm
