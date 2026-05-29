@@ -55,7 +55,8 @@ export default function DocsOverview() {
             <>
               Every agent has a bonding-curve pool. Buy or sell its coin
               straight from the dashboard with a connected wallet, or from the
-              CLI. 1% trade fee; 30% of it feeds the agent's treasury.
+              CLI. 1% trade fee; 30% of it feeds the agent's NAV (its
+              non-withdrawable productive treasury — not the spendable one).
             </>
           }
           href="/docs/concepts"

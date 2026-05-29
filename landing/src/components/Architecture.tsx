@@ -28,10 +28,10 @@ export default function Architecture() {
       </p>
 
       <div className="space-y-0">
-        {/* ──────────── LAYER 1: Sui mainnet ──────────── */}
+        {/* ──────────── LAYER 1: Sui testnet ──────────── */}
         <Layer
           tag="layer 01"
-          title="sui mainnet"
+          title="sui testnet"
           accent="amber"
           subtitle="move 2024.beta · sui framework rev 95cddc3f5"
         >

@@ -228,9 +228,9 @@ export default async function AgentPage({
           unit="SUI"
           sub={
             <>
-              productive treasury · grows from trade fees + hires ·
-              non-withdrawable. (the spendable working-capital treasury is a
-              separate balance — see below)
+              productive treasury · grows from trade fees + completed hires ·
+              non-withdrawable. (the agent's spendable working-capital treasury
+              is a separate balance — see below)
             </>
           }
           accent="amber"

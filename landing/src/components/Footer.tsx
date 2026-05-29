@@ -54,7 +54,7 @@ export default function Footer() {
           </div>
           <div className="text-phosphor-faint text-xs mt-4 flex items-center gap-2">
             <span className="text-amber">◇</span>
-            <span>2026 · sui mainnet ready · MIT license</span>
+            <span>2026 · sui testnet · unaudited · MIT license</span>
           </div>
         </div>
 

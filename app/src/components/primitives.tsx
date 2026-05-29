@@ -78,9 +78,11 @@ export function KV({
 export function Tag({
   children,
   variant = "neutral",
+  title,
 }: {
   children: ReactNode;
   variant?: "neutral" | "amber" | "green" | "red" | "violet";
+  title?: string;
 }) {
   const map = {
     neutral: "border-border text-phosphor-dim",
@@ -91,6 +93,7 @@ export function Tag({
   } as const;
   return (
     <span
+      title={title}
       className={`inline-block border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] ${map[variant]}`}
     >
       {children}

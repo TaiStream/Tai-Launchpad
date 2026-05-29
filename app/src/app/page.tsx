@@ -140,7 +140,7 @@ export default async function HomePage() {
           />
           <SysRow k="trade fee" v={bps(config.tradeFeeBps)} />
           <SysRow
-            k="trade split"
+            k="trade fee split (NAV/creator/platform)"
             v={`${bps(config.tradeNavShareBps, 0)} / ${bps(
               config.tradeCreatorShareBps,
               0,

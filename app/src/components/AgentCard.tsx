@@ -69,7 +69,12 @@ export default function AgentCard({
           unit="SUI"
           accent="amber"
         />
-        <Mini k="Cred" v={multBpsToX(multBps, 2)} accent="green" />
+        <Mini
+          k="Cred"
+          v={multBpsToX(multBps, 2)}
+          accent="green"
+          sub="service only"
+        />
       </dl>
       <footer className="flex items-center justify-between text-[10.5px] uppercase tracking-[0.18em] text-phosphor-faint">
         <span>id {shortAddr(account.objectId)}</span>
@@ -86,11 +91,13 @@ function Mini({
   v,
   unit,
   accent,
+  sub,
 }: {
   k: string;
   v: string;
   unit?: string;
   accent?: "amber" | "green";
+  sub?: string;
 }) {
   const color =
     accent === "amber"
@@ -109,6 +116,11 @@ function Mini({
           <span className="ml-1 text-[10px] text-phosphor-dim">{unit}</span>
         )}
       </dd>
+      {sub && (
+        <div className="text-[9px] uppercase tracking-[0.15em] text-phosphor-faint">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

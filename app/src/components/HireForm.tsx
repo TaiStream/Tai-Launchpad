@@ -193,7 +193,7 @@ export default function HireForm({
                 {submitting || isPending ? "signing…" : "lock escrow & hire"}
             </button>
             <p className="text-center text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
-                escrowed · settles via service-payment on release · refundable after deadline
+escrowed · released funds split 40/50/10 NAV/creator/platform · buyer-refundable after deadline if not yet completed
             </p>
 
             {result?.ok && result.digest && (

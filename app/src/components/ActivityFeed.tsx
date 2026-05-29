@@ -131,7 +131,14 @@ function ServiceRow({
   return (
     <>
       <Tag variant="amber">service</Tag>
-      <Tag variant={ev.countedTowardCred ? "green" : "neutral"}>
+      <Tag
+        variant={ev.countedTowardCred ? "green" : "neutral"}
+        title={
+          ev.countedTowardCred
+            ? "Counted toward the cred multiplier (third-party paid revenue)"
+            : "Self-payment (creator paying their own agent) — grows NAV but excluded from cred"
+        }
+      >
         {ev.countedTowardCred ? "CRED" : "SELF"}
       </Tag>
       <span className="truncate">

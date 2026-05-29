@@ -322,6 +322,11 @@ export default function TradeForm({
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full border border-border bg-base px-3 py-2.5 font-mono text-base text-phosphor focus:border-amber/70 focus:outline-none"
                 />
+                {side === "buy" && (
+                    <p className="mt-1 text-[9.5px] uppercase tracking-[0.15em] text-phosphor-faint">
+                        max leaves 0.05 SUI for gas
+                    </p>
+                )}
             </div>
 
             {/* Live "you receive" estimate */}
@@ -410,7 +415,7 @@ export default function TradeForm({
             <p className="text-center text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
                 {side === "buy"
                     ? "1% trade fee · 30 / 60 / 10 NAV / creator / platform"
-                    : "1% fee on SUI received · taken from the gross"}
+                    : "1% trade fee · 30 / 60 / 10 NAV / creator / platform · already in estimate"}
             </p>
 
             {result?.ok && (
