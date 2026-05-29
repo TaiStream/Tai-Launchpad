@@ -1,10 +1,10 @@
 import Section from "./Section";
 
 const INSTALLS = [
-  { label: "one-line install", cmd: "curl -sSf https://<org>/tai/install.sh | sh" },
-  { label: "homebrew", cmd: "brew tap <org>/tai && brew install tai" },
-  { label: "docker", cmd: "docker pull ghcr.io/<org>/tai-cli:latest" },
-  { label: "npm (sdk)", cmd: "npm i -g @<scope>/cli" },
+  { label: "1 · install the cli", cmd: "cargo install tai-cli" },
+  { label: "2 · generate a key", cmd: "tai init   # prints your address" },
+  { label: "3 · fund it", cmd: "# paste the address at faucet.testnet.sui.io" },
+  { label: "4 · launch", cmd: 'tai launch --symbol AGENT --name "Your Agent"' },
 ];
 
 export default function GetStarted() {
@@ -16,57 +16,59 @@ export default function GetStarted() {
             launch your first agent.
           </h2>
           <p className="text-phosphor text-lg leading-relaxed mb-3">
-            the move package is live on{" "}
-            <a
-              href="https://github.com/TaiStream/Tai-Launchpad"
-              className="text-amber underline decoration-dotted underline-offset-4 hover:no-underline"
-            >
-              github
-            </a>{" "}— 5 modules, 66 tests passing, TDD throughout, u128 overflow-safe.
-            curve invariant proven against integer rounding at exact-integer
-            precision.
+            live on sui testnet now —{" "}
+            <code className="text-amber">tai-cli</code> is on crates.io, the
+            dashboard is up, and a reference agent (larry the analyst) is
+            already taking paid hires. 94 move tests + 40 rust tests, TDD
+            throughout, u128 overflow-safe curve math.
           </p>
           <p className="text-phosphor-dim text-base leading-relaxed mb-10">
-            next: tai-core rust crate, tai-cli binary (with phala-cloud TEE
-            signer), wasm-backed @tai/sdk, testnet publish.
+            five commands from a clean machine to an agent on chain. the full
+            walkthrough, concepts, and CLI reference live in the docs.
           </p>
 
           <div className="flex flex-wrap gap-3 mb-10">
             <a
-              href="https://github.com/TaiStream/Tai-Launchpad/blob/main/SPEC.md"
+              href="https://tai-app-lyart.vercel.app/start"
+              target="_blank"
+              rel="noreferrer"
               className="group flex items-center gap-3 border border-amber/60 bg-amber/[0.08] px-5 py-3 text-amber hover:bg-amber hover:text-base transition-colors"
             >
               <span className="font-display text-xl leading-none text-amber-bright group-hover:text-base">
                 ▸
               </span>
-              <span>read SPEC.md</span>
+              <span>quickstart</span>
             </a>
             <a
-              href="https://github.com/TaiStream/Tai-Launchpad/blob/main/PLAN.md"
-              className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
-            >
-              <span className="text-amber">$</span>
-              <span>read PLAN.md</span>
-            </a>
-            <a
-              href="https://github.com/TaiStream/Tai-Launchpad"
+              href="https://tai-app-lyart.vercel.app/agents"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
             >
-              <span className="text-amber">↗</span>
-              <span>github</span>
+              <span className="text-amber">▶</span>
+              <span>explore live agents</span>
+            </a>
+            <a
+              href="https://tai-app-lyart.vercel.app/docs"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
+            >
+              <span className="text-amber">$</span>
+              <span>read the docs</span>
             </a>
           </div>
 
           <div className="border border-border bg-surface p-5 text-sm leading-relaxed text-phosphor-dim">
             <div className="text-amber mb-2 text-xs uppercase tracking-[0.2em]">
-              the contract
+              prerequisite
             </div>
             <p className="text-phosphor">
-              do not invent. if a primitive isn't in SPEC §4 or §5, it's out of
-              scope. v1 has 14 phases — implement them in order, run the
-              self-review checklist before declaring complete.
+              <code className="text-amber">tai launch</code> uses the{" "}
+              <code className="text-amber">sui</code> CLI under the hood to
+              publish your agent&apos;s coin module, so install that too (
+              <code className="text-amber">brew install sui</code> on macOS).
+              everything else is pure <code className="text-amber">tai</code>.
             </p>
           </div>
         </div>
@@ -78,9 +80,9 @@ export default function GetStarted() {
                 <span className="size-2 bg-amber/70"></span>
                 <span className="size-2 bg-phosphor-faint"></span>
                 <span className="size-2 bg-phosphor-faint"></span>
-                <span className="ml-2 text-phosphor">~ $ install.sh</span>
+                <span className="ml-2 text-phosphor">~ $ launch</span>
               </div>
-              <span className="text-mint glow-soft">[copy]</span>
+              <span className="text-mint glow-soft">testnet</span>
             </div>
             <div className="divide-y divide-border">
               {INSTALLS.map((row, i) => (
@@ -88,7 +90,8 @@ export default function GetStarted() {
                   <div className="text-phosphor-faint text-[10px] uppercase tracking-[0.2em] mb-1.5 flex items-center justify-between">
                     <span>{row.label}</span>
                     <span className="tabular">
-                      {String(i + 1).padStart(2, "0")} / {String(INSTALLS.length).padStart(2, "0")}
+                      {String(i + 1).padStart(2, "0")} /{" "}
+                      {String(INSTALLS.length).padStart(2, "0")}
                     </span>
                   </div>
                   <code className="block text-amber text-sm break-all leading-relaxed">
@@ -98,7 +101,7 @@ export default function GetStarted() {
               ))}
             </div>
             <div className="border-t border-border px-5 py-3 text-xs text-phosphor-faint">
-              all binaries signed · sha256 verified on install · static linked
+              key written 0600 · seed never printed · signs locally
             </div>
           </div>
 
@@ -108,17 +111,21 @@ export default function GetStarted() {
                 ◆
               </span>
               <span className="text-amber text-sm uppercase tracking-[0.2em]">
-                why a cli
+                no cli? hire from the browser
               </span>
             </div>
             <p className="text-phosphor text-sm leading-relaxed">
-              every serious chain ships one:{" "}
-              <code className="text-amber">sui client</code>,{" "}
-              <code className="text-amber">forge</code>,{" "}
-              <code className="text-amber">solana</code>,{" "}
-              <code className="text-amber">near</code>. tai matches. an agent
-              runtime gets the same surface a human developer gets, no SDK
-              lock-in.
+              the{" "}
+              <a
+                href="https://tai-app-lyart.vercel.app/agents"
+                target="_blank"
+                rel="noreferrer"
+                className="text-amber underline decoration-dotted underline-offset-4 hover:no-underline"
+              >
+                dashboard
+              </a>{" "}
+              lets you connect a sui wallet and buy, sell, hire, or escrow work
+              with any agent — no terminal required.
             </p>
           </div>
         </div>

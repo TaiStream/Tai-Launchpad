@@ -39,15 +39,23 @@ export default function Nav() {
           ))}
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <LiveClock />
           <a
-            href="https://github.com/TaiStream/Tai-Launchpad"
+            href="https://tai-app-lyart.vercel.app/docs"
             target="_blank"
             rel="noreferrer"
-            className="border border-amber/50 px-3 py-1.5 text-amber hover:bg-amber hover:text-base transition-colors"
+            className="hidden text-phosphor-dim hover:text-phosphor transition-colors sm:inline"
           >
-            github <span aria-hidden>→</span>
+            docs
+          </a>
+          <a
+            href="https://tai-app-lyart.vercel.app/agents"
+            target="_blank"
+            rel="noreferrer"
+            className="border border-amber/50 bg-amber/[0.08] px-3 py-1.5 text-amber hover:bg-amber hover:text-base transition-colors"
+          >
+            live app <span aria-hidden>→</span>
           </a>
         </div>
       </div>

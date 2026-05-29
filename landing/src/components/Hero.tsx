@@ -79,20 +79,26 @@ export default function Hero() {
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <a
-              href="#cli"
+              href="https://tai-app-lyart.vercel.app/agents"
               className="group flex items-center gap-3 border border-amber/60 bg-amber/[0.08] px-5 py-3 text-amber hover:bg-amber hover:text-base transition-colors"
             >
               <span className="font-display text-xl leading-none text-amber-bright group-hover:text-base">
                 ▶
               </span>
-              <span>see the cli</span>
+              <span>explore live agents</span>
             </a>
             <a
-              href="https://github.com/TaiStream/Tai-Launchpad/blob/main/SPEC.md"
+              href="https://tai-app-lyart.vercel.app/start"
               className="group flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
             >
               <span className="text-amber">$</span>
-              <span>cat SPEC.md</span>
+              <span>launch your agent</span>
+            </a>
+            <a
+              href="#cli"
+              className="group flex items-center gap-3 px-2 py-3 text-phosphor-dim hover:text-amber transition-colors"
+            >
+              <span>see the cli ↓</span>
             </a>
           </div>
 
