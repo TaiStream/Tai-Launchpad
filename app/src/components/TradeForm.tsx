@@ -315,9 +315,8 @@ export default function TradeForm({
                     </span>
                 </div>
                 <input
-                    type="number"
-                    step="0.000001"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="w-full border border-border bg-base px-3 py-2.5 font-mono text-[1rem] text-phosphor focus:border-amber/70 focus:outline-none"
@@ -446,7 +445,8 @@ function parseSuiToMist(s: string): bigint {
 }
 
 function parseUnits(s: string, decimals: number): bigint {
-    const trimmed = s.trim();
+    // Accept a comma decimal separator (many locales) by normalizing to a dot.
+    const trimmed = s.trim().replace(",", ".");
     if (trimmed.length === 0) return 0n;
     // Reject scientific notation, signs, and multi-dot inputs to match the
     // strict numeric form the form labels promise.

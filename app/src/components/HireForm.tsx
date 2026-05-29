@@ -176,9 +176,8 @@ export default function HireForm({
                     )}
                 </div>
                 <input
-                    type="number"
-                    step="0.001"
-                    min="0.000001"
+                    type="text"
+                    inputMode="decimal"
                     value={amountSui}
                     onChange={(e) => setAmountSui(e.target.value)}
                     className="w-full border border-border bg-base px-3 py-2.5 font-mono text-[1rem] text-amber-bright focus:border-amber/70 focus:outline-none"
@@ -282,7 +281,8 @@ function errorMessage(err: unknown): string {
 }
 
 function parseSuiToMist(s: string): bigint {
-    const trimmed = s.trim();
+    // Accept a comma decimal separator (many locales) by normalizing to a dot.
+    const trimmed = s.trim().replace(",", ".");
     if (trimmed.length === 0) throw new Error("amount is empty");
     // Reject scientific notation, signs, and multi-dot inputs — they're
     // ambiguous against the simple decimal-pair parser below.
