@@ -24,6 +24,9 @@ import { computeBuy, computeSell } from "@/lib/tai";
 
 const POLL_BALANCES_MS = 8_000;
 
+/** Reserve left untouched when "max" buying, so the tx still has gas. 0.05 SUI. */
+const GAS_RESERVE_MIST = 50_000_000n;
+
 function packageFor(version: string): TaiPackageInfo {
     if (version === "v1.1") return TAI.v1_1;
     if (version === "v1.0.2") return TAI.v1_0_2;
@@ -157,7 +160,6 @@ export default function TradeForm({
         if (!account) return;
         setResult(null);
         try {
-            const slippage = Math.min(100, Math.max(0, Number(slippagePct) || 0));
             const tx = new Transaction();
             tx.setSender(account.address);
 
@@ -234,128 +236,182 @@ export default function TradeForm({
         }
     }
 
+    // Insufficient-balance guard for the submit button.
+    const insufficient = (() => {
+        try {
+            if (side === "sell") {
+                return tokenBalance !== null && parseUnits(amount, decimals) > tokenBalance;
+            }
+            // buy: need amount + a small gas reserve.
+            return (
+                suiBalance !== null &&
+                parseSuiToMist(amount) + GAS_RESERVE_MIST > suiBalance
+            );
+        } catch {
+            return false;
+        }
+    })();
+    const amountValid = !!estimate;
+
+    function fillMax() {
+        if (side === "sell") {
+            if (tokenBalance !== null) setAmount(unitsToString(tokenBalance, decimals, decimals));
+        } else if (suiBalance !== null) {
+            const spendable = suiBalance > GAS_RESERVE_MIST ? suiBalance - GAS_RESERVE_MIST : 0n;
+            setAmount(unitsToString(spendable, 9, 9));
+        }
+    }
+
     return (
-        <form onSubmit={onSubmit} className="space-y-3">
-            {/* Tabs */}
-            <div className="flex gap-2 text-[11px] uppercase tracking-[0.22em]">
+        <form onSubmit={onSubmit} className="space-y-4">
+            {/* Buy / sell segmented control */}
+            <div className="grid grid-cols-2 overflow-hidden border border-border">
                 <button
                     type="button"
                     onClick={() => setSide("buy")}
-                    className={`border px-3 py-1.5 ${
+                    className={`py-2 text-[11px] uppercase tracking-[0.22em] transition-colors ${
                         side === "buy"
-                            ? "border-green-dim/70 bg-green/15 text-green-bright"
-                            : "border-border text-phosphor-dim hover:text-phosphor"
+                            ? "bg-green/20 text-green-bright"
+                            : "bg-surface/40 text-phosphor-dim hover:text-phosphor"
                     }`}
                 >
-                    buy
+                    buy {symbol}
                 </button>
                 <button
                     type="button"
                     onClick={() => setSide("sell")}
-                    className={`border px-3 py-1.5 ${
+                    className={`border-l border-border py-2 text-[11px] uppercase tracking-[0.22em] transition-colors ${
                         side === "sell"
-                            ? "border-amber/70 bg-amber/15 text-amber-bright"
-                            : "border-border text-phosphor-dim hover:text-phosphor"
+                            ? "bg-amber/20 text-amber-bright"
+                            : "bg-surface/40 text-phosphor-dim hover:text-phosphor"
                     }`}
                 >
-                    sell
+                    sell {symbol}
                 </button>
-                <div className="ml-auto self-center text-[10.5px] tracking-[0.18em] text-phosphor-faint">
-                    {side === "buy" ? (
-                        <>
-                            wallet SUI ·{" "}
-                            <span className="text-phosphor">
-                                {suiBalance !== null ? mistToSui(suiBalance, 4) : "—"}
-                            </span>
-                        </>
-                    ) : (
-                        <>
-                            wallet {symbol} ·{" "}
-                            <span className="text-phosphor">
-                                {tokenBalance !== null
-                                    ? unitsToString(tokenBalance, decimals, 2)
-                                    : "—"}
-                            </span>
-                        </>
-                    )}
-                </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-                <Field
-                    label={side === "buy" ? "spend (SUI)" : `sell (${symbol})`}
-                >
-                    <input
-                        type="number"
-                        step="0.000001"
-                        min="0"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full border border-border bg-base px-2 py-1.5 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
-                    />
-                </Field>
-                <Field label="slippage (% — informational v1)">
+            {/* Amount with balance + max */}
+            <div>
+                <div className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] text-phosphor-faint">
+                    <span>{side === "buy" ? "you pay (SUI)" : `you sell (${symbol})`}</span>
+                    <span>
+                        balance{" "}
+                        <span className="text-phosphor-dim">
+                            {side === "buy"
+                                ? suiBalance !== null
+                                    ? `${mistToSui(suiBalance, 3)} SUI`
+                                    : "—"
+                                : tokenBalance !== null
+                                  ? `${unitsToString(tokenBalance, decimals, 2)} ${symbol}`
+                                  : "—"}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={fillMax}
+                            className="ml-2 text-amber-bright hover:text-amber-bright/80"
+                        >
+                            max
+                        </button>
+                    </span>
+                </div>
+                <input
+                    type="number"
+                    step="0.000001"
+                    min="0"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full border border-border bg-base px-3 py-2.5 font-mono text-base text-phosphor focus:border-amber/70 focus:outline-none"
+                />
+            </div>
+
+            {/* Live "you receive" estimate */}
+            <div className="border border-border-bright bg-base/60 px-3 py-2.5">
+                <div className="flex items-baseline justify-between">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-phosphor-faint">
+                        you receive (est.)
+                    </span>
+                    <span className="font-display text-2xl tabular text-phosphor">
+                        {estimate
+                            ? estimate.kind === "buy"
+                                ? `≈ ${unitsToString(estimate.tokensOut, decimals, 2)}`
+                                : `≈ ${mistToSui(estimate.suiOut, 5)}`
+                            : "—"}
+                        <span className="ml-1 text-xs text-phosphor-dim">
+                            {estimate ? (estimate.kind === "buy" ? symbol : "SUI") : ""}
+                        </span>
+                    </span>
+                </div>
+                {estimate && (
+                    <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-2 text-[11px] tabular text-phosphor-faint">
+                        <span>fee {mistToSui(estimate.fee, 5)} SUI</span>
+                        <span>
+                            min after slippage{" "}
+                            <span className="text-amber-bright">
+                                {estimate.kind === "buy"
+                                    ? `${unitsToString(minOut, decimals, 2)} ${symbol}`
+                                    : `${mistToSui(minOut, 5)} SUI`}
+                            </span>
+                        </span>
+                    </div>
+                )}
+            </div>
+
+            {/* Slippage */}
+            <div className="flex items-center gap-3">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-phosphor-faint">
+                    max slippage
+                </span>
+                <div className="flex gap-1">
+                    {["1", "5", "10"].map((p) => (
+                        <button
+                            key={p}
+                            type="button"
+                            onClick={() => setSlippagePct(p)}
+                            className={`border px-2 py-1 text-[11px] tabular ${
+                                slippagePct === p
+                                    ? "border-amber/70 bg-amber/15 text-amber-bright"
+                                    : "border-border text-phosphor-dim hover:text-phosphor"
+                            }`}
+                        >
+                            {p}%
+                        </button>
+                    ))}
                     <input
                         type="number"
                         min="0"
                         max="100"
                         value={slippagePct}
                         onChange={(e) => setSlippagePct(e.target.value)}
-                        className="w-full border border-border bg-base px-2 py-1.5 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
+                        className="w-16 border border-border bg-base px-2 py-1 font-mono text-[11px] text-phosphor focus:border-amber/70 focus:outline-none"
+                        aria-label="custom slippage percent"
                     />
-                </Field>
-            </div>
-            {/* Live curve estimate — recomputes as you type */}
-            {estimate && (
-                <div className="border border-border bg-base/60 px-3 py-2 text-[12px] tabular text-phosphor-dim">
-                    {estimate.kind === "buy" ? (
-                        <>
-                            <span className="text-phosphor-faint">est. receive</span>{" "}
-                            <span className="text-green-bright">
-                                ≈ {unitsToString(estimate.tokensOut, decimals, 2)} {symbol}
-                            </span>
-                            <span className="text-phosphor-faint"> · fee </span>
-                            <span>{mistToSui(estimate.fee, 5)} SUI</span>
-                            <span className="text-phosphor-faint"> · min after slippage </span>
-                            <span className="text-amber-bright">
-                                {unitsToString(minOut, decimals, 2)} {symbol}
-                            </span>
-                        </>
-                    ) : (
-                        <>
-                            <span className="text-phosphor-faint">est. receive</span>{" "}
-                            <span className="text-amber-bright">
-                                ≈ {mistToSui(estimate.suiOut, 5)} SUI
-                            </span>
-                            <span className="text-phosphor-faint"> · fee </span>
-                            <span>{mistToSui(estimate.fee, 5)} SUI</span>
-                            <span className="text-phosphor-faint"> · min after slippage </span>
-                            <span className="text-amber-bright">
-                                {mistToSui(minOut, 5)} SUI
-                            </span>
-                        </>
-                    )}
                 </div>
-            )}
-
-            <div className="flex items-center justify-between">
-                <span className="text-[10.5px] uppercase tracking-[0.18em] text-phosphor-faint">
-                    {side === "buy"
-                        ? "1% trade fee · 30/60/10 NAV/creator/platform split"
-                        : "1% trade fee on the SUI received · sell pays you, fee taken from gross"}
-                </span>
-                <button
-                    type="submit"
-                    disabled={isPending}
-                    className={`border px-4 py-1.5 text-[11px] uppercase tracking-[0.22em] disabled:cursor-not-allowed disabled:opacity-50 ${
-                        side === "buy"
-                            ? "border-green-dim/70 bg-green/15 text-green-bright hover:bg-green/25"
-                            : "border-amber/70 bg-amber/15 text-amber-bright hover:bg-amber/25"
-                    }`}
-                >
-                    {isPending ? "signing…" : side === "buy" ? "buy" : "sell"}
-                </button>
             </div>
+
+            <button
+                type="submit"
+                disabled={isPending || !amountValid || insufficient}
+                className={`w-full border py-2.5 text-[12px] uppercase tracking-[0.22em] disabled:cursor-not-allowed disabled:opacity-50 ${
+                    side === "buy"
+                        ? "border-green-dim/70 bg-green/15 text-green-bright hover:bg-green/25"
+                        : "border-amber/70 bg-amber/15 text-amber-bright hover:bg-amber/25"
+                }`}
+            >
+                {isPending
+                    ? "signing…"
+                    : insufficient
+                      ? `insufficient ${side === "buy" ? "SUI" : symbol}`
+                      : !amountValid
+                        ? "enter an amount"
+                        : side === "buy"
+                          ? `buy ${symbol}`
+                          : `sell ${symbol}`}
+            </button>
+            <p className="text-center text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
+                {side === "buy"
+                    ? "1% trade fee · 30 / 60 / 10 NAV / creator / platform"
+                    : "1% fee on SUI received · taken from the gross"}
+            </p>
 
             {result?.ok && (
                 <div className="border border-green-dim/60 bg-green/5 p-3 text-[12px] text-green-bright">
@@ -377,17 +433,6 @@ export default function TradeForm({
                 </div>
             )}
         </form>
-    );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <label className="block">
-            <span className="block text-[10px] uppercase tracking-[0.2em] text-phosphor-faint">
-                {label}
-            </span>
-            <span className="mt-1 block">{children}</span>
-        </label>
     );
 }
 

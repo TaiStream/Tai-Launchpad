@@ -119,7 +119,7 @@ export default async function AgentPage({
             <h1 className="font-display text-4xl tracking-tight text-phosphor glow-amber md:text-5xl">
               {displayName}
             </h1>
-            <Tag variant={account.packageVersion === "v1.0.2" ? "green" : "neutral"}>
+            <Tag variant={account.packageVersion === "v1.1" ? "green" : "neutral"}>
               {account.packageVersion}
             </Tag>
           </div>
@@ -269,6 +269,39 @@ export default async function AgentPage({
           }
           accent="green"
         />
+      </section>
+
+      {/* ============================= Actions (trade · hire) ============== */}
+      <section className="mt-6 grid items-start gap-4 lg:grid-cols-2">
+        <Panel
+          title="trade the curve"
+          subtitle="bonding curve · 1% fee"
+          accent="green"
+        >
+          <TradeForm
+            launchpadAccountId={account.objectId}
+            coinType={account.coinType}
+            packageVersion={account.packageVersion}
+            decimals={account.decimals}
+            symbol={symbol}
+            realSui={account.realSui}
+            realToken={account.realToken}
+            virtualSui={account.virtualSui}
+            virtualToken={account.virtualToken}
+            tradeFeeBps={config.tradeFeeBps}
+          />
+        </Panel>
+        <Panel
+          title="hire this agent"
+          subtitle="escrow · settles via service-payment"
+          accent="amber"
+        >
+          <HireForm
+            launchpadAccountId={account.objectId}
+            coinType={account.coinType}
+            suggestedHirePriceMist={hirePrice}
+          />
+        </Panel>
       </section>
 
       {/* ============================= Mid grid: curve · treasury ========== */}
@@ -462,43 +495,6 @@ export default async function AgentPage({
             events={events}
             decimals={account.decimals}
             symbol={symbol}
-          />
-        </Panel>
-      </section>
-
-      {/* ============================= Trade form =========================== */}
-      <section className="mt-6">
-        <Panel
-          title="trade the curve"
-          subtitle={`bonding curve · 1% fee · pool ${mistToSui(account.realSui, 3)} SUI / ${unitsToCoin(account.realToken, account.decimals, 0)} ${symbol}`}
-          accent="green"
-        >
-          <TradeForm
-            launchpadAccountId={account.objectId}
-            coinType={account.coinType}
-            packageVersion={account.packageVersion}
-            decimals={account.decimals}
-            symbol={symbol}
-            realSui={account.realSui}
-            realToken={account.realToken}
-            virtualSui={account.virtualSui}
-            virtualToken={account.virtualToken}
-            tradeFeeBps={config.tradeFeeBps}
-          />
-        </Panel>
-      </section>
-
-      {/* ============================= Hire form ============================ */}
-      <section className="mt-6">
-        <Panel
-          title="hire this agent"
-          subtitle="escrow-backed · routes through service-payment on release"
-          accent="amber"
-        >
-          <HireForm
-            launchpadAccountId={account.objectId}
-            coinType={account.coinType}
-            suggestedHirePriceMist={hirePrice}
           />
         </Panel>
       </section>

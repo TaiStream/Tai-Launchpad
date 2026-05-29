@@ -125,60 +125,76 @@ export default function HireForm({
         );
     }
 
+    const suggested = mistToSui(suggestedHirePriceMist, 3);
+
     return (
-        <form onSubmit={onSubmit} className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="amount (SUI)">
-                    <input
-                        type="number"
-                        step="0.001"
-                        min="0.000001"
-                        value={amountSui}
-                        onChange={(e) => setAmountSui(e.target.value)}
-                        className="w-full border border-border bg-base px-2 py-1.5 font-mono text-[12.5px] text-amber-bright focus:border-amber/70 focus:outline-none"
-                    />
-                </Field>
-                <Field label="deadline (h)">
+        <form onSubmit={onSubmit} className="space-y-4">
+            {/* Amount, with one-tap fill to the agent's current hire price */}
+            <div>
+                <div className="mb-1 flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] text-phosphor-faint">
+                    <span>you lock (SUI)</span>
+                    {suggestedHirePriceMist > 0n && (
+                        <button
+                            type="button"
+                            onClick={() => setAmountSui(suggested)}
+                            className="text-amber-bright hover:text-amber-bright/80"
+                        >
+                            use hire price · {suggested}
+                        </button>
+                    )}
+                </div>
+                <input
+                    type="number"
+                    step="0.001"
+                    min="0.000001"
+                    value={amountSui}
+                    onChange={(e) => setAmountSui(e.target.value)}
+                    className="w-full border border-border bg-base px-3 py-2.5 font-mono text-base text-amber-bright focus:border-amber/70 focus:outline-none"
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <Field label="deadline (hours)">
                     <input
                         type="number"
                         min="1"
                         value={deadlineHours}
                         onChange={(e) => setDeadlineHours(e.target.value)}
-                        className="w-full border border-border bg-base px-2 py-1.5 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
+                        className="w-full border border-border bg-base px-2 py-2 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
                     />
                 </Field>
-                <Field label="dispute window (h)">
+                <Field label="dispute window (hours)">
                     <input
                         type="number"
                         min="0"
                         max="720"
                         value={disputeHours}
                         onChange={(e) => setDisputeHours(e.target.value)}
-                        className="w-full border border-border bg-base px-2 py-1.5 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
+                        className="w-full border border-border bg-base px-2 py-2 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
                     />
                 </Field>
             </div>
+
             <Field label="spec url (optional)">
                 <input
                     type="text"
                     placeholder="https://… or ipfs://…"
                     value={specUrl}
                     onChange={(e) => setSpecUrl(e.target.value)}
-                    className="w-full border border-border bg-base px-2 py-1.5 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
+                    className="w-full border border-border bg-base px-2 py-2 font-mono text-[12.5px] text-phosphor focus:border-amber/70 focus:outline-none"
                 />
             </Field>
-            <div className="flex items-center justify-between">
-                <span className="text-[10.5px] uppercase tracking-[0.18em] text-phosphor-faint">
-                    paying as {short(account.address)} · escrowed → routes through service-payment on release
-                </span>
-                <button
-                    type="submit"
-                    disabled={submitting || isPending}
-                    className="border border-amber/70 bg-amber/15 px-4 py-1.5 text-[11px] uppercase tracking-[0.22em] text-amber-bright hover:bg-amber/25 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    {submitting || isPending ? "signing…" : "hire (escrow)"}
-                </button>
-            </div>
+
+            <button
+                type="submit"
+                disabled={submitting || isPending}
+                className="w-full border border-amber/70 bg-amber/15 py-2.5 text-[12px] uppercase tracking-[0.22em] text-amber-bright hover:bg-amber/25 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                {submitting || isPending ? "signing…" : "lock escrow & hire"}
+            </button>
+            <p className="text-center text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
+                escrowed · settles via service-payment on release · refundable after deadline
+            </p>
 
             {result?.ok && result.digest && (
                 <div className="border border-green-dim/60 bg-green/5 p-3 text-[12px] text-green-bright">
