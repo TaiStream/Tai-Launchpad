@@ -21,7 +21,7 @@ module tai::work_order_tests {
 
     const ONE_DAY_MS: u64 = 86_400_000;
     const ONE_HOUR_MS: u64 = 3_600_000;
-    const SHORT_DISPUTE_MS: u64 = 60_000;          // 1 minute
+    const SHORT_DISPUTE_MS: u64 = 300_000;         // 5 minutes (== protocol minimum)
 
     // ===================================================================
     //  Fixtures
@@ -678,6 +678,87 @@ module tai::work_order_tests {
         );
 
         ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(order);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::work_order::EDisputeWindowTooShort)]
+    fun cannot_create_order_with_dispute_window_below_minimum() {
+        let mut sc = ts::begin(ADMIN);
+        let clock = launch_solo(&mut sc);
+
+        ts::next_tx(&mut sc, BUYER);
+        let account = ts::take_shared<LaunchpadAccount<TEST_COIN>>(&sc);
+        let payment = mint_sui(&mut sc, ONE_SUI_MIST);
+        wo::create_work_order<TEST_COIN>(
+            &account, payment,
+            b"x", std::string::utf8(b""),
+            ONE_DAY_MS,
+            wo::min_dispute_window_ms() - 1, // one ms under the floor
+            &clock, ts::ctx(&mut sc),
+        );
+
+        ts::return_shared(account);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    fun operator_v2_can_accept_and_submit_receipt() {
+        let mut sc = ts::begin(ADMIN);
+        let mut clock = launch_with_operator(&mut sc);
+
+        create_basic_order(&mut sc, &mut clock, ONE_SUI_MIST, ONE_DAY_MS, SHORT_DISPUTE_MS);
+
+        ts::next_tx(&mut sc, PAYEE_RUNTIME);
+        let mut order = ts::take_shared<WorkOrder<TEST_COIN>>(&sc);
+        let treasury = ts::take_shared<AgentTreasury<TEST_COIN>>(&sc);
+        let op_cap = ts::take_from_address<OperatorCap<TEST_COIN>>(&sc, PAYEE_RUNTIME);
+        wo::accept_work_order_with_operator_v2<TEST_COIN>(
+            &mut order, &op_cap, &treasury, &clock,
+        );
+        wo::submit_receipt_with_operator_v2<TEST_COIN>(
+            &mut order, &op_cap, &treasury,
+            b"ok", std::string::utf8(b""), &clock,
+        );
+        assert!(wo::work_order_status(&order) == wo::status_receipt_submitted(), 0);
+
+        ts::return_to_address(PAYEE_RUNTIME, op_cap);
+        ts::return_shared(treasury);
+        ts::return_shared(order);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(
+        abort_code = tai::agent_treasury::EOperatorCapRevoked,
+        location = tai::work_order,
+    )]
+    fun revoked_operator_cap_cannot_accept_v2() {
+        let mut sc = ts::begin(ADMIN);
+        let mut clock = launch_with_operator(&mut sc);
+
+        create_basic_order(&mut sc, &mut clock, ONE_SUI_MIST, ONE_DAY_MS, SHORT_DISPUTE_MS);
+
+        // Owner revokes the operator cap.
+        ts::next_tx(&mut sc, CREATOR);
+        let mut treasury = ts::take_shared<AgentTreasury<TEST_COIN>>(&sc);
+        let owner_cap = ts::take_from_address<OwnerCap<TEST_COIN>>(&sc, CREATOR);
+        let op_cap = ts::take_from_address<OperatorCap<TEST_COIN>>(&sc, PAYEE_RUNTIME);
+        treas::revoke_operator_cap(&mut treasury, &owner_cap, object::id(&op_cap));
+
+        // The revoked operator tries to accept via v2 → aborts.
+        let mut order = ts::take_shared<WorkOrder<TEST_COIN>>(&sc);
+        wo::accept_work_order_with_operator_v2<TEST_COIN>(
+            &mut order, &op_cap, &treasury, &clock,
+        );
+
+        ts::return_to_address(PAYEE_RUNTIME, op_cap);
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(treasury);
         ts::return_shared(order);
         clock::destroy_for_testing(clock);
         ts::end(sc);

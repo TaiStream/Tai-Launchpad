@@ -998,6 +998,7 @@ pub struct WorkAcceptArgs {
 pub async fn cmd_work_accept(args: WorkAcceptArgs, output: OutputMode) -> Result<()> {
     let cfg = load_cli_config_or_explain()?;
     let tai_cfg = tai_config_for(&cfg)?;
+    let rpc_url = tai_cfg.rpc_url.clone();
     let signer = load_signer(&cfg).await?;
     let client = TaiClient::new(tai_cfg, signer);
 
@@ -1013,8 +1014,17 @@ pub async fn cmd_work_accept(args: WorkAcceptArgs, output: OutputMode) -> Result
             let cap: ObjectId = c
                 .parse()
                 .map_err(|e| anyhow!("invalid --operator-cap: {e}"))?;
+            // The operator path verifies the cap against the agent treasury's
+            // active set, so we need the order's payee treasury id.
+            let rpc = RpcClient::new(rpc_url.clone());
+            let view = WorkOrderView::fetch(&rpc, id).await?;
             client
-                .work_order_accept_with_operator(&args.coin_type, id, cap)
+                .work_order_accept_with_operator(
+                    &args.coin_type,
+                    id,
+                    cap,
+                    view.payee_agent_treasury_id,
+                )
                 .await?
         }
         _ => {
@@ -1059,6 +1069,7 @@ pub async fn cmd_work_submit_receipt(
 ) -> Result<()> {
     let cfg = load_cli_config_or_explain()?;
     let tai_cfg = tai_config_for(&cfg)?;
+    let rpc_url = tai_cfg.rpc_url.clone();
     let signer = load_signer(&cfg).await?;
     let client = TaiClient::new(tai_cfg, signer);
 
@@ -1083,11 +1094,16 @@ pub async fn cmd_work_submit_receipt(
             let cap: ObjectId = c
                 .parse()
                 .map_err(|e| anyhow!("invalid --operator-cap: {e}"))?;
+            // Operator path needs the order's payee treasury id for the
+            // active-cap check.
+            let rpc = RpcClient::new(rpc_url.clone());
+            let view = WorkOrderView::fetch(&rpc, id).await?;
             client
                 .work_order_submit_receipt_with_operator(
                     &args.coin_type,
                     id,
                     cap,
+                    view.payee_agent_treasury_id,
                     &receipt_hash,
                     &args.receipt_url,
                 )

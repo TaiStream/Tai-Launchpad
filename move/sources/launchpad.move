@@ -23,6 +23,7 @@ module tai::launchpad {
     // Cross-object linkage
     const ETreasuryCapNotEmpty: u64 = 104;
     const ELaunchpadMismatch: u64 = 105;
+    const EBadDecimals: u64 = 106;
     const ECoinPaymentsDisabled: u64 = 107;
     // Fee / share invariants
     const EFeeBpsInvalid: u64 = 110;
@@ -183,6 +184,7 @@ module tai::launchpad {
     public fun e_not_creator(): u64 { ENotCreator }
     public fun e_treasury_cap_not_empty(): u64 { ETreasuryCapNotEmpty }
     public fun e_launchpad_mismatch(): u64 { ELaunchpadMismatch }
+    public fun e_bad_decimals(): u64 { EBadDecimals }
     public fun e_coin_payments_disabled(): u64 { ECoinPaymentsDisabled }
     public fun e_fee_bps_invalid(): u64 { EFeeBpsInvalid }
     public fun e_fee_bps_zero(): u64 { EFeeBpsZero }
@@ -539,7 +541,7 @@ module tai::launchpad {
     public fun launch_agent_coin<T>(
         config: &LaunchpadConfig,
         mut treasury_cap: TreasuryCap<T>,
-        _metadata: &CoinMetadata<T>,
+        metadata: &CoinMetadata<T>,
         coin_type_name: String,
         linked_identity: Option<ID>,
         owner_cap_recipient: address,
@@ -553,6 +555,10 @@ module tai::launchpad {
     ) {
         assert!(config.version == CURRENT_VERSION, EVersionMismatch);
         assert!(coin::total_supply(&treasury_cap) == 0, ETreasuryCapNotEmpty);
+        // The curve constants (virtual reserves, supply) and the stored
+        // `decimals: 9` below all assume a 9-decimal coin. Reject anything
+        // else rather than silently mis-scaling the initial price.
+        assert!(coin::get_decimals(metadata) == 9, EBadDecimals);
 
         let sender = ctx.sender();
         let sale_supply = config.sale_supply;

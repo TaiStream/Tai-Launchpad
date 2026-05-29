@@ -32,7 +32,7 @@ module tai::work_order {
     use sui::coin::{Self, Coin};
     use sui::event;
     use sui::sui::SUI;
-    use tai::agent_treasury::{OwnerCap, OperatorCap};
+    use tai::agent_treasury::{OwnerCap, OperatorCap, AgentTreasury};
     use tai::launchpad::{Self, LaunchpadConfig, LaunchpadAccount};
 
     // ============================= Error codes =============================
@@ -49,6 +49,7 @@ module tai::work_order {
     const ENotAdmin: u64 = 210;
     const EHashTooLong: u64 = 211;
     const EUrlTooLong: u64 = 212;
+    const EDisputeWindowTooShort: u64 = 213;
 
     public fun e_not_buyer(): u64 { ENotBuyer }
     public fun e_not_payee_cap(): u64 { ENotPayeeCap }
@@ -63,6 +64,7 @@ module tai::work_order {
     public fun e_not_admin_work_order(): u64 { ENotAdmin }
     public fun e_hash_too_long(): u64 { EHashTooLong }
     public fun e_url_too_long(): u64 { EUrlTooLong }
+    public fun e_dispute_window_too_short(): u64 { EDisputeWindowTooShort }
 
     // ============================= Status codes ============================
     const STATUS_NEW: u8 = 0;
@@ -82,6 +84,11 @@ module tai::work_order {
     // ============================= Bounds ==================================
     const MIN_AMOUNT_MIST: u64 = 1_000;                 // 0.000001 SUI floor
     const MAX_DISPUTE_WINDOW_MS: u64 = 30 * 86_400_000; // 30 days
+    /// Floor on the dispute window. A zero (or tiny) window is a foot-gun: it
+    /// lets a non-buyer finalize the instant a receipt lands and leaves the
+    /// buyer with no time to dispute. 5 minutes guarantees a real window
+    /// while keeping fast agent-to-agent settlement practical.
+    const MIN_DISPUTE_WINDOW_MS: u64 = 300_000;         // 5 minutes
 
     /// Upper bounds on the content-addressed spec/receipt fields. A hash is
     /// at most a few common digest sizes (sha512 = 64B); 128 is generous.
@@ -93,6 +100,7 @@ module tai::work_order {
 
     public fun min_amount_mist(): u64 { MIN_AMOUNT_MIST }
     public fun max_dispute_window_ms(): u64 { MAX_DISPUTE_WINDOW_MS }
+    public fun min_dispute_window_ms(): u64 { MIN_DISPUTE_WINDOW_MS }
     public fun max_hash_len(): u64 { MAX_HASH_LEN }
     public fun max_url_len(): u64 { MAX_URL_LEN }
 
@@ -234,6 +242,7 @@ module tai::work_order {
 
         let now = clock::timestamp_ms(clock);
         assert!(deadline_ms > now, EDeadlineInPast);
+        assert!(dispute_window_ms >= MIN_DISPUTE_WINDOW_MS, EDisputeWindowTooShort);
         assert!(dispute_window_ms <= MAX_DISPUTE_WINDOW_MS, EDisputeWindowTooLong);
 
         let buyer = ctx.sender();
@@ -298,6 +307,11 @@ module tai::work_order {
     }
 
     /// Payee accepts via OperatorCap. NEW → ACCEPTED.
+    ///
+    /// DEPRECATED: prefer `accept_work_order_with_operator_v2`, which also
+    /// rejects a revoked cap (this variant cannot — it has no handle on the
+    /// treasury's active-cap set). This variant still rejects an *expired*
+    /// cap (checkable from the cap + clock alone).
     public fun accept_work_order_with_operator<T>(
         order: &mut WorkOrder<T>,
         op_cap: &OperatorCap<T>,
@@ -309,6 +323,27 @@ module tai::work_order {
                 == order.payee_agent_treasury_id,
             ENotPayeeCap,
         );
+        assert_operator_not_expired(op_cap, clock);
+        order.status = STATUS_ACCEPTED;
+        event::emit(WorkOrderAcceptedEvent {
+            work_order_id: object::id(order),
+            operator_cap_used: true,
+            timestamp_ms: clock::timestamp_ms(clock),
+        });
+    }
+
+    /// Payee accepts via OperatorCap, with full revocation + expiry checks.
+    /// Requires the payee `AgentTreasury<T>` so the cap can be verified
+    /// against the live active-cap set (a revoked cap is rejected here, unlike
+    /// the deprecated `accept_work_order_with_operator`). NEW → ACCEPTED.
+    public fun accept_work_order_with_operator_v2<T>(
+        order: &mut WorkOrder<T>,
+        op_cap: &OperatorCap<T>,
+        treasury: &AgentTreasury<T>,
+        clock: &Clock,
+    ) {
+        assert!(order.status == STATUS_NEW, EWrongStatus);
+        assert_payee_operator_active(order, op_cap, treasury, clock);
         order.status = STATUS_ACCEPTED;
         event::emit(WorkOrderAcceptedEvent {
             work_order_id: object::id(order),
@@ -337,6 +372,9 @@ module tai::work_order {
     }
 
     /// Payee submits proof of delivered work via OperatorCap.
+    ///
+    /// DEPRECATED: prefer `submit_receipt_with_operator_v2` (rejects a revoked
+    /// cap). This variant still rejects an expired cap.
     public fun submit_receipt_with_operator<T>(
         order: &mut WorkOrder<T>,
         op_cap: &OperatorCap<T>,
@@ -350,7 +388,64 @@ module tai::work_order {
                 == order.payee_agent_treasury_id,
             ENotPayeeCap,
         );
+        assert_operator_not_expired(op_cap, clock);
         submit_receipt_inner(order, receipt_hash, receipt_url, clock);
+    }
+
+    /// Payee submits proof of delivered work via OperatorCap, with full
+    /// revocation + expiry checks (requires the payee `AgentTreasury<T>`).
+    public fun submit_receipt_with_operator_v2<T>(
+        order: &mut WorkOrder<T>,
+        op_cap: &OperatorCap<T>,
+        treasury: &AgentTreasury<T>,
+        receipt_hash: vector<u8>,
+        receipt_url: String,
+        clock: &Clock,
+    ) {
+        assert!(order.status == STATUS_ACCEPTED, EWrongStatus);
+        assert_payee_operator_active(order, op_cap, treasury, clock);
+        submit_receipt_inner(order, receipt_hash, receipt_url, clock);
+    }
+
+    /// Reject an OperatorCap that is past its expiry (0 = no expiry). Usable
+    /// from the deprecated operator paths that lack a treasury handle.
+    fun assert_operator_not_expired<T>(op_cap: &OperatorCap<T>, clock: &Clock) {
+        let exp = tai::agent_treasury::operator_cap_expires_at_ms<T>(op_cap);
+        if (exp != 0) {
+            assert!(
+                clock::timestamp_ms(clock) < exp,
+                tai::agent_treasury::e_operator_cap_expired(),
+            );
+        };
+    }
+
+    /// Full operator-cap guard for the work-order paths: the cap belongs to
+    /// the payee treasury, the passed treasury IS that payee treasury, the cap
+    /// is still in the treasury's active set (not revoked), and it is not
+    /// expired. Mirrors the checks in `agent_treasury::operator_spend_*`.
+    fun assert_payee_operator_active<T>(
+        order: &WorkOrder<T>,
+        op_cap: &OperatorCap<T>,
+        treasury: &AgentTreasury<T>,
+        clock: &Clock,
+    ) {
+        assert!(
+            tai::agent_treasury::operator_cap_agent_treasury_id<T>(op_cap)
+                == order.payee_agent_treasury_id,
+            ENotPayeeCap,
+        );
+        assert!(
+            object::id(treasury) == order.payee_agent_treasury_id,
+            ENotPayeeCap,
+        );
+        assert!(
+            tai::agent_treasury::treasury_has_operator_cap<T>(
+                treasury,
+                object::id(op_cap),
+            ),
+            tai::agent_treasury::e_operator_cap_revoked(),
+        );
+        assert_operator_not_expired(op_cap, clock);
     }
 
     fun submit_receipt_inner<T>(

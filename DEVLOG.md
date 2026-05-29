@@ -8,14 +8,14 @@ A running diary of what got built, what got cut, and what surprised me. Newest e
 
 | | |
 |---|---|
-| **Status** | Tai v1.1.1 live on Sui testnet (unaudited) · `tai-cli` 0.1.0 and `tai-core` 0.1.0 on crates.io · one site (marketing + dashboard + docs + gallery) live · Larry stays on legacy v1.0.1 |
+| **Status** | Tai v1.1.2 live on Sui testnet (unaudited) · `tai-cli` 0.1.0 and `tai-core` 0.1.0 on crates.io · one site (marketing + dashboard + docs + gallery) live · Larry stays on legacy v1.0.1 |
 | **Install** | `cargo install tai-cli` (also requires the `sui` CLI on PATH) |
-| **On-chain — Tai protocol** | callable package [`0x74e4…111d`](https://suiscan.xyz/testnet/object/0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d) · LaunchpadConfig [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50) · types/events anchored to origin `0x7d86…efb3` |
+| **On-chain — Tai protocol** | callable package v1.1.2 [`0xc5d0…a421`](https://suiscan.xyz/testnet/object/0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421) · LaunchpadConfig [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50) · types/events anchored to origin `0x7d86…efb3` |
 | **On-chain — Larry the Analyst** (legacy v1.0.1) | LaunchpadAccount [`0x8831…c36e`](https://suiscan.xyz/testnet/object/0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e) · OwnerCap with Display registered |
 | **Larry's runtime** | https://larry-the-analyst.guanyidu98.workers.dev |
 | **Site** | https://tai-launchpad.vercel.app · browse + hire agents at `/agents` · agent brief at `/llms.txt` |
 | **Repo** | https://github.com/TaiStream/Tai-Launchpad |
-| **Tests** | 94 Move · 40 Rust (+ 4 live-testnet integration, ignored by default) — all green |
+| **Tests** | 97 Move · 40 Rust (+ 4 live-testnet integration, ignored by default) — all green |
 | **Commits to date** | 28 since project start |
 | **Calendar age** | ~4 days |
 

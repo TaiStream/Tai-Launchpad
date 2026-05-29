@@ -75,7 +75,7 @@ impl TaiConfig {
             network: Network::Testnet,
             rpc_url: Network::Testnet.default_rpc_url().to_string(),
             package_id: ObjectId::from_bytes(hex_lit(
-                "74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d",
+                "c5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421",
             )),
             config_id: ObjectId::from_bytes(hex_lit(
                 "4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
@@ -115,7 +115,7 @@ mod tests {
         assert_eq!(cfg.network, Network::Testnet);
         assert_eq!(
             cfg.package_id.to_string(),
-            "0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d"
+            "0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421"
         );
         assert_eq!(
             cfg.config_id.to_string(),

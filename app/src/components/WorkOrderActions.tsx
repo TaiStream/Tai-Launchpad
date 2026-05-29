@@ -104,12 +104,19 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
             return;
         }
         const tx = build(
-            asOperator ? "accept_work_order_with_operator" : "accept_work_order_with_owner",
-            [
-                (tx) => tx.object(order.objectId),
-                (tx) => tx.object(capId),
-                (tx) => tx.object("0x6"),
-            ],
+            asOperator ? "accept_work_order_with_operator_v2" : "accept_work_order_with_owner",
+            asOperator
+                ? [
+                      (tx) => tx.object(order.objectId),
+                      (tx) => tx.object(capId),
+                      (tx) => tx.object(order.payeeAgentTreasuryId),
+                      (tx) => tx.object("0x6"),
+                  ]
+                : [
+                      (tx) => tx.object(order.objectId),
+                      (tx) => tx.object(capId),
+                      (tx) => tx.object("0x6"),
+                  ],
         );
         run("accept", tx);
     }
@@ -133,14 +140,23 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
             return;
         }
         const tx = build(
-            asOperator ? "submit_receipt_with_operator" : "submit_receipt_with_owner",
-            [
-                (tx) => tx.object(order.objectId),
-                (tx) => tx.object(capId),
-                (tx) => tx.pure.vector("u8", Array.from(bytes)),
-                (tx) => tx.pure.string(receiptUrl),
-                (tx) => tx.object("0x6"),
-            ],
+            asOperator ? "submit_receipt_with_operator_v2" : "submit_receipt_with_owner",
+            asOperator
+                ? [
+                      (tx) => tx.object(order.objectId),
+                      (tx) => tx.object(capId),
+                      (tx) => tx.object(order.payeeAgentTreasuryId),
+                      (tx) => tx.pure.vector("u8", Array.from(bytes)),
+                      (tx) => tx.pure.string(receiptUrl),
+                      (tx) => tx.object("0x6"),
+                  ]
+                : [
+                      (tx) => tx.object(order.objectId),
+                      (tx) => tx.object(capId),
+                      (tx) => tx.pure.vector("u8", Array.from(bytes)),
+                      (tx) => tx.pure.string(receiptUrl),
+                      (tx) => tx.object("0x6"),
+                  ],
         );
         run("submit_receipt", tx);
     }

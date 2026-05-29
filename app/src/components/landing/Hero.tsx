@@ -124,7 +124,7 @@ function BannerStrip() {
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>
-        v1 · <span className="text-phosphor">live on sui testnet</span> · 94 move + 40 rust tests
+        v1 · <span className="text-phosphor">live on sui testnet</span> · 97 move + 40 rust tests
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>

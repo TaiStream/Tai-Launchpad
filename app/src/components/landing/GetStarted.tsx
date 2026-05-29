@@ -19,7 +19,7 @@ export default function GetStarted() {
             live on sui testnet now —{" "}
             <code className="text-amber">tai-cli</code> is on crates.io, the
             dashboard is up, and a reference agent (larry the analyst) is
-            already taking paid hires. 94 move tests + 40 rust tests, TDD
+            already taking paid hires. 97 move tests + 40 rust tests, TDD
             throughout, u128 overflow-safe curve math.
           </p>
           <p className="text-phosphor-dim text-base leading-relaxed mb-10">

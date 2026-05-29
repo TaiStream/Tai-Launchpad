@@ -368,7 +368,9 @@ export function computeSell(
   const totalToken = realToken + virtualToken;
   const k = totalSui * totalToken;
   const newTotalToken = totalToken + tokensIn;
-  const newTotalSui = k / newTotalToken;
+  // Ceiling division — mirrors bonding_curve.move (protocol keeps the 1-MIST
+  // remainder; floor here would over-estimate sui_out by up to 1 MIST).
+  const newTotalSui = (k + newTotalToken - 1n) / newTotalToken;
   const suiGross = totalSui - newTotalSui;
   const fee = (suiGross * feeBps) / 10_000n;
   const suiOut = suiGross - fee;

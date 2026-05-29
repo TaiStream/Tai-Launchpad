@@ -902,21 +902,25 @@ impl TaiClient {
             .await
     }
 
-    /// `accept_work_order_with_operator<T>(order, op_cap, clock)`.
+    /// `accept_work_order_with_operator_v2<T>(order, op_cap, treasury, clock)`.
+    /// The payee `AgentTreasury<T>` is required so the cap is verified against
+    /// the live active set (revoked/expired caps are rejected).
     pub async fn work_order_accept_with_operator(
         &self,
         coin_type: &str,
         order_id: ObjectId,
         op_cap_id: ObjectId,
+        treasury_id: ObjectId,
     ) -> Result<ExecutionResult, TaiError> {
         let call = MoveCall::new(
             self.config.package_id,
             "work_order",
-            "accept_work_order_with_operator",
+            "accept_work_order_with_operator_v2",
         )
         .type_arg(coin_type)
         .arg_object(order_id)
         .arg_object(op_cap_id)
+        .arg_object(treasury_id)
         .arg(json!(SUI_CLOCK_OBJECT_ID));
         self.execute_move_call(call, RequestType::WaitForLocalExecution)
             .await
@@ -947,23 +951,27 @@ impl TaiClient {
             .await
     }
 
-    /// `submit_receipt_with_operator<T>(order, op_cap, receipt_hash, url, clk)`.
+    /// `submit_receipt_with_operator_v2<T>(order, op_cap, treasury,
+    ///                                     receipt_hash, url, clk)`. The payee
+    /// `AgentTreasury<T>` is required for the revocation/expiry checks.
     pub async fn work_order_submit_receipt_with_operator(
         &self,
         coin_type: &str,
         order_id: ObjectId,
         op_cap_id: ObjectId,
+        treasury_id: ObjectId,
         receipt_hash: &[u8],
         receipt_url: &str,
     ) -> Result<ExecutionResult, TaiError> {
         let call = MoveCall::new(
             self.config.package_id,
             "work_order",
-            "submit_receipt_with_operator",
+            "submit_receipt_with_operator_v2",
         )
         .type_arg(coin_type)
         .arg_object(order_id)
         .arg_object(op_cap_id)
+        .arg_object(treasury_id)
         .arg_vec_u8(receipt_hash)
         .arg_string(receipt_url)
         .arg(json!(SUI_CLOCK_OBJECT_ID));

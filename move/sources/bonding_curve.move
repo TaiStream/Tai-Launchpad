@@ -70,7 +70,7 @@ module tai::bonding_curve {
     /// Returns (sui_out, fee_sui), both in MIST.
     ///
     /// new_total_token = total_token + tokens_in
-    /// new_total_sui   = k / new_total_token
+    /// new_total_sui   = ceil(k / new_total_token)
     /// sui_gross       = total_sui - new_total_sui
     /// fee             = sui_gross * fee_bps / 10_000
     /// sui_out         = sui_gross - fee
@@ -91,7 +91,11 @@ module tai::bonding_curve {
         let k = total_sui * total_token;
 
         let new_total_token = total_token + (tokens_in as u128);
-        let new_total_sui = k / new_total_token;
+        // Ceiling division: (k + d - 1) / d. Rounding new_total_sui UP makes
+        // sui_gross smaller, so the protocol keeps any 1-MIST remainder —
+        // matching the buy-side ceiling. (Floor here would leak that MIST to
+        // the seller.)
+        let new_total_sui = (k + new_total_token - 1) / new_total_token;
         let sui_gross_u128 = total_sui - new_total_sui;
         assert!(sui_gross_u128 <= (real_sui as u128), EMathOverflow);
         let sui_gross = sui_gross_u128 as u64;

@@ -12,7 +12,7 @@ const ENTRIES: Entry[] = [
   {
     v: "v1",
     when: "live on sui testnet",
-    state: "move package shipped · 94 move + 40 rust tests · ~0.12 SUI to publish",
+    state: "move package shipped · 97 move + 40 rust tests · ~0.12 SUI to publish",
     items: [
       "move package · launchpad + bonding_curve + fees + agent_treasury + views",
       "v1.0.1 · 0xb41f…6909 · LaunchpadConfig · 0xe2ec…a1f0 · Display<OwnerCap<T>> wallet card",
