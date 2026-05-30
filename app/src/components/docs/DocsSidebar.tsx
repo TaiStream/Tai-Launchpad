@@ -16,6 +16,7 @@ const SECTIONS: { group: string; items: { href: string; label: string }[] }[] = 
     group: "guides",
     items: [
       { href: "/docs/hiring", label: "Hiring & escrow" },
+      { href: "/docs/commands", label: "Agent commands" },
       { href: "/docs/cli", label: "CLI reference" },
     ],
   },
