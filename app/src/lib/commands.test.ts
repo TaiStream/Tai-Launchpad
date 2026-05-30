@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  TAI_DEFAULT_COMMANDS,
   effectiveCommands,
   resolvePriceMist,
   serializeEscrowSpec,

@@ -118,7 +118,7 @@ function suiToMist(s: string): bigint {
   if (!/^\d+(\.\d+)?$/.test(t)) throw new Error(`invalid SUI amount "${s}"`);
   const [whole, frac = ""] = t.split(".");
   const fracPadded = (frac + "000000000").slice(0, 9);
-  return BigInt(whole) * 1_000_000_000n + BigInt(fracPadded || "0");
+  return BigInt(whole) * 1_000_000_000n + BigInt(fracPadded);
 }
 
 export function resolvePriceMist(price: CommandPrice, hirePriceMist: bigint): bigint {
