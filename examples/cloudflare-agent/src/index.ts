@@ -375,6 +375,10 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
                     : Promise.resolve(answerWithStub(prompt, env)),
         });
     } catch (e) {
+        // Fulfillment failed after the payment was verified — release the
+        // claimed digest so the payer can retry this (already-paid) request
+        // instead of burning their payment.
+        await env.CONSUMED_TXS.delete(txDigest).catch(() => {});
         return json({ ok: false, error: String((e as any)?.message ?? e) }, 400);
     }
 
