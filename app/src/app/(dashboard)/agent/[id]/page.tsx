@@ -23,9 +23,10 @@ import { KV, Panel, Tag } from "@/components/primitives";
 import LivePulse from "@/components/LivePulse";
 import AutoRefresh from "@/components/AutoRefresh";
 import ActivityFeed from "@/components/ActivityFeed";
-import HireForm from "@/components/HireForm";
-import DirectPayForm from "@/components/DirectPayForm";
 import TradeForm from "@/components/TradeForm";
+import CommandMenu from "@/components/CommandMenu";
+import { effectiveCommands } from "@/lib/commands";
+import { manifestFor } from "@/lib/agent-commands";
 
 export const dynamic = "force-dynamic";
 
@@ -293,31 +294,31 @@ export default async function AgentPage({
             tradeFeeBps={config.tradeFeeBps}
           />
         </Panel>
-        <Panel
-          title="hire this agent"
-          subtitle={
-            account.packageVersion === "v1.1"
-              ? "escrow · settles via service-payment"
-              : "direct service payment · no escrow hold"
-          }
-          accent="amber"
-        >
-          {account.packageVersion === "v1.1" ? (
-            <HireForm
-              launchpadAccountId={account.objectId}
-              coinType={account.coinType}
-              suggestedHirePriceMist={hirePrice}
-              packageVersion={account.packageVersion}
-            />
-          ) : (
-            <DirectPayForm
-              launchpadAccountId={account.objectId}
-              coinType={account.coinType}
-              suggestedHirePriceMist={hirePrice}
-              packageVersion={account.packageVersion}
-            />
-          )}
-        </Panel>
+        {(() => {
+          const manifest = manifestFor(account.objectId);
+          const commands = effectiveCommands({
+            packageVersion: account.packageVersion,
+            fulfillmentUrl: manifest.fulfillmentUrl,
+            commands: manifest.commands,
+            disabledDefaults: manifest.disabledDefaults,
+          });
+          return (
+            <Panel
+              title="hire this agent"
+              subtitle="pick a command · pay · get the result"
+              accent="amber"
+            >
+              <CommandMenu
+                commands={commands}
+                launchpadAccountId={account.objectId}
+                coinType={account.coinType}
+                packageVersion={account.packageVersion}
+                hirePriceMist={hirePrice}
+                fulfillmentUrl={manifest.fulfillmentUrl}
+              />
+            </Panel>
+          );
+        })()}
       </section>
 
       {/* ============================= Mid grid: curve · treasury ========== */}
