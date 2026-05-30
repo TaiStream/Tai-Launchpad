@@ -34,6 +34,7 @@ import {
 } from "./sui";
 import { postDailyDigest, tickEcosystemFeed } from "./feed";
 import { escapeHtml, sendPhoto, TelegramConfig } from "./telegram";
+import { dispatchCommand, SUPPORTED_COMMANDS } from "./commands";
 
 const DEFAULT_LARRY_IMAGE_URL =
     "https://tai-launchpad.vercel.app/mascot-square.png";
@@ -62,25 +63,53 @@ interface Env {
     LARRY_IMAGE_URL?: string;
 }
 
+/**
+ * Unified fulfillment request body.
+ * New shape (dashboard CommandRunner):  { command, inputs, paymentTxDigest, coinType?, launchpadAccountId? }
+ * Legacy shape (old /hire callers):     { question, payment_tx_digest }
+ * Both shapes are accepted; new takes precedence.
+ */
 interface HireRequest {
-    question: string;
-    payment_tx_digest: string;
+    // New fields
+    command?: string;
+    inputs?: Record<string, unknown>;
+    paymentTxDigest?: string;
+    coinType?: string;
+    launchpadAccountId?: string;
+    // Legacy fields
+    question?: string;
+    payment_tx_digest?: string;
 }
 
 export default {
     async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
         const url = new URL(req.url);
 
+        // Handle CORS preflight for all routes.
+        if (req.method === "OPTIONS") {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    "access-control-allow-origin": "*",
+                    "access-control-allow-headers": "content-type",
+                    "access-control-allow-methods": "GET, POST, OPTIONS",
+                },
+            });
+        }
+
         try {
             switch (`${req.method} ${url.pathname}`) {
                 case "GET /":
+                case "GET /health":
+                    // Health ping used by the dashboard's CommandRunner pre-pay check.
+                    return cors(json({ ok: true, agent: env.AGENT_NAME, commands: SUPPORTED_COMMANDS }));
+                case "GET /splash":
                     return splash(env);
                 case "GET /info":
                     return json(agentInfo(env));
-                case "GET /health":
-                    return json({ ok: true, agent: env.AGENT_NAME });
+                case "POST /":
                 case "POST /hire":
-                    return await handleHire(req, env);
+                    return cors(await handleHire(req, env));
                 case "POST /promote":
                     return await handlePromote(req, env);
                 default:
@@ -265,15 +294,29 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         return json({ error: "invalid json" }, 400);
     }
 
-    if (typeof body.question !== "string" || body.question.trim().length === 0) {
-        return json({ error: "question is required" }, 400);
-    }
-    if (typeof body.payment_tx_digest !== "string" || body.payment_tx_digest.length < 10) {
+    // Resolve payment digest — accept camelCase (new dashboard) or snake_case (legacy).
+    const txDigest = body.paymentTxDigest ?? body.payment_tx_digest ?? "";
+    if (typeof txDigest !== "string" || txDigest.length < 10) {
         return json({ error: "payment_tx_digest is required" }, 400);
     }
 
+    // Resolve command + inputs — new shape takes precedence over legacy { question }.
+    const command = typeof body.command === "string" ? body.command : "ask";
+    const inputs: Record<string, unknown> =
+        body.inputs && typeof body.inputs === "object"
+            ? body.inputs
+            : { question: body.question };
+
+    // Quick validation: for the "ask" command we need a prompt/question.
+    if (command === "ask") {
+        const prompt = String(inputs.prompt ?? inputs.question ?? "").trim();
+        if (!prompt) {
+            return json({ error: "question / prompt is required" }, 400);
+        }
+    }
+
     // Reject if this tx digest has already been used.
-    const alreadyConsumed = await env.CONSUMED_TXS.get(body.payment_tx_digest);
+    const alreadyConsumed = await env.CONSUMED_TXS.get(txDigest);
     if (alreadyConsumed !== null) {
         return json(
             { error: "payment_tx_digest already consumed", at: alreadyConsumed },
@@ -289,7 +332,7 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
     // strong-enough barrier in practice. If verification then fails we
     // delete the key to allow legitimate retry.)
     await env.CONSUMED_TXS.put(
-        body.payment_tx_digest,
+        txDigest,
         new Date().toISOString(),
         { expirationTtl: 7 * 24 * 3600 },
     );
@@ -297,7 +340,7 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
     // Verify on-chain.
     let payment: VerifiedPayment;
     try {
-        payment = await verifyServicePayment(body.payment_tx_digest, {
+        payment = await verifyServicePayment(txDigest, {
             rpcUrl: env.SUI_RPC_URL,
             launchpadAccountId: env.LAUNCHPAD_ACCOUNT_ID,
             minPaymentMist: BigInt(env.MIN_PAYMENT_MIST),
@@ -307,7 +350,7 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
     } catch (e) {
         // Verification failed — un-claim the digest so an honest payer can
         // retry. Best-effort; we don't care if the delete itself errors.
-        await env.CONSUMED_TXS.delete(body.payment_tx_digest).catch(() => {});
+        await env.CONSUMED_TXS.delete(txDigest).catch(() => {});
         if (e instanceof PaymentVerificationError) {
             return json({ error: e.reason, detail: e.detail }, 402);
         }
@@ -322,17 +365,25 @@ async function handleHire(req: Request, env: Env): Promise<Response> {
         );
     }
 
-    // Generate the response.
-    const answer = env.OPENAI_API_KEY
-        ? await answerWithOpenAI(body.question, env)
-        : answerWithStub(body.question, env);
+    // Dispatch to the command handler.
+    let result: string;
+    try {
+        result = await dispatchCommand(command, inputs, {
+            answer: (prompt) =>
+                env.OPENAI_API_KEY
+                    ? answerWithOpenAI(prompt, env)
+                    : Promise.resolve(answerWithStub(prompt, env)),
+        });
+    } catch (e) {
+        return json({ ok: false, error: String((e as any)?.message ?? e) }, 400);
+    }
 
     return json({
+        ok: true,
+        result,
         agent: env.AGENT_NAME,
-        question: body.question,
-        answer,
         payment: {
-            tx_digest: body.payment_tx_digest,
+            tx_digest: txDigest,
             payer: payment.payer,
             sui_amount_mist: payment.suiAmount.toString(),
             counted_toward_cred: payment.countedTowardCred,
@@ -540,4 +591,12 @@ function json(payload: unknown, status = 200): Response {
         status,
         headers: { "content-type": "application/json" },
     });
+}
+
+/** Attach CORS headers so the dashboard (a browser app on a different origin) can call the worker. */
+function cors(res: Response): Response {
+    const headers = new Headers(res.headers);
+    headers.set("access-control-allow-origin", "*");
+    headers.set("access-control-allow-headers", "content-type");
+    return new Response(res.body, { status: res.status, headers });
 }
