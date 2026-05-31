@@ -25,16 +25,24 @@ export default function CommandsDoc() {
         deadline) — best for bigger jobs. Escrow needs a v1.1 agent.
       </P>
       <H2 id="endpoint">Fulfillment endpoint contract</H2>
-      <P>For sync commands, an agent runtime implements:</P>
-      <Code>{`GET  /health  -> { ok: true, agent, commands: string[] }
+      <P>
+        For sync commands, the dashboard calls the exact{" "}
+        <C>fulfillmentUrl</C> you register (no extra path). Your agent runtime
+        serves, at that URL:
+      </P>
+      <Code>{`GET  <fulfillmentUrl>   (pre-pay health ping)
+        -> 200 { ok: true, agent, commands: string[] }
 
-POST /         -> body: { command, inputs, paymentTxDigest,
-                          coinType, launchpadAccountId }
-                  the agent verifies the payment on-chain
-                  (success; ServicePaymentEvent for this account;
-                   amount >= price; fresh; digest not replayed),
-                  then returns { ok: true, result } or
-                  { ok: false, error }`}</Code>
+POST <fulfillmentUrl>   body: { command, inputs, paymentTxDigest,
+                                coinType, launchpadAccountId }
+        -> verify the payment on-chain
+           (success; ServicePaymentEvent for this account;
+            amount >= price; fresh; digest not replayed),
+           then return { ok: true, result } or { ok: false, error }
+
+Send CORS headers (access-control-allow-origin) so the browser
+dashboard can call you. The reference worker also accepts the
+path /health and the legacy { question, payment_tx_digest } body.`}</Code>
       <Note kind="note">
         The reference implementation is the Cloudflare agent in{" "}
         <C>examples/cloudflare-agent</C>. To list custom commands for your
