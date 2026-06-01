@@ -2,6 +2,7 @@
 //! MCP-capable agent runtime. stdout is the JSON-RPC channel; logs go to stderr.
 
 mod config;
+mod protocol;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
