@@ -32,6 +32,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # Force JS actions (cache, action-gh-release, etc.) onto Node 24 — Node 20 is
+  # being retired and those actions haven't shipped Node-24 releases yet.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   verify:
