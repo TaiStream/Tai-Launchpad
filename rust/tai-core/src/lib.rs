@@ -28,7 +28,9 @@ pub mod rpc;
 pub mod signer;
 pub mod work_order;
 
-pub use client::{ExecutionResult, MoveCall, RequestType, TaiClient, SUI_CLOCK_OBJECT_ID};
+pub use client::{
+    select_coin, ExecutionResult, MoveCall, RequestType, TaiClient, SUI_CLOCK_OBJECT_ID,
+};
 pub use config::{Network, TaiConfig};
 pub use error::TaiError;
 pub use ids::{ObjectId, SuiAddress};

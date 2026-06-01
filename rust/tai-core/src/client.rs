@@ -1092,6 +1092,12 @@ impl TaiClient {
     ///    `objectChanges` block.
     ///
     /// Returns [`TaiError::Rpc`] if no suitable source coin exists.
+    ///
+    /// Gas note: gas is auto-selected (`gas_object = null`). When splitting
+    /// **SUI**, the chosen coin is consumed for the split, so the wallet needs
+    /// another SUI coin (or a strictly-greater coin) to cover gas — otherwise
+    /// the validator rejects the tx for insufficient gas. Splitting a non-SUI
+    /// coin type is unaffected (gas is paid from a separate SUI coin).
     pub async fn split_off_coin(
         &self,
         coin_type: &str,
@@ -1099,39 +1105,51 @@ impl TaiClient {
     ) -> Result<ObjectId, TaiError> {
         let sender = self.signer.address();
 
-        // 1. Fetch owned coins of coin_type.
-        let coins_resp: Value = self
-            .rpc
-            .call(
-                "suix_getCoins",
-                json!([sender.to_string(), coin_type, null, null]),
-            )
-            .await?;
-
-        // Parse the data array: each entry has `coinObjectId` and `balance` (string).
-        let data = coins_resp
-            .get("data")
-            .and_then(|d| d.as_array())
-            .ok_or_else(|| {
-                TaiError::RpcShape("suix_getCoins response missing 'data' array".into())
-            })?;
-
-        let coins: Vec<(ObjectId, u64)> = data
-            .iter()
-            .filter_map(|entry| {
-                let id_str = entry.get("coinObjectId")?.as_str()?;
-                let bal_str = entry.get("balance")?.as_str()?;
-                let id: ObjectId = id_str.parse().ok()?;
-                let bal: u64 = bal_str.parse().ok()?;
-                Some((id, bal))
-            })
-            .collect();
-
-        let source_id = select_coin(&coins, amount).ok_or_else(|| {
-            TaiError::Rpc(format!(
-                "no {coin_type} coin with balance >= {amount} to split"
-            ))
-        })?;
+        // 1. Fetch owned coins of coin_type, paginating until we find one that
+        //    can cover `amount` (suix_getCoins caps each page at ~50, so a
+        //    fragmented wallet could hide a qualifying coin on a later page).
+        let mut coins: Vec<(ObjectId, u64)> = Vec::new();
+        let mut cursor: Value = Value::Null;
+        let source_id = loop {
+            let coins_resp: Value = self
+                .rpc
+                .call(
+                    "suix_getCoins",
+                    json!([sender.to_string(), coin_type, cursor, null]),
+                )
+                .await?;
+            let data = coins_resp
+                .get("data")
+                .and_then(|d| d.as_array())
+                .ok_or_else(|| {
+                    TaiError::RpcShape("suix_getCoins response missing 'data' array".into())
+                })?;
+            for entry in data {
+                if let (Some(id_str), Some(bal_str)) = (
+                    entry.get("coinObjectId").and_then(|v| v.as_str()),
+                    entry.get("balance").and_then(|v| v.as_str()),
+                ) {
+                    if let (Ok(id), Ok(bal)) =
+                        (id_str.parse::<ObjectId>(), bal_str.parse::<u64>())
+                    {
+                        coins.push((id, bal));
+                    }
+                }
+            }
+            if let Some(id) = select_coin(&coins, amount) {
+                break id;
+            }
+            let has_next = coins_resp
+                .get("hasNextPage")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            if !has_next {
+                return Err(TaiError::Rpc(format!(
+                    "no {coin_type} coin with balance >= {amount} to split"
+                )));
+            }
+            cursor = coins_resp.get("nextCursor").cloned().unwrap_or(Value::Null);
+        };
 
         // 2. Build the split transaction via unsafe_splitCoin.
         //    Parameters: [signer, coin_object_id, [split_amounts], gas_object (null), gas_budget]
