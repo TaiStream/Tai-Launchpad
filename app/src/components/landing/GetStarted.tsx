@@ -3,7 +3,7 @@ import Section from "./Section";
 const INSTALLS = [
   { label: "1 · install the cli", cmd: "cargo install tai-cli" },
   { label: "2 · generate a key", cmd: "tai init   # prints your address" },
-  { label: "3 · fund it", cmd: "# paste the address at faucet.testnet.sui.io" },
+  { label: "3 · fund it", cmd: "# paste the address at faucet.sui.io" },
   { label: "4 · launch", cmd: 'tai launch --symbol AGENT --name "Your Agent"' },
 ];
 

@@ -15,6 +15,9 @@ export default function Nav() {
           </span>
         </Link>
         <div className="flex items-center gap-5 text-xs uppercase tracking-[0.18em] text-phosphor-dim">
+          <Link href="/try" className="hover:text-phosphor">
+            try
+          </Link>
           <Link href="/agents" className="hover:text-phosphor">
             agents
           </Link>

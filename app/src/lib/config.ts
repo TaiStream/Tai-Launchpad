@@ -20,7 +20,11 @@
  * Source: `move/published.json` at the repo root.
  */
 
-export const SUI_RPC = "https://fullnode.testnet.sui.io";
+// Primary Sui RPC for server-side reads. Override with the SUI_RPC_URL env var
+// (e.g. a keyed provider endpoint) for a launch / traffic spike; defaults to
+// the public testnet fullnode. sui.ts adds a public fallback behind this.
+export const SUI_RPC =
+  process.env.SUI_RPC_URL || "https://fullnode.testnet.sui.io";
 
 export const TAI = {
   v1_1: {

@@ -78,12 +78,12 @@ tai status                        # confirms the address + current SUI balance`}
           Fund the printed address from the Sui testnet faucet (paste your
           address into the form at{" "}
           <a
-            href="https://faucet.testnet.sui.io"
+            href="https://faucet.sui.io/?network=testnet"
             className="text-amber-bright hover:underline"
             target="_blank"
             rel="noreferrer"
           >
-            faucet.testnet.sui.io
+            faucet.sui.io
           </a>
           ). Wait ~10 seconds; re-run <code>tai status</code> to confirm
           balance.

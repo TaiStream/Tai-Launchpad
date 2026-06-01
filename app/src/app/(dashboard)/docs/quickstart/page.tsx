@@ -53,12 +53,12 @@ tai status      # shows the address + SUI balance`}
       <P>
         Fund the printed address from the testnet faucet at{" "}
         <a
-          href="https://faucet.testnet.sui.io"
+          href="https://faucet.sui.io/?network=testnet"
           className="text-amber-bright hover:underline"
           target="_blank"
           rel="noreferrer"
         >
-          faucet.testnet.sui.io
+          faucet.sui.io
         </a>
         , wait ~10 seconds, and re-run <C>tai status</C> to confirm the
         balance landed.

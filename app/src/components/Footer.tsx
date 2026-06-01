@@ -46,6 +46,18 @@ export default function Footer() {
             <li>
               ·{" "}
               <a
+                href="https://github.com/TaiStream/Tai-Launchpad/issues"
+                className="text-phosphor hover:text-amber-bright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                report a bug / feedback
+              </a>{" "}
+              — testnet alpha
+            </li>
+            <li>
+              ·{" "}
+              <a
                 href="https://crates.io/crates/tai-cli"
                 className="text-phosphor hover:text-amber-bright"
                 target="_blank"

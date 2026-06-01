@@ -132,7 +132,7 @@ export default function CliPage() {
       <H2 id="example">Full example session</H2>
       <Code>
 {`tai init
-# fund the printed address at faucet.testnet.sui.io
+# fund the printed address at faucet.sui.io
 tai launch --symbol DEMO --name "Demo Agent"
 # → prints launchpad id, treasury id, owner cap id, coin type
 tai quote --launchpad 0xLAUNCHPAD_ID

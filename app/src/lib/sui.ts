@@ -16,21 +16,39 @@ type JsonRpcResponse<T> = {
 
 let nextId = 1;
 
-/** Per-request timeout for Sui RPC calls. Public testnet fullnodes can be
- *  flaky; we'd rather fail fast and let the page re-poll than hang. */
-const RPC_TIMEOUT_MS = 20_000;
+/** Per-attempt timeout for Sui RPC calls. Public testnet fullnodes can be
+ *  flaky; we'd rather fail fast and try the next endpoint than hang. */
+const RPC_TIMEOUT_MS = 15_000;
 
-async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+/** Endpoints tried in order; first success wins. The primary is SUI_RPC
+ *  (env-overridable via SUI_RPC_URL); a public fallback keeps reads up if the
+ *  primary is rate-limited or down during a traffic spike. */
+const RPC_ENDPOINTS: string[] = Array.from(
+  new Set(
+    [SUI_RPC, "https://sui-testnet.public.blastapi.io"].filter(
+      (e): e is string => Boolean(e),
+    ),
+  ),
+);
+
+/** A JSON-RPC method-level error (HTTP 200 with an `error` body). NOT an
+ *  endpoint failure — surface it rather than failing over to another node. */
+class RpcMethodError extends Error {}
+
+async function rpcOnce<T>(
+  endpoint: string,
+  method: string,
+  params: unknown[],
+): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(SUI_RPC, {
+    res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: nextId++, method, params }),
-      // Each request is one round-trip to a public RPC; no point caching at
-      // the framework level. Callers throttle via revalidate / poll cadence.
+      // One round-trip to a public RPC; callers throttle via poll cadence.
       cache: "no-store",
       signal: controller.signal,
     });
@@ -45,11 +63,29 @@ async function rpc<T>(method: string, params: unknown[]): Promise<T> {
   if (!res.ok) throw new Error(`Sui RPC HTTP ${res.status} on ${method}`);
   const body: JsonRpcResponse<T> = await res.json();
   if (body.error) {
-    throw new Error(
+    throw new RpcMethodError(
       `Sui RPC error on ${method}: ${body.error.message} (code ${body.error.code})`,
     );
   }
   return body.result as T;
+}
+
+async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+  let lastErr: unknown;
+  for (const endpoint of RPC_ENDPOINTS) {
+    try {
+      return await rpcOnce<T>(endpoint, method, params);
+    } catch (err) {
+      // A real method-level RPC error is not an endpoint problem — don't fail
+      // over (every node would return the same). Transport/timeout/HTTP errors
+      // fall through to the next endpoint.
+      if (err instanceof RpcMethodError) throw err;
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(`Sui RPC failed on ${method} (all endpoints)`);
 }
 
 // ============================= sui_getObject =============================
