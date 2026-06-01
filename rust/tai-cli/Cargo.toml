@@ -18,7 +18,7 @@ name = "tai"
 path = "src/main.rs"
 
 [dependencies]
-tai-core = { path = "../tai-core", version = "0.1.1" }
+tai-core = { path = "../tai-core", version = "0.1.2" }
 
 clap.workspace = true
 tokio = { workspace = true, features = ["process"] }

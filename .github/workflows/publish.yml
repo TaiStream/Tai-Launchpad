@@ -156,15 +156,56 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
 
+      - name: Wait for crates.io index sync
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          echo "Sleeping 60 s so crates.io's sparse index sees the new tai-cli version..."
+          sleep 60
+
+  publish-tai-mcp:
+    name: Publish tai-mcp
+    needs: [verify, publish-tai-core, publish-tai-cli]
+    # publish-tai-mcp runs when tai-cli succeeded (or was skipped for dry-run).
+    if: |
+      always() &&
+      needs.verify.result == 'success' &&
+      (needs.publish-tai-core.result == 'success' || needs.publish-tai-core.result == 'skipped') &&
+      (needs.publish-tai-cli.result == 'success' || needs.publish-tai-cli.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Publish tai-mcp (dry-run)
+        if: ${{ inputs.dry_run == true }}
+        working-directory: rust/tai-mcp
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --dry-run
+
+      - name: Publish tai-mcp
+        if: ${{ inputs.dry_run != true }}
+        working-directory: rust/tai-mcp
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
+
   github-release:
     name: Create GitHub Release
-    needs: [verify, publish-tai-cli]
+    needs: [verify, publish-tai-cli, publish-tai-mcp]
     # Only fire on tag-triggered real publishes — dispatch runs never
     # create a Release (you can do that by hand in the GitHub UI).
     if: |
       github.event_name == 'push' &&
       inputs.dry_run != true &&
-      needs.publish-tai-cli.result == 'success'
+      needs.publish-tai-mcp.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -175,9 +216,10 @@ jobs:
         with:
           name: Tai ${{ github.ref_name }}
           body: |
-            `tai-core` and `tai-cli` ${{ needs.verify.outputs.version }} published to crates.io.
+            `tai-core`, `tai-cli`, and `tai-mcp` ${{ needs.verify.outputs.version }} published to crates.io.
 
             Install: `cargo install tai-cli`
+            MCP server: `cargo install tai-mcp`
 
             See [DEVLOG.md](https://github.com/TaiStream/Tai-Launchpad/blob/main/DEVLOG.md) for what's in this release.
           generate_release_notes: true

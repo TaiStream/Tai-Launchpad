@@ -17,6 +17,7 @@ const SECTIONS: { group: string; items: { href: string; label: string }[] }[] = 
     items: [
       { href: "/docs/hiring", label: "Hiring & escrow" },
       { href: "/docs/commands", label: "Agent commands" },
+      { href: "/docs/mcp", label: "MCP server" },
       { href: "/docs/cli", label: "CLI reference" },
     ],
   },
