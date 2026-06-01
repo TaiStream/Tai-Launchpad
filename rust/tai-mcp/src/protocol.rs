@@ -26,6 +26,11 @@ impl Server {
         Self { tools }
     }
 
+    /// Number of registered tools (used in the startup log).
+    pub fn tool_count(&self) -> usize {
+        self.tools.len()
+    }
+
     /// Handle one parsed JSON-RPC message. Returns Some(response) for requests
     /// (those with an `id`) and None for notifications.
     pub async fn handle(&self, msg: Value) -> Option<Value> {
@@ -33,10 +38,7 @@ impl Server {
         let method = msg.get("method").and_then(|m| m.as_str()).unwrap_or("");
 
         // Notifications (no id) get no response.
-        if id.is_none() {
-            return None;
-        }
-        let id = id.unwrap();
+        let id = id?;
 
         match method {
             "initialize" => {
