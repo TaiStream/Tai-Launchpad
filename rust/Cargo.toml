@@ -1,5 +1,5 @@
 [workspace]
-members = ["tai-core", "tai-cli"]
+members = ["tai-core", "tai-cli", "tai-mcp"]
 resolver = "2"
 
 [workspace.package]

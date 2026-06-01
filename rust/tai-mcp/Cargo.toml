@@ -1,0 +1,21 @@
+[package]
+name = "tai-mcp"
+description = "MCP server for Tai — gives any MCP-capable agent runtime tools to read and transact on the Tai launchpad (Sui)."
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version = "1.75"
+repository = "https://github.com/TaiStream/Tai-Launchpad"
+
+[[bin]]
+name = "tai-mcp"
+path = "src/main.rs"
+
+[dependencies]
+tai-core = { path = "../tai-core", version = "0.1.1" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+dirs = "5"
+toml = "0.8"
