@@ -342,6 +342,29 @@ impl TaiClient {
     }
 }
 
+/// Select a source coin for splitting.
+///
+/// Given a list of `(object_id, balance)` pairs, returns the `ObjectId` of a
+/// coin whose balance is `>= amount`. Prefers a coin with balance **strictly
+/// greater** than `amount` (so there is change left to pay gas); falls back to
+/// any coin with `balance == amount` if none strictly larger exists. Returns
+/// `None` if no coin has a sufficient balance.
+pub fn select_coin(coins: &[(ObjectId, u64)], amount: u64) -> Option<ObjectId> {
+    // First pass: prefer balance strictly greater than amount.
+    let preferred = coins
+        .iter()
+        .find(|(_, bal)| *bal > amount)
+        .map(|(id, _)| *id);
+    if preferred.is_some() {
+        return preferred;
+    }
+    // Second pass: accept exact match.
+    coins
+        .iter()
+        .find(|(_, bal)| *bal == amount)
+        .map(|(id, _)| *id)
+}
+
 #[derive(Deserialize)]
 struct BuiltTransaction {
     #[serde(rename = "txBytes")]
@@ -1048,6 +1071,118 @@ impl TaiClient {
         self.execute_move_call(call, RequestType::WaitForLocalExecution)
             .await
     }
+
+    // ========================================================================
+    //  Coin utilities
+    // ========================================================================
+
+    /// Split a fresh coin of `amount` base units of `coin_type` off one of the
+    /// signer's owned coins, and return the new coin's object id. `coin_type`
+    /// is the full Move type string (e.g. `"0x2::sui::SUI"` for SUI, or an
+    /// agent coin type such as `"0xabc::larry::LARRY"`).
+    ///
+    /// # Workflow
+    /// 1. Fetches the signer's coins of `coin_type` via `suix_getCoins`.
+    /// 2. Picks a source coin with `balance >= amount` (prefers balance
+    ///    strictly greater so another coin can cover gas; ties broken by
+    ///    first-found).
+    /// 3. Builds the split transaction via `unsafe_splitCoin`, signs, and
+    ///    executes it.
+    /// 4. Extracts and returns the newly-created coin's object id from the
+    ///    `objectChanges` block.
+    ///
+    /// Returns [`TaiError::Rpc`] if no suitable source coin exists.
+    pub async fn split_off_coin(
+        &self,
+        coin_type: &str,
+        amount: u64,
+    ) -> Result<ObjectId, TaiError> {
+        let sender = self.signer.address();
+
+        // 1. Fetch owned coins of coin_type.
+        let coins_resp: Value = self
+            .rpc
+            .call(
+                "suix_getCoins",
+                json!([sender.to_string(), coin_type, null, null]),
+            )
+            .await?;
+
+        // Parse the data array: each entry has `coinObjectId` and `balance` (string).
+        let data = coins_resp
+            .get("data")
+            .and_then(|d| d.as_array())
+            .ok_or_else(|| {
+                TaiError::RpcShape("suix_getCoins response missing 'data' array".into())
+            })?;
+
+        let coins: Vec<(ObjectId, u64)> = data
+            .iter()
+            .filter_map(|entry| {
+                let id_str = entry.get("coinObjectId")?.as_str()?;
+                let bal_str = entry.get("balance")?.as_str()?;
+                let id: ObjectId = id_str.parse().ok()?;
+                let bal: u64 = bal_str.parse().ok()?;
+                Some((id, bal))
+            })
+            .collect();
+
+        let source_id = select_coin(&coins, amount).ok_or_else(|| {
+            TaiError::Rpc(format!(
+                "no {coin_type} coin with balance >= {amount} to split"
+            ))
+        })?;
+
+        // 2. Build the split transaction via unsafe_splitCoin.
+        //    Parameters: [signer, coin_object_id, [split_amounts], gas_object (null), gas_budget]
+        let build_params = json!([
+            sender.to_string(),
+            source_id.to_string(),
+            [amount.to_string()],
+            null,
+            DEFAULT_GAS_BUDGET_MIST.to_string(),
+        ]);
+        let built: BuiltTransaction = self.rpc.call("unsafe_splitCoin", build_params).await?;
+
+        // 3. Sign.
+        let tx_bytes = Base64::decode_vec(&built.tx_bytes)
+            .map_err(|e| TaiError::Rpc(format!("decode txBytes base64: {e}")))?;
+        let digest = transaction_digest(&tx_bytes);
+        let signature = self.signer.sign(&digest).await?;
+        let sig_b64 = signature.to_base64();
+
+        // 4. Execute.
+        let exec_params = json!([
+            built.tx_bytes,
+            [sig_b64],
+            {
+                "showEffects": true,
+                "showEvents": true,
+                "showObjectChanges": true,
+                "showBalanceChanges": true
+            },
+            RequestType::WaitForLocalExecution.as_str(),
+        ]);
+        let result: ExecutionResult = self
+            .rpc
+            .call("sui_executeTransactionBlock", exec_params)
+            .await?;
+        result.check_success()?;
+
+        // 5. Find the new coin's object id from objectChanges.
+        //    Look for a "created" entry whose objectType contains coin_type
+        //    wrapped inside `0x2::coin::Coin<…>`.
+        let created = result.created_of_type(coin_type);
+        let new_id_str = created.into_iter().next().ok_or_else(|| {
+            TaiError::RpcShape(format!(
+                "split_off_coin: no created Coin<{coin_type}> in objectChanges"
+            ))
+        })?;
+        let new_id: ObjectId = new_id_str
+            .parse()
+            .map_err(|e| TaiError::RpcShape(format!("split_off_coin: bad objectId: {e}")))?;
+        Ok(new_id)
+    }
 }
 
 // ============================================================================
@@ -1220,5 +1355,49 @@ mod tests {
         assert_eq!(call.type_arguments, vec!["0xabc::larry::LARRY"]);
         // arg 4 (zero-indexed) is the allowlist vector
         assert!(call.arguments[4].is_array());
+    }
+
+    // -----------------------------------------------------------------------
+    //  select_coin unit tests
+    // -----------------------------------------------------------------------
+
+    fn oid(n: u8) -> ObjectId {
+        let mut b = [0u8; 32];
+        b[31] = n;
+        ObjectId::from_bytes(b)
+    }
+
+    #[test]
+    fn select_coin_empty_list_returns_none() {
+        assert!(select_coin(&[], 1_000).is_none());
+    }
+
+    #[test]
+    fn select_coin_all_below_amount_returns_none() {
+        let coins = vec![(oid(1), 100u64), (oid(2), 50u64)];
+        assert!(select_coin(&coins, 200).is_none());
+    }
+
+    #[test]
+    fn select_coin_exact_match_returned_when_no_greater_exists() {
+        let coins = vec![(oid(1), 100u64), (oid(2), 50u64)];
+        let result = select_coin(&coins, 100);
+        assert_eq!(result, Some(oid(1)));
+    }
+
+    #[test]
+    fn select_coin_prefers_strictly_greater_over_exact() {
+        // oid(1) is exact; oid(2) has strictly more — should pick oid(2).
+        let coins = vec![(oid(1), 1_000u64), (oid(2), 2_000u64)];
+        let result = select_coin(&coins, 1_000);
+        assert_eq!(result, Some(oid(2)));
+    }
+
+    #[test]
+    fn select_coin_returns_first_strictly_greater() {
+        // Both oid(1) and oid(2) have balance > amount; pick oid(1) (first).
+        let coins = vec![(oid(1), 5_000u64), (oid(2), 6_000u64)];
+        let result = select_coin(&coins, 1_000);
+        assert_eq!(result, Some(oid(1)));
     }
 }
