@@ -61,6 +61,18 @@ fn sui_link(digest: &str) -> String {
     format!("https://suiscan.xyz/testnet/tx/{digest}")
 }
 
+/// Optional slippage-floor arg: absent → 0; present but not a non-negative
+/// integer → error (don't silently drop slippage protection).
+fn opt_u64(args: &Value, key: &str) -> Result<u64, String> {
+    match args.get(key).and_then(|v| v.as_str()) {
+        None => Ok(0),
+        Some(s) => s
+            .trim()
+            .parse::<u64>()
+            .map_err(|_| format!("`{key}` must be a non-negative integer, got {s:?}")),
+    }
+}
+
 macro_rules! tool {
     ($ty:ident, $name:literal, $desc:literal, $schema:expr, $ctx:ident, $args:ident, $body:block) => {
         struct $ty {
@@ -107,11 +119,7 @@ then calls buy<T>(). Two transactions; returns the final digest.",
         let agent       = id_arg(&args, "agent")?;
         let coin_type   = str_arg(&args, "coin_type")?;
         let sui_in_mist = sui_to_mist(&str_arg(&args, "sui_in")?)?;
-        let min_out: u64 = args
-            .get("min_tokens_out")
-            .and_then(|v| v.as_str())
-            .map(|s| s.parse().unwrap_or(0))
-            .unwrap_or(0);
+        let min_out: u64 = opt_u64(&args, "min_tokens_out")?;
 
         let payment_coin = client
             .split_off_coin(SUI_TYPE, sui_in_mist)
@@ -146,11 +154,7 @@ tool!(Sell, "tai_sell",
         let agent        = id_arg(&args, "agent")?;
         let coin_type    = str_arg(&args, "coin_type")?;
         let amount_mist  = sui_to_mist(&str_arg(&args, "amount")?)?;   // tokens share 9-dec
-        let min_sui: u64 = args
-            .get("min_sui_out")
-            .and_then(|v| v.as_str())
-            .map(|s| s.parse().unwrap_or(0))
-            .unwrap_or(0);
+        let min_sui: u64 = opt_u64(&args, "min_sui_out")?;
 
         let tokens_coin = client
             .split_off_coin(&coin_type, amount_mist)
@@ -230,6 +234,11 @@ check objectChanges for the new WorkOrder object id.",
             .get("deadline_hours")
             .and_then(|v| v.as_f64())
             .unwrap_or(24.0);
+        if !(deadline_hours.is_finite() && deadline_hours > 0.0) {
+            return Err(format!(
+                "deadline_hours must be a positive number, got {deadline_hours}"
+            ));
+        }
         let dispute_window_hours: f64 = args
             .get("dispute_window_hours")
             .and_then(|v| v.as_f64())
