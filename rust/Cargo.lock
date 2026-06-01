@@ -1380,6 +1380,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tai-mcp"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dirs",
+ "serde",
+ "serde_json",
+ "tai-core",
+ "tokio",
+ "toml",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
