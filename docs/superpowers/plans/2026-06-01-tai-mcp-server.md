@@ -14,6 +14,35 @@
 
 ---
 
+## REVISION (2026-06-01, during execution)
+
+`tai-core`/`tai-cli` have **no coin-splitting** — `buy`/`sell`/`pay`/`hire`/
+`top_up` consume a whole `payment_coin` object passed by id. The user chose
+**amount + auto-split (best UX)**, so transact tools take a plain amount and
+split a coin of that size under the hood. Changes:
+
+- **NEW Task 4b — `tai-core` auto-split helper.** Add
+  `TaiClient::split_off_coin(coin_type, amount) -> ObjectId`: `suix_getCoins(owner,
+  coin_type)`, pick a coin with balance ≥ amount (+ gas headroom for SUI), build
+  `unsafe_splitCoin(sender, coin_id, [amount], null, gas_budget)`, sign +
+  `sui_executeTransactionBlock` (mirror `execute_move_call`'s build→sign→execute),
+  parse the created coin id from `objectChanges`, return it. Coin-selection logic
+  unit-tested; the live split is an `#[ignore]`d test. SUI type = `0x2::sui::SUI`.
+- **Task 5 tools become amount-based.** `tai_buy`/`tai_pay`/`tai_hire`/
+  `tai_treasury_topup` split SUI; `tai_sell` splits the agent coin type; each then
+  calls the existing `TaiClient` method with the split coin id.
+  `tai_treasury_withdraw` already takes `amount` + `to` (on-chain split) — no
+  pre-split. Two txs per spend (split, then call): non-atomic but fine on testnet;
+  the tool returns the final call's digest.
+- **`tai_launch` is DEFERRED out of Phase 1** — it needs the OTW publish +
+  templater flow (tai-cli `launch.rs`), not a thin `launch_agent_coin` wrapper.
+  Its own later task.
+
+Where Tasks 4/5 show amount→method, follow this revision; skip `tai_launch`.
+Protocol/config/read tasks are unchanged.
+
+---
+
 ## File Structure
 
 - `rust/Cargo.toml` — **modify** — add `tai-mcp` to `[workspace] members`.
