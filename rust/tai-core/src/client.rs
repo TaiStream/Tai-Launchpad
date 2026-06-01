@@ -1098,11 +1098,7 @@ impl TaiClient {
     /// another SUI coin (or a strictly-greater coin) to cover gas — otherwise
     /// the validator rejects the tx for insufficient gas. Splitting a non-SUI
     /// coin type is unaffected (gas is paid from a separate SUI coin).
-    pub async fn split_off_coin(
-        &self,
-        coin_type: &str,
-        amount: u64,
-    ) -> Result<ObjectId, TaiError> {
+    pub async fn split_off_coin(&self, coin_type: &str, amount: u64) -> Result<ObjectId, TaiError> {
         let sender = self.signer.address();
 
         // 1. Fetch owned coins of coin_type, paginating until we find one that
@@ -1129,8 +1125,7 @@ impl TaiClient {
                     entry.get("coinObjectId").and_then(|v| v.as_str()),
                     entry.get("balance").and_then(|v| v.as_str()),
                 ) {
-                    if let (Ok(id), Ok(bal)) =
-                        (id_str.parse::<ObjectId>(), bal_str.parse::<u64>())
+                    if let (Ok(id), Ok(bal)) = (id_str.parse::<ObjectId>(), bal_str.parse::<u64>())
                     {
                         coins.push((id, bal));
                     }

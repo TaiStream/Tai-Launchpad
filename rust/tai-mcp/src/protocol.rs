@@ -142,17 +142,27 @@ mod tests {
     struct EchoTool;
     #[async_trait::async_trait]
     impl Tool for EchoTool {
-        fn name(&self) -> &str { "echo" }
-        fn description(&self) -> &str { "echoes the `msg` arg" }
+        fn name(&self) -> &str {
+            "echo"
+        }
+        fn description(&self) -> &str {
+            "echoes the `msg` arg"
+        }
         fn input_schema(&self) -> serde_json::Value {
             json!({"type":"object","properties":{"msg":{"type":"string"}},"required":["msg"]})
         }
         async fn call(&self, args: serde_json::Value) -> Result<String, String> {
-            Ok(args.get("msg").and_then(|v| v.as_str()).unwrap_or("").to_string())
+            Ok(args
+                .get("msg")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string())
         }
     }
 
-    fn server() -> Server { Server::new(vec![Box::new(EchoTool)]) }
+    fn server() -> Server {
+        Server::new(vec![Box::new(EchoTool)])
+    }
 
     #[tokio::test]
     async fn initialize_echoes_protocol_version_and_advertises_tools() {

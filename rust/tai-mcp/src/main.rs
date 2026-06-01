@@ -14,7 +14,10 @@ async fn main() -> anyhow::Result<()> {
     // Optional signer: read tools always work; transact tools need a key.
     let (client, address) = match config::load_config_opt() {
         Ok(Some(cli)) => {
-            match (config::tai_config_for(&cli), config::load_signer(&cli).await) {
+            match (
+                config::tai_config_for(&cli),
+                config::load_signer(&cli).await,
+            ) {
                 (Ok(tai_cfg), Ok(signer)) => {
                     let addr = signer.address().to_string();
                     (Some(Arc::new(TaiClient::new(tai_cfg, signer))), Some(addr))
@@ -30,9 +33,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         Ok(None) => {
-            eprintln!(
-                "tai-mcp: no ~/.tai/config.toml; read-only tools only (run `tai init`)"
-            );
+            eprintln!("tai-mcp: no ~/.tai/config.toml; read-only tools only (run `tai init`)");
             (None, None)
         }
         Err(e) => {
@@ -41,7 +42,12 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
-    let ctx = tools::Ctx { rpc, rpc_url, client, address };
+    let ctx = tools::Ctx {
+        rpc,
+        rpc_url,
+        client,
+        address,
+    };
     let server = protocol::Server::new(tools::all(ctx));
     eprintln!("tai-mcp ready ({} tools)", server.tool_count());
     server.run_stdio().await

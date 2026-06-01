@@ -13,7 +13,8 @@ pub fn parse_agent_id(args: &Value) -> Result<String, String> {
         .trim()
         .to_string();
     let ok = s.starts_with("0x")
-        || s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+        || s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     if s.is_empty() || !ok {
         return Err(format!("invalid `agent`: {s:?}"));
     }
@@ -29,7 +30,8 @@ fn resolve_object_id(s: &str) -> Result<ObjectId, String> {
     } else {
         return Err(format!("unknown agent slug: {s}"));
     };
-    id.parse::<ObjectId>().map_err(|e| format!("bad object id: {e}"))
+    id.parse::<ObjectId>()
+        .map_err(|e| format!("bad object id: {e}"))
 }
 
 struct Status {
@@ -37,7 +39,9 @@ struct Status {
 }
 #[async_trait::async_trait]
 impl Tool for Status {
-    fn name(&self) -> &str { "tai_status" }
+    fn name(&self) -> &str {
+        "tai_status"
+    }
     fn description(&self) -> &str {
         "Show Tai network, the configured signer address (if any), and the canonical package/config ids."
     }
@@ -62,7 +66,9 @@ struct AgentShow {
 }
 #[async_trait::async_trait]
 impl Tool for AgentShow {
-    fn name(&self) -> &str { "tai_agent_show" }
+    fn name(&self) -> &str {
+        "tai_agent_show"
+    }
     fn description(&self) -> &str {
         "Read a Tai agent's LaunchpadAccount by object id or known slug: NAV, hire price, cred, balances."
     }
@@ -96,8 +102,12 @@ struct Quote {
 }
 #[async_trait::async_trait]
 impl Tool for Quote {
-    fn name(&self) -> &str { "tai_quote" }
-    fn description(&self) -> &str { "Cred-adjusted hire price (in SUI MIST) for an agent." }
+    fn name(&self) -> &str {
+        "tai_quote"
+    }
+    fn description(&self) -> &str {
+        "Cred-adjusted hire price (in SUI MIST) for an agent."
+    }
     fn input_schema(&self) -> Value {
         json!({ "type": "object",
             "properties": { "agent": { "type": "string" } }, "required": ["agent"] })
@@ -121,17 +131,26 @@ struct WorkOrderShow {
 }
 #[async_trait::async_trait]
 impl Tool for WorkOrderShow {
-    fn name(&self) -> &str { "tai_work_order_show" }
-    fn description(&self) -> &str { "Read a WorkOrder<T> by object id." }
+    fn name(&self) -> &str {
+        "tai_work_order_show"
+    }
+    fn description(&self) -> &str {
+        "Read a WorkOrder<T> by object id."
+    }
     fn input_schema(&self) -> Value {
         json!({ "type": "object",
             "properties": { "id": { "type": "string" } }, "required": ["id"] })
     }
     async fn call(&self, args: Value) -> Result<String, String> {
-        let id = args.get("id").and_then(|v| v.as_str())
+        let id = args
+            .get("id")
+            .and_then(|v| v.as_str())
             .ok_or_else(|| "missing `id`".to_string())?
-            .parse::<ObjectId>().map_err(|e| format!("bad id: {e}"))?;
-        let wo = WorkOrderView::fetch(&self.ctx.rpc, id).await.map_err(|e| e.to_string())?;
+            .parse::<ObjectId>()
+            .map_err(|e| format!("bad id: {e}"))?;
+        let wo = WorkOrderView::fetch(&self.ctx.rpc, id)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(json!({
             "object_id": wo.object_id.to_string(),
             "status": wo.status.label(),
@@ -163,7 +182,10 @@ mod tests {
         // non-hex, non-slug-ish junk with spaces
         assert!(parse_agent_id(&json!({ "agent": "not a real id" })).is_err());
         // a known slug passes through
-        assert_eq!(parse_agent_id(&json!({ "agent": "larry" })).unwrap(), "larry");
+        assert_eq!(
+            parse_agent_id(&json!({ "agent": "larry" })).unwrap(),
+            "larry"
+        );
         // a 0x id passes through
         let id = "0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e";
         assert_eq!(parse_agent_id(&json!({ "agent": id })).unwrap(), id);

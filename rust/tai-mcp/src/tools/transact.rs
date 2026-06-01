@@ -101,7 +101,9 @@ macro_rules! tool {
 //  tai_buy
 // ============================================================================
 
-tool!(Buy, "tai_buy",
+tool!(
+    Buy,
+    "tai_buy",
     "Buy an agent's coin from its bonding curve. Splits a SUI coin of `sui_in`, \
 then calls buy<T>(). Two transactions; returns the final digest.",
     json!({
@@ -114,10 +116,12 @@ then calls buy<T>(). Two transactions; returns the final digest.",
         },
         "required": ["agent", "coin_type", "sui_in"]
     }),
-    ctx, args, {
+    ctx,
+    args,
+    {
         let client = ctx.require_client()?;
-        let agent       = id_arg(&args, "agent")?;
-        let coin_type   = str_arg(&args, "coin_type")?;
+        let agent = id_arg(&args, "agent")?;
+        let coin_type = str_arg(&args, "coin_type")?;
         let sui_in_mist = sui_to_mist(&str_arg(&args, "sui_in")?)?;
         let min_out: u64 = opt_u64(&args, "min_tokens_out")?;
 
@@ -130,13 +134,16 @@ then calls buy<T>(). Two transactions; returns the final digest.",
             .await
             .map_err(|e| e.to_string())?;
         Ok(json!({"digest": r.digest, "suiscan": sui_link(&r.digest)}).to_string())
-    });
+    }
+);
 
 // ============================================================================
 //  tai_sell
 // ============================================================================
 
-tool!(Sell, "tai_sell",
+tool!(
+    Sell,
+    "tai_sell",
     "Sell an agent's tokens back to the bonding curve. Splits a token coin of \
 `amount`, then calls sell<T>(). Two transactions; returns the final digest.",
     json!({
@@ -149,11 +156,13 @@ tool!(Sell, "tai_sell",
         },
         "required": ["agent", "coin_type", "amount"]
     }),
-    ctx, args, {
+    ctx,
+    args,
+    {
         let client = ctx.require_client()?;
-        let agent        = id_arg(&args, "agent")?;
-        let coin_type    = str_arg(&args, "coin_type")?;
-        let amount_mist  = sui_to_mist(&str_arg(&args, "amount")?)?;   // tokens share 9-dec
+        let agent = id_arg(&args, "agent")?;
+        let coin_type = str_arg(&args, "coin_type")?;
+        let amount_mist = sui_to_mist(&str_arg(&args, "amount")?)?; // tokens share 9-dec
         let min_sui: u64 = opt_u64(&args, "min_sui_out")?;
 
         let tokens_coin = client
@@ -165,13 +174,16 @@ tool!(Sell, "tai_sell",
             .await
             .map_err(|e| e.to_string())?;
         Ok(json!({"digest": r.digest, "suiscan": sui_link(&r.digest)}).to_string())
-    });
+    }
+);
 
 // ============================================================================
 //  tai_pay
 // ============================================================================
 
-tool!(Pay, "tai_pay",
+tool!(
+    Pay,
+    "tai_pay",
     "Pay an agent directly for a service (grows its NAV + cred). Splits a SUI \
 coin of `sui`, then calls record_service_payment_sui<T>().",
     json!({
@@ -183,11 +195,13 @@ coin of `sui`, then calls record_service_payment_sui<T>().",
         },
         "required": ["agent", "coin_type", "sui"]
     }),
-    ctx, args, {
+    ctx,
+    args,
+    {
         let client = ctx.require_client()?;
-        let agent     = id_arg(&args, "agent")?;
+        let agent = id_arg(&args, "agent")?;
         let coin_type = str_arg(&args, "coin_type")?;
-        let amount    = sui_to_mist(&str_arg(&args, "sui")?)?;
+        let amount = sui_to_mist(&str_arg(&args, "sui")?)?;
 
         let payment_coin = client
             .split_off_coin(SUI_TYPE, amount)
@@ -198,13 +212,16 @@ coin of `sui`, then calls record_service_payment_sui<T>().",
             .await
             .map_err(|e| e.to_string())?;
         Ok(json!({"digest": r.digest, "suiscan": sui_link(&r.digest)}).to_string())
-    });
+    }
+);
 
 // ============================================================================
 //  tai_hire
 // ============================================================================
 
-tool!(Hire, "tai_hire",
+tool!(
+    Hire,
+    "tai_hire",
     "Create a WorkOrder<T>: lock SUI for a specific agent task. Splits a SUI \
 coin of `sui`, then calls work_order_create<T>(). Returns the final tx digest; \
 check objectChanges for the new WorkOrder object id.",
@@ -220,12 +237,14 @@ check objectChanges for the new WorkOrder object id.",
         },
         "required": ["agent", "coin_type", "sui"]
     }),
-    ctx, args, {
+    ctx,
+    args,
+    {
         let client = ctx.require_client()?;
-        let agent     = id_arg(&args, "agent")?;
+        let agent = id_arg(&args, "agent")?;
         let coin_type = str_arg(&args, "coin_type")?;
-        let amount    = sui_to_mist(&str_arg(&args, "sui")?)?;
-        let spec_url  = args
+        let amount = sui_to_mist(&str_arg(&args, "sui")?)?;
+        let spec_url = args
             .get("spec_url")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -275,13 +294,16 @@ minimum dispute window is 5 minutes (300_000 ms), got {dispute_window_ms} ms"
             .await
             .map_err(|e| e.to_string())?;
         Ok(json!({"digest": r.digest, "suiscan": sui_link(&r.digest)}).to_string())
-    });
+    }
+);
 
 // ============================================================================
 //  tai_treasury_topup
 // ============================================================================
 
-tool!(TreasuryTopup, "tai_treasury_topup",
+tool!(
+    TreasuryTopup,
+    "tai_treasury_topup",
     "Top up an AgentTreasury<T> with SUI (permissionless). Splits a SUI coin \
 of `sui`, then calls top_up_sui<T>().",
     json!({
@@ -293,11 +315,13 @@ of `sui`, then calls top_up_sui<T>().",
         },
         "required": ["treasury", "coin_type", "sui"]
     }),
-    ctx, args, {
+    ctx,
+    args,
+    {
         let client = ctx.require_client()?;
-        let treasury  = id_arg(&args, "treasury")?;
+        let treasury = id_arg(&args, "treasury")?;
         let coin_type = str_arg(&args, "coin_type")?;
-        let amount    = sui_to_mist(&str_arg(&args, "sui")?)?;
+        let amount = sui_to_mist(&str_arg(&args, "sui")?)?;
 
         let payment_coin = client
             .split_off_coin(SUI_TYPE, amount)
@@ -308,13 +332,16 @@ of `sui`, then calls top_up_sui<T>().",
             .await
             .map_err(|e| e.to_string())?;
         Ok(json!({"digest": r.digest, "suiscan": sui_link(&r.digest)}).to_string())
-    });
+    }
+);
 
 // ============================================================================
 //  tai_treasury_withdraw
 // ============================================================================
 
-tool!(TreasuryWithdraw, "tai_treasury_withdraw",
+tool!(
+    TreasuryWithdraw,
+    "tai_treasury_withdraw",
     "Withdraw SUI from an AgentTreasury<T> (OwnerCap required). The on-chain \
 Move function handles the split internally — no pre-split needed.",
     json!({
@@ -328,12 +355,14 @@ Move function handles the split internally — no pre-split needed.",
         },
         "required": ["treasury", "coin_type", "owner_cap", "sui", "to"]
     }),
-    ctx, args, {
-        let client    = ctx.require_client()?;
-        let treasury  = id_arg(&args, "treasury")?;
+    ctx,
+    args,
+    {
+        let client = ctx.require_client()?;
+        let treasury = id_arg(&args, "treasury")?;
         let coin_type = str_arg(&args, "coin_type")?;
         let owner_cap = id_arg(&args, "owner_cap")?;
-        let amount    = sui_to_mist(&str_arg(&args, "sui")?)?;
+        let amount = sui_to_mist(&str_arg(&args, "sui")?)?;
         let to_addr: SuiAddress = str_arg(&args, "to")?
             .parse()
             .map_err(|e| format!("bad `to` address: {e}"))?;
@@ -344,7 +373,8 @@ Move function handles the split internally — no pre-split needed.",
             .await
             .map_err(|e| e.to_string())?;
         Ok(json!({"digest": r.digest, "suiscan": sui_link(&r.digest)}).to_string())
-    });
+    }
+);
 
 // ============================================================================
 //  Register
@@ -380,9 +410,7 @@ mod tests {
     #[tokio::test]
     async fn buy_without_signer_errors_clearly() {
         let ctx = Ctx {
-            rpc: std::sync::Arc::new(tai_core::RpcClient::new(
-                "https://fullnode.testnet.sui.io",
-            )),
+            rpc: std::sync::Arc::new(tai_core::RpcClient::new("https://fullnode.testnet.sui.io")),
             rpc_url: "https://fullnode.testnet.sui.io".to_string(),
             client: None,
             address: None,

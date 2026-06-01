@@ -36,8 +36,8 @@ pub fn load_config_opt() -> Result<Option<CliConfig>> {
     if !path.exists() {
         return Ok(None);
     }
-    let raw = std::fs::read_to_string(&path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let raw =
+        std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     Ok(Some(parse_config(&raw)?))
 }
 
@@ -94,7 +94,10 @@ key_path = "/tmp/tai-key"
     fn rejects_non_testnet_network_for_tai_config() {
         let cfg = CliConfig {
             network: "mainnet".into(),
-            signer: SignerConfig { mode: "ed25519".into(), key_path: "/tmp/k".into() },
+            signer: SignerConfig {
+                mode: "ed25519".into(),
+                key_path: "/tmp/k".into(),
+            },
         };
         assert!(tai_config_for(&cfg).is_err());
     }
