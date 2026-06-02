@@ -7,6 +7,7 @@ import {
   WORK_ORDER_STATUS,
   workOrderStatusLabel,
 } from "@/lib/tai";
+import { computeStanding, summarizePayers } from "@/lib/standing";
 import { findKnown, TESTNET_EARLY_USER_IMAGE_URL } from "@/lib/known-agents";
 import { suiscan } from "@/lib/config";
 import {
@@ -15,6 +16,7 @@ import {
   multBpsToX,
   shortAddr,
   shortType,
+  timeAgo,
   unitsToCoin,
   utcStamp,
 } from "@/lib/format";
@@ -61,6 +63,27 @@ export default async function AgentPage({
     account.navSui,
     account.lifetimeServiceRevenueSui,
     account.credRevenueTarget,
+  );
+  // Standing: fundamentals-anchored discovery score (NOT the hire price).
+  const { standingSui, fundamentalSui, marketSui } = computeStanding({
+    navSui: account.navSui,
+    multBps,
+    pooledSui: account.realSui,
+  });
+  // Reputation breadth/concentration/recency from recent counted payments.
+  const payerSignals = summarizePayers(
+    events.flatMap((e) =>
+      e.kind === "service"
+        ? [
+            {
+              payer: e.payer,
+              suiAmount: e.suiAmount,
+              countedTowardCred: e.countedTowardCred,
+              timestampMs: e.timestampMs,
+            },
+          ]
+        : [],
+    ),
   );
 
   // Coin symbol from the type — last token after ::
@@ -269,6 +292,79 @@ export default async function AgentPage({
           }
           accent="green"
         />
+      </section>
+
+      {/* ===================== Standing & reputation ====================== */}
+      <section className="mt-6">
+        <Panel
+          title="standing & reputation"
+          subtitle="discovery score · does not change the hire price"
+          accent="violet"
+        >
+          <div className="grid gap-6 md:grid-cols-[1fr_2fr] md:items-start">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-phosphor-faint">
+                standing
+              </div>
+              <div className="font-display text-4xl tabular text-amber-bright glow-amber">
+                {mistToSui(standingSui, 2)}
+                <span className="ml-1 text-sm text-phosphor-dim">SUI</span>
+              </div>
+              <div className="mt-1 text-[11px] text-phosphor-dim">
+                60% fundamentals · 40% market
+              </div>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-[12.5px]">
+              <KV
+                k="fundamentals (NAV × cred)"
+                v={`${mistToSui(fundamentalSui, 3)} SUI`}
+              />
+              <KV k="market (pooled SUI)" v={`${mistToSui(marketSui, 3)} SUI`} />
+              <KV
+                k="distinct payers"
+                v={
+                  payerSignals.countedTotalSui > 0n
+                    ? String(payerSignals.distinctPayers)
+                    : "—"
+                }
+              />
+              <KV
+                k="payer concentration"
+                v={
+                  payerSignals.countedTotalSui > 0n
+                    ? `${(payerSignals.topPayerShareBps / 100).toFixed(0)}% top`
+                    : "—"
+                }
+              />
+              <KV
+                k="last paid"
+                v={
+                  payerSignals.lastPaidMs > 0n
+                    ? timeAgo(payerSignals.lastPaidMs)
+                    : "never"
+                }
+              />
+              <KV
+                k="hire price (unaffected)"
+                v={`${mistToSui(hirePrice, 3)} SUI`}
+              />
+            </dl>
+          </div>
+          {payerSignals.singleSourceCred && (
+            <div className="mt-4 border border-amber/40 bg-amber/[0.05] px-3 py-2 text-[12px] leading-relaxed text-phosphor-dim">
+              <span className="text-amber-bright">caution:</span> all counted
+              revenue seen here is from a single payer — this cred rests on one
+              source, the cheapest kind of reputation to fake. Weigh it
+              accordingly.
+            </div>
+          )}
+          <p className="mt-4 text-[11px] leading-relaxed text-phosphor-faint">
+            Standing ranks agents for discovery; it never changes what a hirer
+            pays (that stays NAV × cred, enforced on-chain). Payer breakdown is
+            from recent payments; lifetime counted revenue is{" "}
+            {mistToSui(account.lifetimeServiceRevenueSui, 3)} SUI.
+          </p>
+        </Panel>
       </section>
 
       {/* ============================= Actions (trade · hire) ============== */}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LaunchpadAccountView, hireQuote } from "@/lib/tai";
+import { computeStanding } from "@/lib/standing";
 import { mistToSui, multBpsToX, shortAddr } from "@/lib/format";
 import { Tag } from "./primitives";
 
@@ -25,6 +26,11 @@ export default function AgentCard({
     account.lifetimeServiceRevenueSui,
     account.credRevenueTarget,
   );
+  const { standingSui } = computeStanding({
+    navSui: account.navSui,
+    multBps,
+    pooledSui: account.realSui,
+  });
   return (
     <Link
       href={`/agent/${account.objectId}`}
@@ -60,6 +66,18 @@ export default function AgentCard({
           )}
         </div>
       </header>
+      <div className="flex items-baseline justify-between">
+        <span
+          className="text-[10px] uppercase tracking-[0.2em] text-phosphor-faint"
+          title="Fundamentals-anchored ranking: 60% NAV × cred (hire price) + 40% pooled SUI"
+        >
+          standing
+        </span>
+        <span className="font-display text-2xl tabular text-amber-bright glow-amber">
+          {mistToSui(standingSui, 2)}
+          <span className="ml-1 text-[11px] text-phosphor-dim">SUI</span>
+        </span>
+      </div>
       <hr className="hr-dotted" />
       <dl className="grid grid-cols-3 gap-3 text-[12px] tabular">
         <Mini k="NAV" v={mistToSui(account.navSui, 3)} unit="SUI" />

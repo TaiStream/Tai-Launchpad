@@ -4,9 +4,11 @@ import {
   fetchAllWorkOrderEvents,
   fetchLaunchpadAccount,
   fetchDisplay,
+  hireQuote,
   LaunchpadAccountView,
   LaunchEventInfo,
 } from "@/lib/tai";
+import { computeStanding } from "@/lib/standing";
 import {
   KNOWN_AGENTS,
   TESTNET_EARLY_USER_IMAGE_URL,
@@ -72,19 +74,29 @@ async function loadRows(): Promise<Row[]> {
     }),
   );
 
-  // Newest lineage first (v1.1 → v1.0.2 → v1.0.1); within a lineage, newest
-  // launch first.
-  const lineageRank = (v: string) =>
-    v === "v1.1" ? 0 : v === "v1.0.2" ? 1 : 2;
+  // Rank by standing (the merit signal: NAV × cred blended with pooled SUI),
+  // highest first; newest launch breaks ties. Standing is account-only, so no
+  // extra reads — the cards compute the same number.
+  const standingOf = (acc: LaunchpadAccountView): bigint => {
+    const { multBps } = hireQuote(
+      acc.navSui,
+      acc.lifetimeServiceRevenueSui,
+      acc.credRevenueTarget,
+    );
+    return computeStanding({
+      navSui: acc.navSui,
+      multBps,
+      pooledSui: acc.realSui,
+    }).standingSui;
+  };
   return rows
     .filter((r): r is Row => r !== null)
+    .map((r) => ({ r, standing: standingOf(r.account) }))
     .sort((a, b) => {
-      const v =
-        lineageRank(a.account.packageVersion) -
-        lineageRank(b.account.packageVersion);
-      if (v !== 0) return v;
-      return a.account.launchedAt < b.account.launchedAt ? 1 : -1;
-    });
+      if (a.standing !== b.standing) return a.standing < b.standing ? 1 : -1;
+      return a.r.account.launchedAt < b.r.account.launchedAt ? 1 : -1;
+    })
+    .map((x) => x.r);
 }
 
 export default async function AgentsPage() {
