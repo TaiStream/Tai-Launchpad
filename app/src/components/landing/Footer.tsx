@@ -22,8 +22,8 @@ const COLUMNS = [
     title: "org",
     links: [
       { label: "TaiStream", href: "https://github.com/TaiStream" },
-      { label: "Tai-Live", href: "https://github.com/TaiStream/Tai-Live" },
-      { label: "Tai-Meet", href: "https://github.com/TaiStream/Tai-Meet" },
+      { label: "tai-cli", href: "https://crates.io/crates/tai-cli" },
+      { label: "tai-mcp", href: "https://crates.io/crates/tai-mcp" },
     ],
   },
   {
