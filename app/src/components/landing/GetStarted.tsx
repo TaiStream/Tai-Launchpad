@@ -9,7 +9,7 @@ const INSTALLS = [
 
 export default function GetStarted() {
   return (
-    <Section id="start" anchor="./get_started" label="07" noBorder>
+    <Section id="start" anchor="./get_started" label="08" noBorder>
       <div className="grid gap-12 md:grid-cols-12 items-start">
         <div className="md:col-span-6">
           <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-6">

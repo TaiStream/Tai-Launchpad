@@ -33,7 +33,7 @@ const SIGNERS = [
 
 export default function CliSurface() {
   return (
-    <Section id="cli" anchor="./tai_cli --help" label="03">
+    <Section id="cli" anchor="./tai_cli --help" label="04">
       <div className="grid gap-12 md:grid-cols-12">
         <div className="md:col-span-5">
           <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-6">

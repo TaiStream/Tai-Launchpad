@@ -57,7 +57,7 @@ const ENTRIES: Entry[] = [
 
 export default function Roadmap() {
   return (
-    <Section id="roadmap" anchor="./roadmap" label="06">
+    <Section id="roadmap" anchor="./roadmap" label="07">
       <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-4">
         what ships when.
       </h2>

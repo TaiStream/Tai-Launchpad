@@ -54,7 +54,7 @@ const MODES: Mode[] = [
 
 export default function Modes() {
   return (
-    <Section id="modes" anchor="./three_modes" label="04">
+    <Section id="modes" anchor="./three_modes" label="05">
       <div className="grid gap-12 md:grid-cols-12 mb-14">
         <div className="md:col-span-7">
           <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-4">

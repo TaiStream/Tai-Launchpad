@@ -719,35 +719,43 @@ export async function fetchWorkOrder(objectId: string): Promise<WorkOrderView> {
 export async function fetchAllWorkOrderEvents(): Promise<
   Array<{ objectId: string; buyer: string; payeeLaunchpad: string; amount: bigint; createdAtMs: bigint; packageVersion: string }>
 > {
-  const out: Array<{
+  type Row = {
     objectId: string;
     buyer: string;
     payeeLaunchpad: string;
     amount: bigint;
     createdAtMs: bigint;
     packageVersion: string;
-  }> = [];
-  for (const pkg of ALL_PACKAGES) {
-    const filter: EventFilter = {
-      MoveEventType: `${pkg.typeOriginId}::work_order::WorkOrderCreatedEvent`,
-    };
-    try {
-      const page = await queryEvents(filter, 50, true);
-      for (const ev of page.data) {
-        const p = ev.parsedJson;
-        out.push({
-          objectId: String(p["work_order_id"]),
-          buyer: String(p["buyer"]),
-          payeeLaunchpad: String(p["payee_launchpad_account_id"]),
-          amount: BigInt(String(p["amount"] ?? "0")),
-          createdAtMs: BigInt(String(p["created_at_ms"] ?? "0")),
-          packageVersion: pkg.label,
+  };
+  // Each package anchors its own event TYPE, so this is one query per lineage.
+  // They are independent — fan out in parallel rather than serially (this scan
+  // runs on every agent page; sequential round-trips to a public fullnode were
+  // a noticeable chunk of the page-switch latency). A failing package is
+  // swallowed so one bad lineage can't blank the whole feed.
+  const perPackage = await Promise.all(
+    ALL_PACKAGES.map(async (pkg): Promise<Row[]> => {
+      const filter: EventFilter = {
+        MoveEventType: `${pkg.typeOriginId}::work_order::WorkOrderCreatedEvent`,
+      };
+      try {
+        const page = await queryEvents(filter, 50, true);
+        return page.data.map((ev) => {
+          const p = ev.parsedJson;
+          return {
+            objectId: String(p["work_order_id"]),
+            buyer: String(p["buyer"]),
+            payeeLaunchpad: String(p["payee_launchpad_account_id"]),
+            amount: BigInt(String(p["amount"] ?? "0")),
+            createdAtMs: BigInt(String(p["created_at_ms"] ?? "0")),
+            packageVersion: pkg.label,
+          };
         });
+      } catch {
+        return [];
       }
-    } catch {
-      /* swallow */
-    }
-  }
+    }),
+  );
+  const out: Row[] = perPackage.flat();
   out.sort((a, b) =>
     a.createdAtMs < b.createdAtMs ? 1 : a.createdAtMs > b.createdAtMs ? -1 : 0,
   );

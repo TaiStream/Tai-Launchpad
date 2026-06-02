@@ -122,7 +122,7 @@ export default function Footer() {
             integrity notes
           </div>
           <ul className="space-y-1.5">
-            <li>· data is read live from Sui RPC, never cached.</li>
+            <li>· data is read live from Sui RPC (cached at most ~5s).</li>
             <li>· numbers are u64 base units; SUI shown to 4 decimals.</li>
             <li>· cred multiplier saturates at 2.00x at the configured target.</li>
             <li>· self-payments grow NAV but are excluded from cred.</li>

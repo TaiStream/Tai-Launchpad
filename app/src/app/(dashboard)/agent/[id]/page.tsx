@@ -44,20 +44,17 @@ export default async function AgentPage({
   const launchpadAccountId = known?.launchpadAccountId ?? id;
   if (!launchpadAccountId.startsWith("0x")) notFound();
 
-  let snap;
-  try {
-    snap = await fetchAgentSnapshot(launchpadAccountId, known?.displayId);
-  } catch {
-    notFound();
-  }
-
-  // Best-effort: fetch work orders targeting this agent. Failures are silent.
-  let workOrders: Awaited<ReturnType<typeof fetchWorkOrdersForAgent>> = [];
-  try {
-    workOrders = await fetchWorkOrdersForAgent(launchpadAccountId);
-  } catch {
-    /* swallow */
-  }
+  // Snapshot and work-order scan are independent — work orders key off the
+  // route id, not the snapshot — so run them concurrently instead of letting
+  // the scan wait behind the snapshot's reads. A snapshot failure means the
+  // agent doesn't exist (404); a work-order failure is silent (best-effort).
+  const [snap, workOrders] = await Promise.all([
+    fetchAgentSnapshot(launchpadAccountId, known?.displayId).catch(() => null),
+    fetchWorkOrdersForAgent(launchpadAccountId).catch(
+      () => [] as Awaited<ReturnType<typeof fetchWorkOrdersForAgent>>,
+    ),
+  ]);
+  if (!snap) notFound();
 
   const { account, treasury, config, display, events, fetchedAtMs } = snap;
   const { multBps, hirePrice } = hireQuote(

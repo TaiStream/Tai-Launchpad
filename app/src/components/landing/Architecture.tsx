@@ -16,7 +16,7 @@ const STATS = [
 
 export default function Architecture() {
   return (
-    <Section id="architecture" anchor="./architecture" label="05">
+    <Section id="architecture" anchor="./architecture" label="06">
       <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-4">
         the stack.
       </h2>

@@ -3,6 +3,7 @@ import LiveClock from "./LiveClock";
 const LINKS = [
   { href: "#wedge", label: "why" },
   { href: "#primitives", label: "primitives" },
+  { href: "#build", label: "build" },
   { href: "#cli", label: "cli" },
   { href: "#modes", label: "modes" },
   { href: "#architecture", label: "arch" },

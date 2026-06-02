@@ -70,7 +70,10 @@ async function rpcOnce<T>(
   return body.result as T;
 }
 
-async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+async function rpcWithFailover<T>(
+  method: string,
+  params: unknown[],
+): Promise<T> {
   let lastErr: unknown;
   for (const endpoint of RPC_ENDPOINTS) {
     try {
@@ -86,6 +89,56 @@ async function rpc<T>(method: string, params: unknown[]): Promise<T> {
   throw lastErr instanceof Error
     ? lastErr
     : new Error(`Sui RPC failed on ${method} (all endpoints)`);
+}
+
+/**
+ * Short-TTL read cache + in-flight coalescing.
+ *
+ * Public fullnodes are the latency floor here, and the dashboard re-issues a
+ * handful of byte-for-byte identical reads on every navigation: the global
+ * work-order event scan and the shared LaunchpadConfig object are the same for
+ * every agent page. Caching them for a few seconds makes switching between
+ * agents feel instant; coalescing dedupes the concurrent bursts a single render
+ * fires. The TTL is far shorter than the ~15s live-view poll, so numbers a user
+ * actually watches stay fresh — this only collapses redundant reads.
+ *
+ * Reads only (every method here is a query); errors are never cached.
+ */
+const RPC_CACHE_TTL_MS = 5_000;
+const RPC_CACHE_MAX = 256;
+type RpcCacheEntry = { expires: number; value: unknown };
+const rpcCache = new Map<string, RpcCacheEntry>();
+const rpcInflight = new Map<string, Promise<unknown>>();
+
+function pruneRpcCache(now: number): void {
+  for (const [k, entry] of rpcCache) {
+    if (entry.expires <= now) rpcCache.delete(k);
+  }
+}
+
+async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+  const key = `${method}:${JSON.stringify(params)}`;
+  const now = Date.now();
+
+  const hit = rpcCache.get(key);
+  if (hit && hit.expires > now) return hit.value as T;
+
+  const inflight = rpcInflight.get(key);
+  if (inflight) return inflight as Promise<T>;
+
+  const p = rpcWithFailover<T>(method, params)
+    .then((value) => {
+      if (rpcCache.size >= RPC_CACHE_MAX) pruneRpcCache(Date.now());
+      rpcCache.set(key, { expires: Date.now() + RPC_CACHE_TTL_MS, value });
+      rpcInflight.delete(key);
+      return value;
+    })
+    .catch((err) => {
+      rpcInflight.delete(key);
+      throw err;
+    });
+  rpcInflight.set(key, p);
+  return p;
 }
 
 // ============================= sui_getObject =============================
