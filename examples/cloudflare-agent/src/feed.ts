@@ -4,7 +4,10 @@
  *
  *   1. Polls Sui RPC for new events across known Tai packages (v1.0.1,
  *      v1.0.2, v1.1.0).
- *   2. Deduplicates by `(txDigest, eventSeq)` via Workers KV (7-day TTL).
+ *   2. Deduplicates by `(txDigest, eventSeq)` via Workers KV — PERMANENT keys,
+ *      plus a one-time silent bootstrap that marks the backlog seen so
+ *      already-existing agents aren't re-announced as new (see markSeen +
+ *      tickEcosystemFeed).
  *   3. Formats survivors in Larry's voice and posts to the configured
  *      Telegram channel.
  *
@@ -100,6 +103,21 @@ export async function tickEcosystemFeed(env: FeedEnv): Promise<void> {
     };
     const imageUrl = env.LARRY_IMAGE_URL || DEFAULT_IMAGE_URL;
     const events = await collectNewEvents(env);
+
+    // One-time silent bootstrap. On the very first tick — or after a KV reset —
+    // the "new" events are really the entire recent backlog (every launch,
+    // trade, hire still inside the 30-per-kind query window). Posting them
+    // would announce long-existing agents (Larry, Demo) as if they just
+    // launched. So on the first run we mark the whole backlog seen WITHOUT
+    // posting, then return; only events that appear AFTER this point get
+    // announced.
+    const bootstrapped = await env.FEED_STATE.get("feed:bootstrapped");
+    if (bootstrapped === null) {
+        for (const ev of events) await markSeen(env.FEED_STATE, ev);
+        await env.FEED_STATE.put("feed:bootstrapped", new Date().toISOString());
+        return;
+    }
+
     // Post oldest-first so the channel reads chronologically.
     events.sort((a, b) => Number(a.timestampMs) - Number(b.timestampMs));
 
@@ -189,9 +207,14 @@ async function collectNewEvents(env: FeedEnv): Promise<RawEvent[]> {
 
 async function markSeen(kv: KVNamespace, ev: RawEvent): Promise<void> {
     const key = `seen:${ev.txDigest}:${ev.eventSeq}`;
-    await kv.put(key, new Date().toISOString(), {
-        expirationTtl: 7 * 24 * 3600,
-    });
+    // Permanent — NO TTL. The dedupe must outlive the event's presence in the
+    // query window, and low-volume kinds (e.g. LaunchEvent) never leave the
+    // 30-most-recent window. A TTL'd key expires while the event is still
+    // queryable, so the same historical event resurfaces as "new" and is
+    // re-posted every TTL period — this was the Larry/Demo "new agent" bug.
+    // Keys are tiny and volume is low, so growth is a non-issue here; if it
+    // ever matters, switch to a per-(package,kind) high-water-mark cursor.
+    await kv.put(key, new Date().toISOString());
 }
 
 async function queryEvents(
