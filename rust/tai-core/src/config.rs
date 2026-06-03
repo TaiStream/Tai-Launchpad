@@ -61,21 +61,21 @@ pub struct TaiConfig {
 
 impl TaiConfig {
     /// The current canonical testnet deployment of the v1 Tai package.
-    /// Points at v1.1.1 — the in-place upgrade of v1.1.0 that added
-    /// spec/receipt length bounds (L4). The package_id is the upgraded
-    /// package; the config_id is unchanged across the upgrade (Sui
-    /// upgrades don't move existing objects).
+    /// Points at v1.1.3 — the in-place upgrade chain v1.1.0 → v1.1.1 →
+    /// v1.1.2 → v1.1.3; v1.1.3 adds the composable operator_spend_sui_coin.
+    /// The package_id is the latest upgraded package; the config_id is
+    /// unchanged across every upgrade (Sui upgrades don't move objects).
     ///
-    /// Source: `move/published.json` in this repo. Upgraded 2026-05-28 at
-    /// checkpoint 342196917, tx HmVRYzXdgnxTy97h71bUH6N2m567afy1Bc9wjuUjokLn.
-    /// Type/event anchor remains the v1.1.0 package
+    /// Source: `move/published.json` in this repo. Latest upgrade tx
+    /// F1jXfVyUp8XwYsSe4ShW2N6dtfLsZr381bd42C31nVHd. Type/event anchor remains
+    /// the v1.1.0 package
     /// 0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3.
     pub fn testnet_v1() -> Self {
         TaiConfig {
             network: Network::Testnet,
             rpc_url: Network::Testnet.default_rpc_url().to_string(),
             package_id: ObjectId::from_bytes(hex_lit(
-                "c5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421",
+                "f6a55d1f6b4961de636028ee967adf1999063140d9331027abcf4b39c5dc573b",
             )),
             config_id: ObjectId::from_bytes(hex_lit(
                 "4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
@@ -115,7 +115,7 @@ mod tests {
         assert_eq!(cfg.network, Network::Testnet);
         assert_eq!(
             cfg.package_id.to_string(),
-            "0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421"
+            "0xf6a55d1f6b4961de636028ee967adf1999063140d9331027abcf4b39c5dc573b"
         );
         assert_eq!(
             cfg.config_id.to_string(),

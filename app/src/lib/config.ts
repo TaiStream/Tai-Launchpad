@@ -13,9 +13,10 @@
  *                      object-type strings and `MoveEventType` filters use
  *                      this. For a never-upgraded lineage the two are equal.
  *
- * The v1.1 lineage has had two in-place upgrades (v1.1.0 → v1.1.1 → v1.1.2),
- * so its `packageId` is the latest (v1.1.2) package while its `typeOriginId`
- * stays the v1.1.0 original. config_id did NOT change across any upgrade.
+ * The v1.1 lineage has had three in-place upgrades (v1.1.0 → v1.1.1 → v1.1.2
+ * → v1.1.3), so its `packageId` is the latest (v1.1.3) package while its
+ * `typeOriginId` stays the v1.1.0 original. config_id did NOT change across
+ * any upgrade.
  *
  * Source: `move/published.json` at the repo root.
  */
@@ -29,9 +30,9 @@ export const SUI_RPC =
 export const TAI = {
   v1_1: {
     label: "v1.1",
-    // v1.1.2 (upgraded) — call target.
+    // v1.1.3 (upgraded) — call target.
     packageId:
-      "0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421",
+      "0xf6a55d1f6b4961de636028ee967adf1999063140d9331027abcf4b39c5dc573b",
     // v1.1.0 (original publish) — type / event anchor.
     typeOriginId:
       "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",

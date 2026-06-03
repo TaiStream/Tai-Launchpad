@@ -1,6 +1,8 @@
 {
-  "version": "v1.1.2",
+  "version": "v1.1.3",
   "notes": [
+    "Tai v1.1.3 is an IN-PLACE UPGRADE of v1.1.2 (additive only — one new public function, no struct-layout or existing-signature change, so it is upgrade-compatible). Change: agent_treasury gains operator_spend_sui_coin<T>(treasury, op_cap, amount, clock, ctx): Coin<SUI> — a composable sibling of operator_spend_sui that enforces the SAME budget gates (cap matches treasury, active/not-revoked, not expired, daily ceiling with epoch reset) but RETURNS the Coin instead of transferring, so a single PTB can spend under the cap and feed the coin straight into another protocol (e.g. a DeepBook deposit + order) atomically. The destination-allowlist check is intentionally dropped on this path (the PTB composes the coin onward); use the transfer-based operator_spend_sui when you need on-chain destination enforcement. Enables the OperatorCap × DeepBook autonomous-agent-wallet flow (examples/deepbook-agent). 101 Move tests pass (97 prior + 4 new). Upgrade tx F1jXfVyUp8XwYsSe4ShW2N6dtfLsZr381bd42C31nVHd.",
+    "Because this was an upgrade: config_id, type_origin_id, Larry, Demo, and all existing objects are UNCHANGED. Only the callable package_id moved to 0xf6a5…573b (from 0xc5d0…a421). Callers (tai-cli, dashboard, examples) target 0xf6a5 to reach operator_spend_sui_coin; event/type queries stay on the v1.1.0 origin 0x7d86.",
     "Tai v1.1.2 is an IN-PLACE UPGRADE of v1.1.1 (code-review hardening batch; all changes are additions + body changes, no struct-layout or existing-signature change, so it is upgrade-compatible). Changes: (1) work_order gains accept_work_order_with_operator_v2 / submit_receipt_with_operator_v2 which take the payee AgentTreasury<T> and reject revoked OR expired operator caps (the deprecated non-v2 variants now also reject EXPIRED caps; revocation still needs the treasury, hence v2). New error EDisputeWindowTooShort (213) + a MIN_DISPUTE_WINDOW_MS (5 min) floor on create_work_order, closing the zero-window 'buyer can never dispute' foot-gun. (2) launchpad::launch_agent_coin asserts the coin's CoinMetadata declares 9 decimals (EBadDecimals 106) — the curve constants assume 9. (3) bonding_curve::compute_sell rounds new_total_sui UP (ceiling) so the protocol keeps the <=1-MIST remainder, matching the buy side. 97 Move tests pass (94 prior + 3 new). Upgrade tx 2QedbFtw3aBFk9Z4WCTNPNcRaGeqEW2ihkVKrWApDuo5.",
     "Because this was an upgrade: config_id, type_origin_id, Larry, Demo, and all existing objects are UNCHANGED. Only the callable package_id moved to 0xc5d0…a421. Callers (tai-cli, dashboard, sovereign-agent) target 0xc5d0 to reach the v2 functions; event/type queries stay on the v1.1.0 origin 0x7d86.",
     "--- v1.1.1 ---",
@@ -21,14 +23,16 @@
     "91 Move unit tests pass (74 launchpad-side + 17 new work_order tests covering happy path, operator-cap variant, anyone-finalize-after-window, all refund paths, foreign-cap rejection, dispute → admin resolve in both directions, creation guards)."
   ],
   "testnet": {
-    "package_id": "0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421",
+    "package_id": "0xf6a55d1f6b4961de636028ee967adf1999063140d9331027abcf4b39c5dc573b",
     "type_origin_id": "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
     "config_id": "0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50",
     "upgrade_cap_id": "0x15db65b905cccde75e5f38311b5506d013cb878ec1fea8a143f1747e9b8e5467",
     "publisher_id": "0x2ce74c8e1ca4658a80286d17bd3182e84dd717ba3032a8b5727b7dcfbc72352f",
     "publisher": "0x2ce41c43a6ee1192adc2fe6cc620eef80ca4f57940a5c6cc2d51664514616c14",
+    "prior_package_id_v1_1_2": "0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421",
     "prior_package_id_v1_1_1": "0x74e4c3f857cc97d2f68c59fcce30671f15e8fa1e05952c48287e459727af111d",
-    "upgrade_tx_digest": "2QedbFtw3aBFk9Z4WCTNPNcRaGeqEW2ihkVKrWApDuo5",
+    "upgrade_tx_digest": "F1jXfVyUp8XwYsSe4ShW2N6dtfLsZr381bd42C31nVHd",
+    "upgrade_tx_digest_v1_1_2": "2QedbFtw3aBFk9Z4WCTNPNcRaGeqEW2ihkVKrWApDuo5",
     "upgrade_tx_digest_v1_1_1": "HmVRYzXdgnxTy97h71bUH6N2m567afy1Bc9wjuUjokLn",
     "upgrade_tx_checkpoint": "342196917",
     "v1_1_0_publish_tx_digest": "HgkcB4UURjxHRfAhCebRjKPgrp5zc7VmmM1c33JGPKfA",
