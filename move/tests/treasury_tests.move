@@ -481,4 +481,103 @@ module tai::treasury_tests {
         clock::destroy_for_testing(clock);
         ts::end(sc);
     }
+
+    // ==========================================================
+    //  operator_spend_sui_coin — composable spend (returns Coin)
+    //  Same budget gates as operator_spend_sui (ceiling, expiry,
+    //  revocation); destination allowlist intentionally dropped so a
+    //  PTB can compose the coin onward (e.g. into a DeepBook order).
+    // ==========================================================
+
+    #[test]
+    fun operator_spend_coin_within_limit_returns_capped_coin() {
+        let mut sc = ts::begin(ADMIN);
+        let (clock, mut treasury, owner_cap, mut op_cap) = fixture_with_operator(&mut sc);
+
+        ts::next_tx(&mut sc, OPERATOR);
+        let payout = treas::operator_spend_sui_coin<TEST_COIN>(
+            &mut treasury, &mut op_cap,
+            4_000_000_000,
+            &clock, ts::ctx(&mut sc),
+        );
+        assert!(coin::value(&payout) == 4_000_000_000, 0);
+        assert!(treas::treasury_sui_balance(&treasury) == 16_000_000_000, 1);
+        assert!(treas::operator_cap_spent_today(&op_cap) == 4_000_000_000, 2);
+        coin::burn_for_testing(payout);
+
+        ts::return_to_address(OPERATOR, op_cap);
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(treasury);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::agent_treasury::EOperatorDailyLimitExceeded)]
+    fun operator_spend_coin_exceeding_limit_aborts() {
+        let mut sc = ts::begin(ADMIN);
+        let (clock, mut treasury, owner_cap, mut op_cap) = fixture_with_operator(&mut sc);
+
+        ts::next_tx(&mut sc, OPERATOR);
+        let payout = treas::operator_spend_sui_coin<TEST_COIN>(
+            &mut treasury, &mut op_cap,
+            TEN_SUI_MIST + 1,
+            &clock, ts::ctx(&mut sc),
+        );
+        coin::burn_for_testing(payout);
+
+        ts::return_to_address(OPERATOR, op_cap);
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(treasury);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::agent_treasury::EOperatorCapRevoked)]
+    fun operator_spend_coin_after_revocation_aborts() {
+        let mut sc = ts::begin(ADMIN);
+        let (clock, mut treasury, owner_cap, mut op_cap) = fixture_with_operator(&mut sc);
+
+        ts::next_tx(&mut sc, CREATOR);
+        let cap_id = object::id(&op_cap);
+        treas::revoke_operator_cap<TEST_COIN>(&mut treasury, &owner_cap, cap_id);
+
+        ts::next_tx(&mut sc, OPERATOR);
+        let payout = treas::operator_spend_sui_coin<TEST_COIN>(
+            &mut treasury, &mut op_cap,
+            1_000_000_000,
+            &clock, ts::ctx(&mut sc),
+        );
+        coin::burn_for_testing(payout);
+
+        ts::return_to_address(OPERATOR, op_cap);
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(treasury);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = tai::agent_treasury::EOperatorCapExpired)]
+    fun operator_spend_coin_after_expiry_aborts() {
+        let mut sc = ts::begin(ADMIN);
+        let (mut clock, mut treasury, owner_cap, mut op_cap) = fixture_with_operator(&mut sc);
+
+        clock::increment_for_testing(&mut clock, THIRTY_DAYS_MS + 1);
+
+        ts::next_tx(&mut sc, OPERATOR);
+        let payout = treas::operator_spend_sui_coin<TEST_COIN>(
+            &mut treasury, &mut op_cap,
+            1_000_000_000,
+            &clock, ts::ctx(&mut sc),
+        );
+        coin::burn_for_testing(payout);
+
+        ts::return_to_address(OPERATOR, op_cap);
+        ts::return_to_address(CREATOR, owner_cap);
+        ts::return_shared(treasury);
+        clock::destroy_for_testing(clock);
+        ts::end(sc);
+    }
 }

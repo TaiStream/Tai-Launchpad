@@ -459,6 +459,59 @@ module tai::agent_treasury {
         });
     }
 
+    /// Composable sibling of `operator_spend_sui`: enforces the SAME budget
+    /// policy (cap matches treasury, cap active/not-revoked, not expired,
+    /// daily ceiling with epoch reset) but RETURNS the `Coin<SUI>` to the
+    /// caller instead of transferring it. This lets a single PTB spend under
+    /// the cap and feed the coin straight into another protocol — e.g. deposit
+    /// into a DeepBook BalanceManager and place an order — atomically.
+    ///
+    /// Scope note: because the coin is handed back for composition, the
+    /// destination-allowlist check is intentionally NOT applied here — the
+    /// caller's PTB decides where the coin flows. The budget guarantees (daily
+    /// ceiling, expiry, instant revocation) are still fully enforced in Move.
+    /// Use the transfer-based `operator_spend_sui` when you instead need
+    /// on-chain destination enforcement (funds may only reach an allowlisted
+    /// address) at the cost of atomic composability.
+    public fun operator_spend_sui_coin<T>(
+        treasury: &mut AgentTreasury<T>,
+        op_cap: &mut OperatorCap<T>,
+        amount: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ): Coin<SUI> {
+        assert!(op_cap.agent_treasury_id == object::id(treasury), ENotOperatorCap);
+        assert!(
+            treasury.active_operator_cap_ids.contains(&object::id(op_cap)),
+            EOperatorCapRevoked,
+        );
+        let now = clock::timestamp_ms(clock);
+        if (op_cap.expires_at_ms != 0) {
+            assert!(now < op_cap.expires_at_ms, EOperatorCapExpired);
+        };
+        let current_day = now / 86_400_000;
+        if (current_day > op_cap.epoch_day) {
+            op_cap.epoch_day = current_day;
+            op_cap.spent_today_sui = 0;
+            op_cap.spent_today_token = 0;
+        };
+        assert!(
+            op_cap.spent_today_sui + amount <= op_cap.daily_limit_sui,
+            EOperatorDailyLimitExceeded,
+        );
+        op_cap.spent_today_sui = op_cap.spent_today_sui + amount;
+        assert!(balance::value(&treasury.sui_balance) >= amount, EInsufficientLiquidity);
+        let payout = balance::split(&mut treasury.sui_balance, amount);
+        event::emit(TreasuryWithdrawEvent {
+            agent_treasury_id: object::id(treasury),
+            coin_type: 0,
+            amount,
+            to: ctx.sender(),
+            via: 1,
+        });
+        coin::from_balance(payout, ctx)
+    }
+
     /// Token-denominated mirror of `operator_spend_sui`. Spends the agent's
     /// own `T` token under the same per-cap policy. Daily limit is denominated
     /// in T base units via `daily_limit_token`.

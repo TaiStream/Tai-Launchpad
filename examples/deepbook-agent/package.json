@@ -1,0 +1,19 @@
+{
+  "name": "deepbook-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tai OperatorCap x DeepBook — an autonomous agent wallet that trades under a Move-enforced, capped, revocable budget.",
+  "scripts": {
+    "start": "tsx src/strategy.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mysten/deepbook-v3": "^0.12.0",
+    "@mysten/sui": "^1.18.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
