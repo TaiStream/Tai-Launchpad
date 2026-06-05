@@ -69,13 +69,20 @@ function loadConfig(): Config {
     agentTreasuryId: need("AGENT_TREASURY_ID"),
     operatorCapId: need("OPERATOR_CAP_ID"),
     budgetMist: BigInt(env.BUDGET_MIST ?? "1000000000"), // 1 SUI default
+    // SUI_DBUSDC = base SUI / quote DBUSDC. The agent funds with SUI (from the
+    // capped spend), so the natural order is an ASK (sell SUI for DBUSDC).
     poolKey: env.DEEPBOOK_POOL_KEY ?? "SUI_DBUSDC",
     balanceManagerKey: env.BALANCE_MANAGER_KEY ?? "AGENT_MANAGER",
     balanceManagerId: env.BALANCE_MANAGER_ID ?? "",
-    deepbookPackageId: need("DEEPBOOK_PACKAGE_ID"),
+    // Defaults to the DeepBook v3 TESTNET package. The SDK auto-loads pools +
+    // coin types for env:"testnet"; this id is only needed for the lower-level
+    // balance_manager::deposit moveCall that consumes the Tai-spent coin.
+    deepbookPackageId:
+      env.DEEPBOOK_PACKAGE_ID ??
+      "0x22be4cade64bf2d02412c7e8d0e8beea2f78828b948118d46735315409371a3c",
     orderPrice: Number(env.ORDER_PRICE ?? "1"),
     orderQuantity: Number(env.ORDER_QUANTITY ?? "1"),
-    isBid: (env.ORDER_SIDE ?? "bid") === "bid",
+    isBid: (env.ORDER_SIDE ?? "ask") === "bid",
     rpcUrl: env.SUI_RPC_URL ?? getFullnodeUrl("testnet"),
   };
 }

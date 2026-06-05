@@ -36,6 +36,22 @@ behaving; compromise rotates a cap and the treasury stays safe.
   your installed `@mysten/deepbook-v3` version (pool key, coin keys, the
   `balance_manager::deposit` signature, DeepBook testnet package id).
 
+## Network — testnet (Sui Overflow)
+
+Sui Overflow runs on **testnet**, and DeepBook v3 is fully live there (there was
+an official DeepBook v3 testnet campaign for exactly this). "Real DeepBook
+orders" means real on-chain testnet orders — no mainnet required. Testnet
+DeepBook addresses (the SDK auto-loads these for `env: "testnet"`; the package
+id is only needed for the low-level deposit moveCall, and is the default here):
+
+- package `0x22be4cade64bf2d02412c7e8d0e8beea2f78828b948118d46735315409371a3c`
+- pools `SUI_DBUSDC`, `DEEP_SUI`, `DEEP_DBUSDC`, `DBUSDT_DBUSDC`
+- `DEEP` `0x36dbef…::deep::DEEP` · `DBUSDC` `0xf7152c…::DBUSDC::DBUSDC`
+
+The agent funds with SUI, so on `SUI_DBUSDC` it places an **ask** (sells SUI for
+DBUSDC). Fees use the input token (`payWithDeep:false`), so no DEEP is required
+for the order itself.
+
 ## Prerequisites
 
 1. **Deploy the upgrade** that adds `operator_spend_sui_coin` (`sui client
