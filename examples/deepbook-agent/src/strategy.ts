@@ -88,10 +88,15 @@ function loadConfig(): Config {
 }
 
 function operatorKeypair(): Ed25519Keypair {
-  // 32-byte Ed25519 seed in hex (the agent runtime's operator key). In a real
-  // deployment this lives in a TEE / sealed secret, never in plaintext env.
+  // The agent runtime's operator key. In a real deployment this lives in a TEE
+  // / sealed secret, never in plaintext env. Accepts either the bech32
+  // `suiprivkey1...` form (what `sui keytool export` emits) or a raw 32-byte
+  // hex seed.
+  const sk = process.env.SUI_PRIVATE_KEY;
+  if (sk) return Ed25519Keypair.fromSecretKey(sk);
   const hex = process.env.OPERATOR_PRIVATE_KEY_HEX;
-  if (!hex) throw new Error("missing env OPERATOR_PRIVATE_KEY_HEX");
+  if (!hex)
+    throw new Error("set SUI_PRIVATE_KEY (suiprivkey1...) or OPERATOR_PRIVATE_KEY_HEX");
   return Ed25519Keypair.fromSecretKey(Uint8Array.from(Buffer.from(hex, "hex")));
 }
 
