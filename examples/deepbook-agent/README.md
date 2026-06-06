@@ -52,6 +52,27 @@ Two things the dry-run pinned down (now baked into the defaults):
   (default) lets the agent fund with SUI and **bid** for DEEP, fees in SUI. min
   order 10 DEEP.
 
+## One-command demo (`demo.sh`)
+
+`./demo.sh` runs the whole story end-to-end on testnet and prints a Suiscan link
+after every on-chain action — exactly the flow to screen-record:
+
+> launch agent → grant a **scoped, revocable** OperatorCap budget → the agent
+> places a **real DeepBook order in one atomic, capped tx** → owner **revokes** →
+> the agent's next trade is **rejected on-chain**.
+
+```bash
+npm install
+# a funded (>= 3 SUI) testnet key, bech32 form (sui keytool export --key-identity <addr>):
+export OPERATOR_KEY=suiprivkey1…
+./demo.sh check     # no-spend preflight: binaries, derived address, balance
+./demo.sh           # the full demo
+```
+
+It makes the funded key the sole signer (sui + tai + the runner) and restores
+your original tai config + active address on exit. Do one full run before
+recording — each underlying step is verified on-chain (see below).
+
 ## Network — testnet (Sui Overflow)
 
 Sui Overflow runs on **testnet**, and DeepBook v3 is fully live there (there was

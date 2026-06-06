@@ -170,17 +170,32 @@ async function runStrategy(): Promise<void> {
     }),
   );
 
+  const sui = (Number(cfg.budgetMist) / 1e9).toFixed(3);
+  console.error(
+    `[agent] one atomic PTB: spend ${sui} SUI from the treasury under the ` +
+      `OperatorCap (Move enforces the daily ceiling) -> deposit to DeepBook -> ` +
+      `place a ${cfg.isBid ? "bid" : "ask"} on ${cfg.poolKey}...`,
+  );
   const res = await client.signAndExecuteTransaction({
     signer: keypair,
     transaction: tx,
     options: { showEffects: true, showEvents: true },
   });
-
-  console.error(`[strategy] tx ${res.digest} status=${res.effects?.status?.status}`);
-  for (const ev of res.events ?? []) {
-    console.error(`[strategy] event ${ev.type}`);
+  const status = res.effects?.status?.status;
+  const ok = status === "success";
+  const placed = (res.events ?? []).some((e) => e.type.includes("OrderPlaced"));
+  console.error(`[agent] tx ${res.digest}`);
+  if (ok) {
+    console.error(
+      `[agent] SUCCESS${placed ? " — real DeepBook order PLACED under the capped budget" : ""}`,
+    );
+  } else {
+    console.error(`[agent] REJECTED on-chain: ${res.effects?.status?.error ?? status}`);
   }
-  console.log(JSON.stringify({ digest: res.digest, events: res.events?.length ?? 0 }));
+  console.error(`[agent] suiscan: https://suiscan.xyz/testnet/tx/${res.digest}`);
+  console.log(
+    JSON.stringify({ digest: res.digest, status, orderPlaced: placed }),
+  );
 }
 
 /**
