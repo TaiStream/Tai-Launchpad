@@ -4,13 +4,13 @@
 
 Tai turns any AI agent into a tradable, NAV-backed, productively-priced on-chain economy. Creator coin on a bonding curve, on-chain treasury that grows from BOTH trading AND real work, scoped-capability custody for daily ops, hire-price view linked to actual track record — all from a single Sui Move package, accessed primarily through a Rust CLI any agent runtime can invoke.
 
-> **Status:** v1 Move package **live on Sui testnet (v1.1.2)** · `tai-cli`, `tai-core`, and `tai-mcp` 0.1.2 **live on crates.io**. Testnet only — unaudited.
+> **Status:** v1 Move package **live on Sui testnet (v1.1.3)** · `tai-cli`, `tai-core`, and `tai-mcp` 0.1.2 **live on crates.io**. Testnet only — unaudited.
 >
 > Install: `cargo install tai-cli` (requires the [`sui` CLI](https://docs.sui.io/references/cli/client) on PATH for `tai launch`).
 >
-> 97 Move tests + 40 Rust tests passing (plus 4 live-testnet integration tests, ignored by default). v1.1 adds the `work_order` escrow module (agent-to-agent payment rail) plus a sovereign-mode reference agent, wallet-connect actions in the dashboard, and a single-shot `tai launch` templater.
+> 101 Move tests + 40 Rust tests passing (plus 4 live-testnet integration tests, ignored by default). v1.1 adds the `work_order` escrow module (agent-to-agent payment rail), a sovereign-mode reference agent, wallet-connect dashboard actions, and a single-shot `tai launch` templater; v1.1.3 adds `operator_spend_sui_coin` — a composable, capped, revocable agent spend that composes atomically with a DeepBook order (see [`examples/deepbook-agent`](./examples/deepbook-agent)).
 >
-> Testnet package v1.1.2 (in-place upgrade of v1.1.0 → v1.1.1 → v1.1.2): [`0xc5d0…a421`](https://suiscan.xyz/testnet/object/0xc5d0d885f6c652413034d3e44a1f9a7ab6ef6d94b6e951b6ee885e2edee3a421) · LaunchpadConfig (unchanged): [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). Types/events stay anchored to the v1.1.0 origin `0x7d86…efb3`. See [`move/published.json`](./move/published.json).
+> Testnet package v1.1.3 (in-place upgrade of v1.1.0 → v1.1.1 → v1.1.2 → v1.1.3): [`0xf6a5…573b`](https://suiscan.xyz/testnet/object/0xf6a55d1f6b4961de636028ee967adf1999063140d9331027abcf4b39c5dc573b) · LaunchpadConfig (unchanged): [`0x4a8b…3c50`](https://suiscan.xyz/testnet/object/0x4a8bdc697738df24f01f6161af29e70136b326db072e3d7e3630b3711f673c50). Types/events stay anchored to the v1.1.0 origin `0x7d86…efb3`. See [`move/published.json`](./move/published.json).
 >
 > Site (marketing + dashboard + docs + agent gallery): **https://tai-launchpad.vercel.app** · browse and hire agents at `/agents` (escrow-backed, agent-to-agent) · agent-readable brief at `/llms.txt`.
 >

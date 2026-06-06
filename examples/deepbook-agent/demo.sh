@@ -41,6 +41,7 @@ beat() { echo; echo "${b}${y}━━ $* ━━${r}"; }
 say()  { echo "   $*"; }
 scan() { echo "   ${d}↳ https://suiscan.xyz/testnet/$1/$2${r}"; }
 die()  { echo "${b}error:${r} $*" >&2; exit 1; }
+strat_status() { node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).status||"")}catch{console.log("")}' "$1"; }
 
 command -v "$SUI_BIN" >/dev/null || die "sui CLI not on PATH (set SUI_BIN)"
 command -v "$TAI_BIN" >/dev/null || die "tai CLI not on PATH (set TAI_BIN)"
@@ -69,10 +70,15 @@ fi
 # ---- make the funded key the signer for sui, tai, and the runner ----------
 # Back up + restore the user's tai config and active sui address on exit.
 TAI_CFG="$HOME/.tai/config.toml"
-TAI_CFG_BAK="$(mktemp)"; cp "$TAI_CFG" "$TAI_CFG_BAK" 2>/dev/null || true
+HAD_TAI_CFG=0; TAI_CFG_BAK="$(mktemp)"
+if cp "$TAI_CFG" "$TAI_CFG_BAK" 2>/dev/null; then HAD_TAI_CFG=1; fi
 ORIG_ADDR=$($SUI_BIN client active-address 2>/dev/null || true)
 restore() {
-  [ -f "$TAI_CFG_BAK" ] && cp "$TAI_CFG_BAK" "$TAI_CFG" 2>/dev/null || true
+  if [ "$HAD_TAI_CFG" = 1 ]; then
+    cp "$TAI_CFG_BAK" "$TAI_CFG" 2>/dev/null || true        # restore the real config
+  else
+    rm -f "$TAI_CFG"                                        # there was none; don't leave the demo's behind
+  fi
   [ -n "${ORIG_ADDR:-}" ] && $SUI_BIN client switch --address "$ORIG_ADDR" >/dev/null 2>&1 || true
 }
 trap restore EXIT
@@ -95,9 +101,11 @@ COIN_TYPE=$(echo "$LAUNCH" | node -e 'process.stdin.once("data",d=>console.log(J
 LAUNCH_TX=$(echo "$LAUNCH" | node -e 'process.stdin.once("data",d=>console.log(JSON.parse(d).launch_tx_digest))')
 say "coin: $COIN_TYPE"
 scan tx "$LAUNCH_TX"
-read -r ACCT TREASURY OWNERCAP < <(curl -s https://fullnode.testnet.sui.io -H 'Content-Type: application/json' \
+IDS=$(curl -s https://fullnode.testnet.sui.io -H 'Content-Type: application/json' \
   -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"sui_getTransactionBlock\",\"params\":[\"$LAUNCH_TX\",{\"showObjectChanges\":true}]}" \
-  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s).result.objectChanges;const f=t=>(c.find(x=>x.type==="created"&&x.objectType.includes(t))||{}).objectId;console.log(f("LaunchpadAccount"),f("AgentTreasury"),f("OwnerCap"))})')
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=((JSON.parse(s)||{}).result||{}).objectChanges||[];const f=t=>{const x=c.find(o=>o.type==="created"&&o.objectType.includes(t));return x&&x.objectId};const a=f("LaunchpadAccount"),b=f("AgentTreasury"),o=f("OwnerCap");if(!a||!b||!o)process.exit(1);console.log(a,b,o)})') \
+  || die "could not read launch objects from $LAUNCH_TX (testnet indexing can lag — re-run)"
+read -r ACCT TREASURY OWNERCAP <<< "$IDS"
 say "account=$ACCT"; say "treasury=$TREASURY"; say "ownerCap=$OWNERCAP"
 
 # ---- 2. fund treasury + issue a scoped, revocable operator budget ---------
@@ -105,7 +113,7 @@ beat "2 · fund the treasury, then grant the agent a SCOPED, REVOCABLE budget"
 $SUI_BIN client ptb --split-coins gas "[$TREASURY_FUND_MIST]" --assign c \
   --move-call "$TAI_PKG::agent_treasury::top_up_sui" "<$COIN_TYPE>" @"$TREASURY" c.0 \
   --gas-budget "$GAS_BUDGET" >/dev/null
-say "treasury funded: $((TREASURY_FUND_MIST/1000000000)).2 SUI"
+say "treasury funded: $(awk "BEGIN{printf \"%.2f\", $TREASURY_FUND_MIST/1e9}") SUI"
 ISSUE=$($SUI_BIN client ptb \
   --make-move-vec "<address>" "[]" --assign targets \
   --move-call "$TAI_PKG::agent_treasury::issue_operator_cap" "<$COIN_TYPE>" \
@@ -114,7 +122,8 @@ ISSUE=$($SUI_BIN client ptb \
 ISSUE_TX=$(echo "$ISSUE" | grep -m1 'Transaction Digest' | grep -oE '[A-Za-z0-9]{43,44}')
 OPCAP=$(curl -s https://fullnode.testnet.sui.io -H 'Content-Type: application/json' \
   -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"sui_getTransactionBlock\",\"params\":[\"$ISSUE_TX\",{\"showObjectChanges\":true}]}" \
-  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s).result.objectChanges;console.log((c.find(x=>x.type==="created"&&x.objectType.includes("OperatorCap"))||{}).objectId)})')
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=((JSON.parse(s)||{}).result||{}).objectChanges||[];const x=c.find(o=>o.type==="created"&&o.objectType.includes("OperatorCap"));if(!x)process.exit(1);console.log(x.objectId)})') \
+  || die "OperatorCap not found in $ISSUE_TX"
 say "OperatorCap=$OPCAP  (cap: 1 SUI/day, 24h TTL, revocable — all enforced in Move)"
 scan tx "$ISSUE_TX"
 
@@ -124,10 +133,14 @@ export TAI_PACKAGE_ID="$TAI_PKG" AGENT_COIN_TYPE="$COIN_TYPE" AGENT_TREASURY_ID=
 export OPERATOR_CAP_ID="$OPCAP" DEEPBOOK_PACKAGE_ID="$DEEPBOOK_PKG" BUDGET_MIST="$BUDGET_MIST"
 say "creating the agent's DeepBook BalanceManager..."
 BM=$(npm run start --silent setup 2>/dev/null \
-  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const a=JSON.parse(s);console.log((a.find(x=>x.type==="created"&&String(x.objectType).includes("BalanceManager"))||{}).objectId)})')
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const a=JSON.parse(s);const x=a.find(o=>o.type==="created"&&String(o.objectType).includes("BalanceManager"));if(!x)process.exit(1);console.log(x.objectId)})') \
+  || die "BalanceManager not created"
 say "BalanceManager=$BM"
 export BALANCE_MANAGER_ID="$BM"
-npm run start --silent 2>&1 >/dev/null | sed 's/^\[agent\]/  /' || true
+# stdout (machine JSON) -> file; stderr (the agent's narration + Suiscan link) -> screen
+npm run start --silent 1>/tmp/tai-demo-strat.json
+[ "$(strat_status /tmp/tai-demo-strat.json)" = success ] \
+  || die "agent trade did not succeed — see the narration above"
 
 # ---- 4. owner revokes -> agent is cut off on-chain ------------------------
 beat "4 · owner REVOKES the cap — the agent's next trade is rejected on-chain"
@@ -135,7 +148,10 @@ $SUI_BIN client ptb \
   --move-call "$TAI_PKG::agent_treasury::revoke_operator_cap" "<$COIN_TYPE>" @"$TREASURY" @"$OWNERCAP" @"$OPCAP" \
   --gas-budget "$GAS_BUDGET" >/dev/null
 say "cap revoked. the agent tries to trade again..."
-npm run start --silent 2>&1 >/dev/null | sed 's/^\[agent\]/  /' || true
+npm run start --silent 1>/tmp/tai-demo-strat2.json || true
+[ "$(strat_status /tmp/tai-demo-strat2.json)" = success ] \
+  && die "expected the revoked trade to be REJECTED, but it succeeded" \
+  || say "  ↳ rejected on-chain (EOperatorCapRevoked) — exactly as designed"
 
 beat "done"
 say "${g}capped + revocable agent authority, composed atomically with a real DeepBook order — enforced by Move on Sui.${r}"

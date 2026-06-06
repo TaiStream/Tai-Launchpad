@@ -81,13 +81,15 @@ orders" means real on-chain testnet orders — no mainnet required. Testnet
 DeepBook addresses (the SDK auto-loads these for `env: "testnet"`; the package
 id is only needed for the low-level deposit moveCall, and is the default here):
 
-- package `0x22be4cade64bf2d02412c7e8d0e8beea2f78828b948118d46735315409371a3c`
-- pools `SUI_DBUSDC`, `DEEP_SUI`, `DEEP_DBUSDC`, `DBUSDT_DBUSDC`
-- `DEEP` `0x36dbef…::deep::DEEP` · `DBUSDC` `0xf7152c…::DBUSDC::DBUSDC`
+- package `0xcbf4748a965d469ea3a36cf0ccc5743b96c2d0ae6dee0762ed3eca65fac07f7e`
+  — the deployment `@mysten/deepbook-v3` 0.12.x targets. The SDK auto-loads its
+  pools + coin types for `env: "testnet"`; this id is only needed for the
+  low-level deposit moveCall, and is the runner's default.
+- pools include `DEEP_SUI` (the demo default), `SUI_DBUSDC`, `DEEP_DBUSDC`
 
-The agent funds with SUI, so on `SUI_DBUSDC` it places an **ask** (sells SUI for
-DBUSDC). Fees use the input token (`payWithDeep:false`), so no DEEP is required
-for the order itself.
+The agent funds with SUI and places a **bid** on `DEEP_SUI` (buys DEEP) — a DEEP
+reference pool, so no DEEP is needed for fees. `SUI_DBUSDC` is non-whitelisted
+and would require DEEP in the manager, so it isn't the default.
 
 ## Prerequisites
 
