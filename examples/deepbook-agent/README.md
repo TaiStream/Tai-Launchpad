@@ -27,14 +27,30 @@ behaving; compromise rotates a cap and the treasury stays safe.
 | on-chain activity log | `TreasuryWithdrawEvent` (Tai) + DeepBook order events |
 | owner revocation demo | `revoke_operator_cap` (OwnerCap) → next spend aborts `EOperatorCapRevoked` |
 
-## Status
+## Status — verified end-to-end on testnet (2026-06-05)
 
-- The Tai side — `operator_spend_sui_coin` — is **unit-tested** in the Move
-  package (`move/tests/treasury_tests.move`, 101/101 green).
-- The DeepBook composition here is a **reference to validate on a testnet
-  dry-run**. Confirm the items marked `CONFIRM:` in `src/strategy.ts` against
-  your installed `@mysten/deepbook-v3` version (pool key, coin keys, the
-  `balance_manager::deposit` signature, DeepBook testnet package id).
+Ran the full flow against live Sui + DeepBook testnet. The atomic strategy tx
+`44tL2MyxuiyEcfx8hoPTKbpSQgXJK7kDrq7tEeAp3bCK` succeeded with these events:
+`agent_treasury::TreasuryWithdrawEvent` (capped spend) → `balance_manager::BalanceEvent`
+(deposit) → **`order_info::OrderPlaced`** (a real DeepBook order) — all in one PTB.
+The four Sub-track 2 must-haves, each confirmed on-chain:
+
+- **real DeepBook order** — `OrderPlaced` in tx `44tL2Myx…`
+- **self-enforced budget ceiling** — `operator_spend_sui_coin`, daily cap enforced in Move
+- **on-chain activity log** — the events above
+- **owner revocation** — after `revoke_operator_cap`, the next trade aborted with
+  `EOperatorCapRevoked` (tx `D9YPW6im…`)
+
+Two things the dry-run pinned down (now baked into the defaults):
+
+- **DeepBook package id must match the installed SDK's deployment.**
+  `@mysten/deepbook-v3` 0.12.x bundles `@mysten/sui` 1.22.0 and targets DeepBook
+  `0xcbf4748a…07f7e` on testnet (not the newest on-chain DeepBook). Pin
+  `@mysten/sui` to 1.22.0 (done) so there's one `Transaction` type.
+- **Use a DEEP reference pool to avoid needing DEEP for fees.** `SUI_DBUSDC` is
+  non-whitelisted and aborts `place_order` without DEEP in the manager. `DEEP_SUI`
+  (default) lets the agent fund with SUI and **bid** for DEEP, fees in SUI. min
+  order 10 DEEP.
 
 ## Network — testnet (Sui Overflow)
 
@@ -65,17 +81,20 @@ for the order itself.
 ## Run
 
 ```bash
-npm install
+npm install   # pins @mysten/sui 1.22.0 to match @mysten/deepbook-v3
 
-# one-time: create the agent's DeepBook BalanceManager, note its id
-OPERATOR_PRIVATE_KEY_HEX=… TAI_PACKAGE_ID=0x… AGENT_COIN_TYPE=0x…::a::A \
-AGENT_TREASURY_ID=0x… OPERATOR_CAP_ID=0x… DEEPBOOK_PACKAGE_ID=0x… \
+# common env (SUI_PRIVATE_KEY is the bech32 `suiprivkey1…` from `sui keytool export`)
+export SUI_PRIVATE_KEY=suiprivkey1… TAI_PACKAGE_ID=0xf6a55d1f…573b \
+  AGENT_COIN_TYPE=0x…::your_coin::YOUR_COIN \
+  AGENT_TREASURY_ID=0x… OPERATOR_CAP_ID=0x…
+
+# one-time: create the agent's DeepBook BalanceManager, note its id from output
 npm run start setup
 
-# strategy tick: spend under the cap + place a DeepBook order (atomic)
-BALANCE_MANAGER_ID=0x… BUDGET_MIST=1000000000 DEEPBOOK_POOL_KEY=SUI_DBUSDC \
-ORDER_PRICE=1 ORDER_QUANTITY=1 ORDER_SIDE=bid \
-… (same ids as above) npm run start
+# strategy tick: spend under the cap + place a real DeepBook order, atomic.
+# DEEP_SUI pool + bid + DeepBook package all default to the verified testnet
+# values, so you only add the BalanceManager id + budget:
+BALANCE_MANAGER_ID=0x… BUDGET_MIST=1000000000 npm run start
 ```
 
 ## Revocation demo

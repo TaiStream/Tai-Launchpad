@@ -69,20 +69,25 @@ function loadConfig(): Config {
     agentTreasuryId: need("AGENT_TREASURY_ID"),
     operatorCapId: need("OPERATOR_CAP_ID"),
     budgetMist: BigInt(env.BUDGET_MIST ?? "1000000000"), // 1 SUI default
-    // SUI_DBUSDC = base SUI / quote DBUSDC. The agent funds with SUI (from the
-    // capped spend), so the natural order is an ASK (sell SUI for DBUSDC).
-    poolKey: env.DEEPBOOK_POOL_KEY ?? "SUI_DBUSDC",
+    // DEEP_SUI (base DEEP / quote SUI) is a DEEP reference pool, so placing an
+    // order does NOT require DEEP for fees: the agent funds with SUI and places
+    // a BID (buys DEEP), paying fees in SUI. A non-whitelisted pool like
+    // SUI_DBUSDC instead needs DEEP in the BalanceManager and aborts
+    // place_order without it (verified on testnet). min order here is 10 DEEP.
+    poolKey: env.DEEPBOOK_POOL_KEY ?? "DEEP_SUI",
     balanceManagerKey: env.BALANCE_MANAGER_KEY ?? "AGENT_MANAGER",
     balanceManagerId: env.BALANCE_MANAGER_ID ?? "",
-    // Defaults to the DeepBook v3 TESTNET package. The SDK auto-loads pools +
-    // coin types for env:"testnet"; this id is only needed for the lower-level
-    // balance_manager::deposit moveCall that consumes the Tai-spent coin.
+    // The DeepBook package for the low-level deposit moveCall MUST match the
+    // deployment the installed @mysten/deepbook-v3 targets (it bundles its own
+    // constants — NOT necessarily the newest on-chain DeepBook). For
+    // @mysten/deepbook-v3 0.12.x on testnet that is the id below; if you bump
+    // the SDK, read the real one from a `setup` tx's balance_manager::new call.
     deepbookPackageId:
       env.DEEPBOOK_PACKAGE_ID ??
-      "0x22be4cade64bf2d02412c7e8d0e8beea2f78828b948118d46735315409371a3c",
-    orderPrice: Number(env.ORDER_PRICE ?? "1"),
-    orderQuantity: Number(env.ORDER_QUANTITY ?? "1"),
-    isBid: (env.ORDER_SIDE ?? "ask") === "bid",
+      "0xcbf4748a965d469ea3a36cf0ccc5743b96c2d0ae6dee0762ed3eca65fac07f7e",
+    orderPrice: Number(env.ORDER_PRICE ?? "0.05"),
+    orderQuantity: Number(env.ORDER_QUANTITY ?? "10"),
+    isBid: (env.ORDER_SIDE ?? "bid") === "bid",
     rpcUrl: env.SUI_RPC_URL ?? getFullnodeUrl("testnet"),
   };
 }
