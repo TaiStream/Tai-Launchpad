@@ -62,7 +62,7 @@ const ITEMS: Item[] = [
 
 export default function Primitives() {
   return (
-    <Section id="primitives" anchor="./what_tai_launches" label="02">
+    <Section id="primitives" anchor="./what_tai_launches" label="02" glow>
       <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-4">
         four primitives.
       </h2>

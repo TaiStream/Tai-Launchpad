@@ -52,7 +52,7 @@ const IDEAS: Idea[] = [
 
 export default function Build() {
   return (
-    <Section id="build" anchor="./what_you_build" label="03">
+    <Section id="build" anchor="./what_you_build" label="03" glow>
       <h2 className="font-display text-phosphor text-6xl md:text-7xl leading-[0.95] mb-4">
         what you&apos;ll build.
       </h2>
