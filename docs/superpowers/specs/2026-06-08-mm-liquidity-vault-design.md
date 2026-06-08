@@ -1,83 +1,84 @@
 # Tai MM Liquidity Vault — Design Spec
 
-**Date:** 2026-06-08
-**Status:** design / roadmap (NOT for the Sui Overflow deadline — the hackathon ships the verified capped-operator primitive; this is the product it points to).
+**Date:** 2026-06-08 (revised after a critical self-review — the v1 draft overstated custody safety; corrected below).
+**Status:** design / roadmap (NOT for the Sui Overflow deadline — the hackathon ships the verified capped-operator primitive; this is the product it points to). Mainnet/post-audit.
 
 ## Goal
 
-A **trust-minimized agentic market-making fund**: depositors (other Tai agents, or users) contribute SUI to a shared vault and receive transferable **shares**; a specialist **manager agent** deploys the pooled capital into DeepBook market-making and the realized P&L accrues to the vault, redeemable pro-rata. The manager earns a fee for running it.
+A **rate-bounded, revocable agentic market-making fund**: depositors (other Tai agents, or users) contribute SUI to a shared vault and receive transferable **shares**; a specialist **manager agent** runs a DeepBook MM strategy over the pooled capital; realized P&L accrues to the vault, redeemable pro-rata; the manager earns a fee.
 
-## Why (the thesis we settled on)
+## Why (the thesis)
 
-Every agent half-running MM on its own fragmented treasury is worse than one specialist aggregating idle capital into a single professional strategy with one control surface. Specialization + control beats fragmentation. The objection — "that centralizes risk" — is real, and the whole point of this design is that **Tai's primitives bound that centralized risk instead of trusting it away.**
+One specialist aggregating idle capital into a single professional strategy with one control surface beats every agent half-running MM on its own fragmented treasury. Specialization + control beats fragmentation. The objection — "that centralizes risk" — is real, and the job of this design is to **bound and govern** that risk with Tai's primitives. Note up front (this is the honest correction from review): it **bounds** the risk; it does not **eliminate** it.
 
-## The trust architecture (the crux)
+## Trust architecture — bounded custody, NOT non-custodial
 
-Centralization is only dangerous if it's *custodial*. Here it isn't, on two enforced layers:
+Three layers. What each actually does (and does not):
 
-1. **The manager can trade the pool but cannot withdraw it.** DeepBook v3 BalanceManagers separate *trading* authority from *withdrawal* authority: the owner can mint a **TradeCap** that lets a delegate place/cancel orders, while **withdrawals remain owner-only**. So:
-   - The **vault owns** the DeepBook BalanceManager.
-   - The **manager agent holds only a TradeCap** → it can run the MM strategy but **physically cannot move funds out** to itself or anyone. Only the vault (governance) withdraws (for settlement / redemptions).
-   - This eliminates the custody/rug risk of pooling capital into one manager. The scary failure mode is gone by construction.
+1. **The vault owns the funds; the manager never holds raw spend/withdraw power.** The vault owns the DeepBook BalanceManager; only the vault (governance) can `withdraw`. The manager is an *appointed role*, not the holder of a raw TradeCap. *Load-bearing assumption to verify before building:* DeepBook v3's TradeCap is withdrawal-incapable — unconfirmed against the contracts; the whole separation depends on it.
 
-2. **The rate of capital at risk is capped, and the manager is revocable.** Funds move from the safe **vault reserve** into the at-risk BalanceManager under a Tai **OperatorCap** (daily ceiling, allowlist, TTL) — so only a bounded fraction is exposed per epoch — and the manager's authority (TradeCap and/or OperatorCap) is **revocable on-chain in one tx** the instant it misbehaves. (This reuses the verified `operator_spend_sui_coin` + revocation path.)
+2. **A trade-only manager can still BLEED the pool — so orders are mediated and price-bounded.** Withdrawal-blocking is necessary but NOT sufficient: a manager that can trade can sell the pool's inventory at a garbage price to a wallet it controls, draining value through a *trade* (self-match prevention doesn't help — different BalanceManager). To stop this, **the vault holds the TradeCap and the manager places/cancels orders only through vault functions that enforce a price-sanity bound** (reject any order whose price deviates more than X% from a reference). The manager gets a *bounded order path*, never the raw cap. This is the v1-critical mitigation the first draft was missing.
 
-Net: the manager gets the benefits of centralization (specialization, capital efficiency, one control surface) while depositors keep **non-custodial, rate-limited, revocable** exposure — enforced in Move, not promised.
+3. **Exposure is rate-capped and the manager is instantly revocable.** Capital moves from the safe vault reserve into the at-risk BalanceManager under a Tai **OperatorCap** (daily ceiling, allowlist, TTL), so only a bounded fraction is exposed per epoch; the manager role is **revocable on-chain in one tx**. This bounds the blast radius: worst case is the deployed fraction, until revocation.
 
-## Share accounting + NAV strike (avoid marking live positions)
+**Honest net:** depositors get **withdrawal-blocked, price-bounded, rate-limited, revocable** exposure — much stronger than a trusted vault, but **not rug-proof**. The *deployed* capital can still be lost to a malicious manager (orders at the edge of the price band, repeated) or an incompetent one (bad MM) up to revocation. The cap bounds how much and how fast; price-bounds + revocation bound the rest. Calling it "non-custodial" was wrong; "bounded custody" is the truth.
 
-The hard part of any vault is valuing capital that's mid-strategy (resting orders + inventory). We sidestep live-marking with an **epoch settlement** model:
+## Share accounting + NAV strike
 
-- The vault's value is struck **only at settlement points**, when the manager has **unwound** (cancelled resting orders; positions settled back to SUI in the BalanceManager). At a strike, vault NAV = `vault_reserve_SUI + balance_manager_SUI` — a clean, fully on-chain number, no oracle.
-- **Deposits/withdrawals process at the most recent struck price.** Between strikes the manager runs MM; deposit/withdraw requests **queue** and clear at the next strike (standard fund behavior).
-- Shares are a fungible `Coin<VAULT_SHARE>`:
-  - deposit → `shares = amount × total_shares / NAV` (1:1 on the first deposit).
-  - withdraw → `payout = shares × NAV / total_shares` (burn shares).
+Avoid valuing live positions via an **epoch settlement**:
 
-This keeps share price honest (it only updates against realized, on-balance value) at the cost of deposit/withdraw latency (one epoch) — an acceptable, well-understood tradeoff.
+- NAV is struck **only at settlement**, after the manager has **unwound** (orders cancelled, inventory liquidated to SUI). Then NAV = `vault_reserve_SUI + balance_manager_SUI` — clean and on-chain.
+- Deposits/withdrawals **queue and clear at the next struck price**.
+- Shares are `Coin<VAULT_SHARE>`: deposit → `amount × total_shares / NAV`; withdraw → `shares × NAV / total_shares`.
 
-## Manager economics (ties to Tai's real revenue model)
+**Required guards (from review):**
+- **First-deposit inflation attack:** a naive `1:1 first deposit` is exploitable (mint 1 share, donate to inflate, next depositor rounds to 0). Mitigate with permanent **dead-shares** (seed a tiny supply to a burn address) or a **virtual-offset** in the price math. Required.
+- **Strike-timing dilution / sandwiching:** clearing at a predictable struck price invites timing games. Mitigate with per-depositor entry/exit accounting and/or randomized/keeper-triggered strike times.
+- **Inventory at strike:** "clean SUI NAV" assumes *full* liquidation. Residual non-SUI inventory must be valued (→ a price reference / oracle) or liquidation must be enforced; thin-book liquidation carries slippage. The "no oracle" property only holds if full liquidation is guaranteed.
 
-The manager agent's income is **not** the trading P&L (that's the depositors'). It's a **management/performance fee** skimmed at settlement — routed through `record_service_payment_sui` so it grows the manager agent's **NAV and cred**. So the MM specialist is "paid for work," exactly Tai's proven revenue loop, and its reputation (cred) reflects real assets managed + performance. Depositors can pick managers by cred.
+## Manager economics (ties to Tai's revenue loop)
 
-## Trust & risk boundaries (honest — what this does and does NOT protect)
+The manager's income is a **management/performance fee** skimmed at settlement, routed through `record_service_payment_sui` → grows the manager agent's NAV and **cred**. So the specialist is "paid for work" (Tai's proven loop) and depositors can rank managers by cred. *Caveat:* the fee only counts toward cred if the payer ≠ the manager's creator (self-payments are excluded) — so the vault/fee routing must not be a self-pay, or cred won't accrue.
 
-- ✅ **Custody / rug** — solved (TradeCap = no withdrawal authority for the manager).
-- ✅ **Exposure rate** — capped (OperatorCap daily ceiling on deploy).
+## Risk boundaries (honest — what's protected vs. not)
+
+- ⚠️ **Custody / rug** — REDUCED + rate-bounded + revocable, **not eliminated**. Withdrawal is blocked and orders are price-bounded, but a malicious manager can still bleed the *deployed* fraction within the band, up to revocation. (And the TradeCap withdrawal restriction is unverified.)
+- ✅ **Exposure rate** — capped (OperatorCap bounds the deployed fraction per epoch).
 - ✅ **Governance** — manager instantly revocable on-chain.
-- ❌ **Strategy / market risk** — the manager can still *lose* money (adverse selection, bad fills); depositors bear that pro-rata. The cap bounds theft, not P&L.
-- ❌ **Accounting correctness** — deposit/withdraw share math + NAV strike must be exact; bugs misallocate. Needs heavy testing + audit.
+- ⚠️ **Liveness / redemptions** — a manager that won't unwind can freeze strikes and exits. Requires an owner/keeper **force-unwind** path (cancel all orders + withdraw) so depositors can always exit.
+- ❌ **Strategy / market risk** — the manager can lose money (adverse selection, bad fills); depositors bear it pro-rata, bounded by the deployed fraction.
+- ⚠️ **NAV valuation** — see inventory-at-strike above.
+- ⚠️ **Share-math attacks** — first-depositor inflation + strike-timing dilution (mitigations above).
 - ❌ **Contract risk** — new, unaudited Move module.
-- ❌ **Settlement gaming** — manager could time strikes; mitigate with fixed cadence / keeper-triggered strikes. Open question.
 
-## Move surface (new `tai::mm_vault` module, sketch)
+## Move surface (`tai::mm_vault`, sketch)
 
-- `create_vault<T>(...) -> (Vault, VaultOwnerCap)` — opens a vault + its DeepBook BalanceManager (vault-owned), mints the share-coin treasury.
-- `deposit<T>(vault, payment: Coin<SUI>, ctx) -> Coin<VAULT_SHARE>` (or queues to next strike).
-- `request_withdraw(vault, shares: Coin<VAULT_SHARE>)` → claimable after the next strike.
-- `appoint_manager(vault, owner_cap, manager_addr, deploy_cap_params)` — issues the manager a DeepBook TradeCap + a Tai OperatorCap (capped deploy). 
-- `revoke_manager(vault, owner_cap)` — revoke TradeCap + OperatorCap.
-- `strike_nav(vault, ...)` — assert the BalanceManager has no open orders (unwound), compute NAV, settle queued deposits/withdrawals, skim the manager fee via `record_service_payment_sui`.
-- Reuses: `operator_spend_sui_coin` (deploy reserve → BalanceManager, capped), DeepBook `place_limit_order` / `cancel` (manager via TradeCap), DeepBook owner-only `withdraw` (vault settlement).
+- `create_vault<T>(...) -> (Vault, VaultOwnerCap)` — opens vault + a vault-owned DeepBook BalanceManager + dead-shares seed + the share-coin treasury.
+- `deposit(vault, Coin<SUI>)` → queued; `claim_shares(...)` after a strike. `request_withdraw(vault, Coin<VAULT_SHARE>)` → claimable after a strike.
+- `appoint_manager(vault, owner_cap, manager_addr, price_band_bps, deploy_cap_params)` / `revoke_manager(vault, owner_cap)`.
+- `manager_place_order(vault, manager_proof, price, qty, side, reference)` — **asserts price within `price_band_bps` of `reference`**, then places via the vault-held TradeCap. `manager_cancel(...)`.
+- `deploy(vault, op_cap, amount)` — reserve → BalanceManager, capped (reuses `operator_spend_sui_coin`). `force_unwind(vault, owner_cap)` — governance cancels all + pulls to reserve.
+- `strike_nav(vault, ...)` — assert unwound, compute NAV, settle the deposit/withdraw queues at the struck price, skim the fee.
 
-## Off-chain: the manager runtime
+## Off-chain: manager runtime
 
-The MM strategy loop (quote two sides around the mid, rebalance as price moves, unwind before strikes) runs off-chain via the TradeCap — same shape as `examples/deepbook-agent`, extended to two-sided quoting + a strike-aware unwind. (Two-sided quoting needs base+quote inventory; the vault funds both or the manager bootstraps inventory at open.)
+The MM loop (quote two sides around the mid, rebalance, unwind before strikes) runs off-chain, calling `manager_place_order`/`manager_cancel`. Same shape as `examples/deepbook-agent`, extended to two-sided quoting + strike-aware unwind. **Unsolved dependency:** two-sided quoting needs base+quote inventory; acquiring the non-SUI side (the issue the single-agent demo hit) is a real cost/step, not free.
 
 ## Out of scope / phasing
 
-- **v1:** single vault, single manager, single DeepBook pool, fixed-cadence strikes, SUI-denominated.
-- **Later:** multiple managers / strategies per vault, cred-weighted manager selection, multi-pool, performance-fee high-water-marks, keeper network for strikes.
+- **v1:** single vault, single manager, one pool, fixed-cadence strikes, SUI-denominated, full-liquidation strikes, dead-shares guard, mediated price-bounded orders.
+- **Later:** multiple managers/strategies, cred-weighted manager selection, multi-pool, performance high-water-marks, keeper network, partial-liquidation NAV with an oracle.
 
 ## Honest caveats
 
-- **No demonstrable yield on testnet** — a synthetic testnet book has no flow; realized returns are a mainnet/real-flow property. Demos show the *mechanism* (deposit → capped non-custodial deploy → strike → redeem → revoke), never an APR.
-- **Mainnet-gated** — real depositor money in an unaudited vault is exactly what the audit gate exists for. This is post-audit.
-- This is the product the hackathon's capped-operator primitive points to; the submission stays on the verified primitive + pitches this as the vision.
+- **No demonstrable yield on testnet** — synthetic book, no flow. Demos show the *mechanism* (deposit → bounded deploy → strike → redeem → revoke), never an APR.
+- **Mainnet-gated, post-audit** — real depositor money in an unaudited, market-risk-bearing vault is exactly the audit gate.
+- The hackathon ships the verified capped-operator primitive and pitches this as the vision (honestly: "bounded, revocable delegated MM," not "rug-proof yield").
 
-## Open questions
+## Open questions (the ones that actually gate a build)
 
-1. DeepBook v3 `deposit` authority — can a non-owner fund a vault-owned BalanceManager, or must the vault deposit? (Determines whether the manager self-funds under its OperatorCap or governance funds it.) Confirm against the SDK/contracts.
-2. Strike trigger — fixed cadence vs. keeper-triggered vs. owner-triggered; anti-gaming.
-3. Share-coin vs. position-NFT for ownership (fungible shares chosen for composability).
-4. Fee model — flat management vs. performance + high-water-mark.
+1. **Verify DeepBook v3 TradeCap cannot withdraw** — load-bearing for the entire separation. Confirm against the contracts before anything else.
+2. **Reference price for the order band** — DeepBook pool mid (manipulable on a thin book), an external oracle (Pyth on Sui — dependency + its own trust), or a reference pool? The band is only as good as the reference.
+3. **Strike trigger** — fixed cadence vs. keeper vs. owner; anti-gaming + guaranteed liveness (force-unwind).
+4. **Full-liquidation enforcement vs. inventory valuation** at strike (determines whether an oracle is needed at all).
+5. **Fee model** — flat vs. performance + high-water-mark; and routing so it counts toward the manager's cred (non-self-pay).
