@@ -100,7 +100,7 @@ export default function CliSurface() {
                 <span className="size-2 bg-phosphor-faint"></span>
                 <span className="ml-2 text-phosphor">~ $ tai --help</span>
               </div>
-              <span className="text-mint glow-soft">v1.0.0</span>
+              <span className="text-mint glow-soft">v1.1.3</span>
             </div>
             <div className="font-mono text-sm">
               {SHELL.map((row) => (

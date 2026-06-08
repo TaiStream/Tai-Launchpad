@@ -44,7 +44,14 @@ export default function Hero() {
       {/* corner ornaments */}
       <CornerMarks />
 
-      <div className="mx-auto grid max-w-[1240px] gap-12 px-6 pt-14 pb-24 md:grid-cols-12 md:pt-20 md:pb-32">
+      {/* warm focal glow behind the wordmark — depth + warmth, base stays dark */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 left-[22%] h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-amber/[0.13] blur-[140px]" />
+        <div className="absolute top-[55%] left-[6%] h-[360px] w-[360px] rounded-full bg-amber/[0.06] blur-[110px]" />
+        <div className="absolute -top-10 right-[10%] h-[300px] w-[300px] rounded-full bg-green/[0.05] blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 mx-auto grid max-w-[1240px] gap-12 px-6 pt-14 pb-24 md:grid-cols-12 md:pt-20 md:pb-32">
         {/* Left column — copy */}
         <div className="md:col-span-7 flex flex-col justify-center">
           <BannerStrip />
@@ -124,7 +131,7 @@ function BannerStrip() {
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>
-        v1 · <span className="text-phosphor">live on sui testnet</span> · 97 move + 40 rust tests
+        v1.1.3 · <span className="text-phosphor">live on sui testnet</span> · 101 move + 40 rust tests
       </span>
       <span className="text-phosphor-faint">|</span>
       <span>

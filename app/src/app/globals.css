@@ -75,8 +75,10 @@ body::after {
   pointer-events: none;
   z-index: 199;
   background:
+    radial-gradient(ellipse 70% 45% at 50% -8%,
+      rgba(245, 165, 36, 0.045), transparent 70%),
     radial-gradient(ellipse 50% 40% at 100% 0%,
-      rgba(74, 222, 128, 0.04), transparent 70%),
+      rgba(74, 222, 128, 0.045), transparent 70%),
     radial-gradient(ellipse 60% 50% at 0% 100%,
       rgba(245, 165, 36, 0.05), transparent 70%);
 }
