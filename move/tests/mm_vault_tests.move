@@ -2,6 +2,8 @@
 module tai::mm_vault_tests {
     use sui::test_scenario::{Self as ts};
     use sui::transfer;
+    use sui::coin;
+    use sui::sui::SUI;
     use tai::mm_vault::{Self, Vault};
 
     const ADMIN: address = @0xAD;
@@ -53,5 +55,69 @@ module tai::mm_vault_tests {
         let s = mm_vault::shares_for(amount, 0, 0);
         let back = mm_vault::assets_for(s, s, amount);
         assert!(back <= amount && back + 2 >= amount, 0); // exact to <=1 MIST rounding
+    }
+
+    #[test]
+    fun deposit_then_withdraw_round_trips() {
+        let mut sc = ts::begin(ADMIN);
+        let cap = mm_vault::create_vault(0, 200, ts::ctx(&mut sc)); // 0% fee for clean math
+        ts::next_tx(&mut sc, ADMIN);
+        let mut v = ts::take_shared<Vault>(&sc);
+
+        let pay = coin::mint_for_testing<SUI>(2 * ONE_SUI, ts::ctx(&mut sc));
+        let pos = mm_vault::deposit(&mut v, pay, ts::ctx(&mut sc));
+        assert!(mm_vault::position_shares(&pos) == 2_000_000_000, 0); // 1:1 first deposit
+        assert!(mm_vault::vault_reserve_value(&v) == 2 * ONE_SUI, 1);
+        assert!(mm_vault::vault_total_shares(&v) == 2_000_000_000, 2);
+
+        let out = mm_vault::withdraw(&mut v, pos, ts::ctx(&mut sc));
+        let got = coin::value(&out);
+        assert!(got <= 2 * ONE_SUI && got + 2 >= 2 * ONE_SUI, 3); // ~all back, dust retained
+        assert!(mm_vault::vault_total_shares(&v) == 0, 4);
+        coin::burn_for_testing(out);
+
+        ts::return_shared(v);
+        transfer::public_transfer(cap, ADMIN);
+        ts::end(sc);
+    }
+
+    #[test]
+    fun two_depositors_get_proportional_shares() {
+        let mut sc = ts::begin(ADMIN);
+        let cap = mm_vault::create_vault(0, 200, ts::ctx(&mut sc));
+        ts::next_tx(&mut sc, ADMIN);
+        let mut v = ts::take_shared<Vault>(&sc);
+
+        let a = mm_vault::deposit(&mut v, coin::mint_for_testing<SUI>(ONE_SUI, ts::ctx(&mut sc)), ts::ctx(&mut sc));
+        let b = mm_vault::deposit(&mut v, coin::mint_for_testing<SUI>(3 * ONE_SUI, ts::ctx(&mut sc)), ts::ctx(&mut sc));
+        // A deposited 1, B deposited 3 -> shares are 1:3 (no gains between deposits)
+        assert!(mm_vault::position_shares(&a) == 1_000_000_000, 0);
+        assert!(mm_vault::position_shares(&b) == 3_000_000_000, 1);
+        assert!(mm_vault::vault_total_shares(&v) == 4_000_000_000, 2);
+
+        transfer::public_transfer(a, ADMIN);
+        transfer::public_transfer(b, ADMIN);
+        ts::return_shared(v);
+        transfer::public_transfer(cap, ADMIN);
+        ts::end(sc);
+    }
+
+    #[test]
+    fun strike_advances_epoch_and_watermark() {
+        let mut sc = ts::begin(ADMIN);
+        let cap = mm_vault::create_vault(0, 200, ts::ctx(&mut sc));
+        ts::next_tx(&mut sc, ADMIN);
+        let mut v = ts::take_shared<Vault>(&sc);
+
+        let pos = mm_vault::deposit(&mut v, coin::mint_for_testing<SUI>(ONE_SUI, ts::ctx(&mut sc)), ts::ctx(&mut sc));
+        assert!(mm_vault::vault_epoch(&v) == 0, 0);
+        mm_vault::strike_nav(&mut v, &cap, ts::ctx(&mut sc));
+        assert!(mm_vault::vault_epoch(&v) == 1, 1);
+        assert!(mm_vault::vault_deployed(&v) == 0, 2);
+
+        transfer::public_transfer(pos, ADMIN);
+        ts::return_shared(v);
+        transfer::public_transfer(cap, ADMIN);
+        ts::end(sc);
     }
 }
