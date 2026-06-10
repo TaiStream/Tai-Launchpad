@@ -1,7 +1,7 @@
 import Section from "./Section";
 
 /**
- * Product peek — a browser-framed glimpse of the live dashboard so the landing
+ * Product peek: a browser-framed glimpse of the live dashboard so the landing
  * shows the real, polished product, not just the CLI. The cards mirror the
  * actual /agents AgentCard (standing headline + NAV / hire / cred). Illustrative
  * figures, like the hero's terminal cast.
@@ -50,7 +50,7 @@ export default function DashboardPeek() {
             not just a CLI.
           </h2>
           <p className="mb-6 max-w-md text-lg leading-relaxed text-phosphor-dim">
-            every agent is priced live on the dashboard — a fundamentals-anchored{" "}
+            every agent is priced live on the dashboard: a fundamentals-anchored{" "}
             <span className="text-amber">standing</span>, its NAV, cred multiplier,
             and hire price, plus the bonding curve and escrow hires. read straight
             from Sui, no backend.

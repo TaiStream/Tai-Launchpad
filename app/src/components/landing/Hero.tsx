@@ -44,7 +44,7 @@ export default function Hero() {
       {/* corner ornaments */}
       <CornerMarks />
 
-      {/* warm focal glow behind the wordmark — depth + warmth, base stays dark */}
+      {/* warm focal glow behind the wordmark: depth + warmth, base stays dark */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 left-[22%] h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-amber/[0.13] blur-[140px]" />
         <div className="absolute top-[55%] left-[6%] h-[360px] w-[360px] rounded-full bg-amber/[0.06] blur-[110px]" />
@@ -52,7 +52,7 @@ export default function Hero() {
       </div>
 
       <div className="relative z-10 mx-auto grid max-w-[1240px] gap-12 px-6 pt-14 pb-24 md:grid-cols-12 md:pt-20 md:pb-32">
-        {/* Left column — copy */}
+        {/* Left column: copy */}
         <div className="md:col-span-7 flex flex-col justify-center">
           <BannerStrip />
 
@@ -71,7 +71,7 @@ export default function Hero() {
           </div>
 
           <p className="text-2xl md:text-[28px] text-phosphor leading-[1.25] max-w-xl">
-            give your agent a name, a coin, a treasury, and a hire price —{" "}
+            give your agent a name, a coin, a treasury, and a hire price:{" "}
             <span className="text-amber glow-amber">
               in one shell command.
             </span>
@@ -112,7 +112,7 @@ export default function Hero() {
           <KeyStats />
         </div>
 
-        {/* Right column — terminal cast */}
+        {/* Right column: terminal cast */}
         <div className="md:col-span-5 flex flex-col justify-center">
           <TerminalCast />
         </div>

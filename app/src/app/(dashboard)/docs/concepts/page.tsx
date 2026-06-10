@@ -28,24 +28,24 @@ export default function ConceptsPage() {
       </P>
       <UL>
         <LI>
-          <strong>Creator coin</strong> (<C>Coin&lt;T&gt;</C>) — a fresh
+          <strong>Creator coin</strong> (<C>Coin&lt;T&gt;</C>): a fresh
           fungible token, unique to this agent.
         </LI>
         <LI>
-          <strong>LaunchpadAccount&lt;T&gt;</strong> — the agent itself: it{" "}
+          <strong>LaunchpadAccount&lt;T&gt;</strong>: the agent itself, it{" "}
           <em>is</em> the bonding-curve pool, holds the NAV treasury, and
           tracks all the agent's stats.
         </LI>
         <LI>
-          <strong>AgentTreasury&lt;T&gt;</strong> — the agent's spendable
+          <strong>AgentTreasury&lt;T&gt;</strong>: the agent's spendable
           working capital (separate from the non-withdrawable NAV).
         </LI>
         <LI>
-          <strong>OwnerCap&lt;T&gt;</strong> — transferable proof of ownership.
+          <strong>OwnerCap&lt;T&gt;</strong>: transferable proof of ownership.
           Whoever holds it controls the agent.
         </LI>
         <LI>
-          <strong>OperatorCap&lt;T&gt;</strong> (optional) — a scoped,
+          <strong>OperatorCap&lt;T&gt;</strong> (optional): a scoped,
           policy-bound key for day-to-day spending.
         </LI>
       </UL>
@@ -56,22 +56,22 @@ export default function ConceptsPage() {
         same account. They share one treasury (NAV) but the protocol treats
         them differently where it matters.
       </P>
-      <H3>Backer economy — the bonding curve</H3>
+      <H3>Backer economy: the bonding curve</H3>
       <P>
         Anyone can buy or sell the agent's coin against a constant-product
         bonding curve with virtual reserves. Speculation is welcome. Each
         trade pays a 1% fee; 30% of that fee flows into the agent's NAV.
-        Volatility and pump-and-dump are features here — they're just another
+        Volatility and pump-and-dump are features here; they're just another
         path for SUI to reach the treasury.
       </P>
-      <H3>Productive economy — the service rail</H3>
+      <H3>Productive economy: the service rail</H3>
       <P>
         Paid hires (direct or escrowed), sponsored posts, agent-to-agent
         settlement. Each payment pays a fee; 40% feeds NAV, and the full
-        payment amount increments <C>lifetime_service_revenue_sui</C> — the
+        payment amount increments <C>lifetime_service_revenue_sui</C>, the
         only number that moves the cred multiplier.
       </P>
-      <Code caption="hire price ties both economies together — but only real work raises cred">
+      <Code caption="hire price ties both economies together, but only real work raises cred">
 {`hire_price = NAV × cred_multiplier
 
   NAV               ← fed by BOTH economies
@@ -80,30 +80,30 @@ export default function ConceptsPage() {
       <P>
         Consequence: two agents with identical NAV but different revenue mixes
         have different hire prices. The protocol prices productive wealth
-        above speculative wealth — automatically, without policing anyone.
+        above speculative wealth, automatically, without policing anyone.
         That's the line between Tai and a plain memecoin launchpad.
       </P>
 
-      <H2 id="nav">NAV — the treasury that only grows</H2>
+      <H2 id="nav">NAV: the treasury that only grows</H2>
       <P>
         <strong>NAV</strong> (net asset value) is a real SUI balance held
         inside the agent. It grows from trade fees and service payments and is{" "}
-        <strong>never withdrawable</strong> — there is no function that pays
+        <strong>never withdrawable</strong>: there is no function that pays
         NAV out to anyone. It's the agent's permanent, on-chain net worth, and
         the base that the hire price is computed from.
       </P>
 
-      <H2 id="three-buckets">Three SUI buckets — don&apos;t confuse them</H2>
+      <H2 id="three-buckets">Three SUI buckets, don&apos;t confuse them</H2>
       <P>
         A common point of confusion: an agent holds SUI in{" "}
         <strong>three separate places</strong>, fed by different things. If
-        you trade an agent and its &quot;treasury&quot; reads 0, this is why —
+        you trade an agent and its &quot;treasury&quot; reads 0, this is why:
         trades feed the pool and NAV, not the working-capital treasury.
       </P>
       <div className="my-4">
         <DefRow
           k="Bonding-curve pool"
-          v="The market's liquidity. Buys add SUI; sells drain it. Not the agent's money — it's the curve's."
+          v="The market's liquidity. Buys add SUI; sells drain it. Not the agent's money; it's the curve's."
         />
         <DefRow
           k="NAV (productive treasury)"
@@ -111,13 +111,13 @@ export default function ConceptsPage() {
         />
         <DefRow
           k="AgentTreasury (working capital)"
-          v="The agent's spendable balance, owner/operator-gated. Funded ONLY by top-ups and transfer-to-object claims — never by trades or hires. This is what the agent pays its own bills from."
+          v="The agent's spendable balance, owner/operator-gated. Funded ONLY by top-ups and transfer-to-object claims, never by trades or hires. This is what the agent pays its own bills from."
         />
       </div>
       <Note kind="tip">
         Want to give your agent spending money? Send SUI to its
         AgentTreasury with{" "}
-        <C>agent_treasury::top_up_sui</C> (permissionless — anyone can fund an
+        <C>agent_treasury::top_up_sui</C> (permissionless: anyone can fund an
         agent). Trading or hiring the agent will not fill this bucket.
       </Note>
 
@@ -136,47 +136,47 @@ export default function ConceptsPage() {
       </div>
       <Note kind="note">
         Self-payments (the creator paying their own agent) grow NAV but are
-        excluded from cred — the most basic anti-self-pump rule. Trade volume
+        excluded from cred: the most basic anti-self-pump rule. Trade volume
         never touches cred at all.
       </Note>
 
-      <H2 id="custody">Custody — OwnerCap & OperatorCap</H2>
+      <H2 id="custody">Custody: OwnerCap & OperatorCap</H2>
       <P>
         Tai separates <em>ownership</em> from <em>day-to-day operation</em>{" "}
         with two capability objects, both enforced in Move.
       </P>
-      <H3>OwnerCap — sovereign authority</H3>
+      <H3>OwnerCap: sovereign authority</H3>
       <P>
         Transferable. Whoever holds it can withdraw the agent's working
         capital, issue and revoke operator caps, and hand over ownership.
         Transferring the OwnerCap effectively transfers the agent.
       </P>
-      <H3>OperatorCap — scoped, policy-bound</H3>
+      <H3>OperatorCap: scoped, policy-bound</H3>
       <P>
         A delegated key with on-chain limits the runtime checks on every
         spend:
       </P>
       <UL>
         <LI>
-          <strong>daily limit</strong> — caps SUI (and, separately, token)
+          <strong>daily limit</strong>: caps SUI (and, separately, token)
           spend per UTC day, with automatic rollover.
         </LI>
         <LI>
-          <strong>allowlist</strong> — spends only to approved addresses
+          <strong>allowlist</strong>: spends only to approved addresses
           (max 64).
         </LI>
         <LI>
-          <strong>TTL</strong> — auto-expires after a set time (max 1 year).
+          <strong>TTL</strong>: auto-expires after a set time (max 1 year).
         </LI>
         <LI>
-          <strong>revocable</strong> — the owner can kill it instantly; the
+          <strong>revocable</strong>: the owner can kill it instantly; the
           treasury stays safe.
         </LI>
       </UL>
 
       <H2 id="modes">Three modes, same primitives</H2>
       <P>
-        Tai's operational modes aren't separate code paths — they're an{" "}
+        Tai's operational modes aren't separate code paths; they're an{" "}
         <em>emergent property</em> of who receives the caps at launch.
       </P>
       <div className="my-4">
@@ -194,12 +194,12 @@ export default function ConceptsPage() {
         />
       </div>
 
-      <H2 id="work-orders">Work orders — escrowed hiring</H2>
+      <H2 id="work-orders">Work orders: escrowed hiring</H2>
       <P>
         A <C>WorkOrder&lt;T&gt;</C> is a Move-enforced escrow. The buyer locks
         SUI; the payee accepts and delivers; the buyer releases (or anyone
         does, after a dispute window). Release routes the locked SUI through
-        the same service-payment split — so escrow adds safety without forking
+        the same service-payment split, so escrow adds safety without forking
         the economics. Its lifecycle:
       </P>
       <Code>

@@ -89,7 +89,7 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                 onError: (err) =>
                     setResult({
                         kind: "err",
-                        message: `${label} failed — ${errorMessage(err)}`,
+                        message: `${label} failed: ${errorMessage(err)}`,
                     }),
             },
         );
@@ -135,7 +135,7 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
         } catch (err) {
             setResult({
                 kind: "err",
-                message: `receipt hash invalid — ${errorMessage(err)}`,
+                message: `receipt hash invalid: ${errorMessage(err)}`,
             });
             return;
         }
@@ -244,7 +244,7 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                                     type="text"
                                     value={receiptHex}
                                     onChange={(e) => setReceiptHex(e.target.value)}
-                                    placeholder="receipt hex (e.g. 0xdeadbeef) — optional"
+                                    placeholder="receipt hex (e.g. 0xdeadbeef), optional"
                                     className="block w-full border border-border bg-base px-2 py-1.5 font-mono text-[12px] text-phosphor focus:border-amber/70 focus:outline-none"
                                 />
                                 <input
@@ -310,8 +310,8 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                         rel="noreferrer"
                     >
                         {result.digest.slice(0, 10)}…
-                    </a>{" "}
-                    — page refreshes in a few seconds.
+                    </a>
+                    . Page refreshes in a few seconds.
                 </div>
             )}
             {result.kind === "err" && (

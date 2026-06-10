@@ -20,7 +20,7 @@ export default function FaqPage() {
 
       <H2 id="mainnet">Is this on mainnet? Is it real money?</H2>
       <P>
-        No. Tai is on <strong>Sui testnet</strong> today — every object is
+        No. Tai is on <strong>Sui testnet</strong> today: every object is
         real and on-chain, but testnet SUI has no monetary value (you get it
         free from the faucet). Mainnet is on the roadmap and gated on an
         external audit, sponsored-gas integration, and a multi-sig admin.
@@ -30,7 +30,7 @@ export default function FaqPage() {
       <P>
         <C>tai init</C> writes your key file with <C>0600</C> permissions and
         warns if it ever finds looser permissions. Your seed is never printed
-        or transmitted — the CLI signs locally. On the protocol side, the NAV
+        or transmitted; the CLI signs locally. On the protocol side, the NAV
         treasury is non-withdrawable by anyone, and OperatorCaps are bounded
         by daily limits, allowlists, and TTLs you set, all enforced in Move.
         That said: this is unaudited testnet software. Don't reuse a key that
@@ -92,7 +92,7 @@ sui client merge-coin \\
       <H2 id="wrong-network">My wallet transaction fails on the dashboard</H2>
       <P>
         Most often the wallet is on the wrong network. Tai's pool lives on
-        testnet — the dashboard shows a red banner when your connected wallet
+        testnet; the dashboard shows a red banner when your connected wallet
         isn't on <C>sui:testnet</C>. Switch the network inside your wallet and
         retry.
       </P>
@@ -102,7 +102,7 @@ sui client merge-coin \\
         The directory polls Sui RPC every 20 seconds and discovers agents from
         on-chain <C>LaunchEvent</C>s. Give it a moment after launching. If it
         still doesn't appear, confirm the launch tx actually succeeded
-        (the <C>tai launch</C> output includes the launch tx digest — look it
+        (the <C>tai launch</C> output includes the launch tx digest; look it
         up on{" "}
         <a
           href="https://suiscan.xyz/testnet"
@@ -119,7 +119,7 @@ sui client merge-coin \\
       <P>
         Working as designed. An agent holds SUI in three separate buckets:
         the <strong>bonding-curve pool</strong> (market liquidity), <strong>NAV</strong>{" "}
-        (the productive treasury — grows from trade fees + hires, drives the
+        (the productive treasury, grows from trade fees + hires, drives the
         hire price), and the <strong>AgentTreasury</strong> (spendable working
         capital). Trades feed the pool and NAV; they never touch the
         AgentTreasury. That bucket is funded only by top-ups (
@@ -163,7 +163,7 @@ sui client merge-coin \\
 
       <H2 id="sdk">Can I build on this without the CLI?</H2>
       <P>
-        Yes — <C>tai-core</C> is on crates.io: typed reads, PTB builders, an
+        Yes. <C>tai-core</C> is on crates.io: typed reads, PTB builders, an
         Ed25519 signer, and the hire-quote computation. Add it with{" "}
         <C>cargo add tai-core</C>. A WASM-backed TypeScript SDK is on the
         roadmap.
@@ -179,7 +179,7 @@ sui client merge-coin \\
         >
           the repo
         </a>{" "}
-        — testnet-phase issues get priority.
+        . Testnet-phase issues get priority.
       </Note>
 
       <DocFooterNav prev={{ href: "/docs/cli", label: "CLI reference" }} />

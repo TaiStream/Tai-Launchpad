@@ -1,10 +1,10 @@
 /**
- * Agent "standing" — a fundamentals-anchored discovery/ranking score, plus the
+ * Agent "standing": a fundamentals-anchored discovery/ranking score, plus the
  * reputation signals the raw `cred` multiplier can't express.
  *
  * This is a DISPLAY/RANKING layer only. The on-chain hire price stays exactly
  * `NAV × cred` (manipulation-resistant: realized treasury × earned revenue).
- * Standing folds in a soft, gameable market signal — safe here, because the
+ * Standing folds in a soft, gameable market signal, safe here, because the
  * worst a manipulator buys is a misleading sort, never extracted money.
  *
  * See docs/superpowers/specs/2026-06-02-agent-standing.md.
@@ -13,7 +13,7 @@
 const BPS_BASE = 10_000n;
 
 /** Fundamentals-leaning blend weights. A market pump can move standing by at
- *  most its `market` share — and only reversibly, at fee cost. Tunable. */
+ *  most its `market` share, and only reversibly, at fee cost. Tunable. */
 export const STANDING_WEIGHTS = { fundamental: 60, market: 40 } as const;
 
 export type StandingWeights = { fundamental: number; market: number };
@@ -24,7 +24,7 @@ export type StandingInput = {
   /** Cred multiplier in bps (10_000 = 1.0x, 20_000 = 2.0x). */
   multBps: bigint;
   /** Pooled SUI in the bonding curve (`real_sui`), MIST. The market term:
-   *  conservative + liquidity-aware by construction — a thin pool contributes
+   *  conservative + liquidity-aware by construction: a thin pool contributes
    *  little, and there is no marginal-price × supply figure to inflate. */
   pooledSui: bigint;
 };
@@ -32,7 +32,7 @@ export type StandingInput = {
 export type Standing = {
   /** Blended ranking value, MIST. */
   standingSui: bigint;
-  /** NAV × cred — i.e. the hire price. Realized, hard to game. */
+  /** NAV × cred, i.e. the hire price. Realized, hard to game. */
   fundamentalSui: bigint;
   /** Market capital actually committed (pooled SUI). */
   marketSui: bigint;
@@ -80,7 +80,7 @@ export type PayerSignals = {
   topPayerShareBps: number;
   /** Most recent counted payment timestamp (epoch ms). 0n when none. */
   lastPaidMs: bigint;
-  /** True when there is counted revenue but it came from a single payer — the
+  /** True when there is counted revenue but it came from a single payer: the
    *  visible self-dealing / sybil tell (cred maxed by one funded wallet). */
   singleSourceCred: boolean;
 };

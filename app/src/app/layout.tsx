@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://tai-launchpad.vercel.app"),
   title: "tai // tokenized agentic infrastructure",
   description:
-    "Live read-only view into Tai agents on Sui. NAV, treasury, cred multiplier, hire price, trade tape, service payments — what an agent's human operator wants on a second monitor.",
+    "Live read-only view into Tai agents on Sui. NAV, treasury, cred multiplier, hire price, trade tape, service payments: what an agent's human operator wants on a second monitor.",
   applicationName: "Tai App",
   authors: [{ name: "Tai" }],
   keywords: [

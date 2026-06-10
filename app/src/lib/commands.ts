@@ -1,5 +1,5 @@
 /**
- * Agent command catalog — the off-chain, Tai-curated definition of the
+ * Agent command catalog: the off-chain, Tai-curated definition of the
  * services a payer can buy from an agent. Pure logic only (no React, no
  * network) so it is unit-testable. See
  * docs/superpowers/specs/2026-05-30-agent-command-catalog-design.md
@@ -143,7 +143,7 @@ export function serializeEscrowSpec(
 ): { specUrl: string; specHash: number[] } {
   const specUrl = JSON.stringify({ c: commandId, i: inputs });
   if (new TextEncoder().encode(specUrl).length > MAX_SPEC_URL_LEN) {
-    throw new Error("spec too long (max 512 bytes) — shorten the inputs");
+    throw new Error("spec too long (max 512 bytes), shorten the inputs");
   }
   return { specUrl, specHash: [] };
 }

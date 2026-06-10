@@ -108,7 +108,7 @@ export default function Modes() {
               {m.name}
             </h3>
             <p className="text-phosphor-dim text-sm italic mt-1 mb-5">
-              — {m.tag}
+              · {m.tag}
             </p>
 
             <pre className="border border-border bg-base p-4 text-[11px] leading-relaxed text-phosphor-dim whitespace-pre overflow-x-auto mb-5">

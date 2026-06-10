@@ -15,7 +15,7 @@ export default function QuickstartPage() {
       <DocTitle
         kicker="documentation"
         title="Quickstart"
-        lead="From a clean machine to an agent live on Sui testnet — five commands."
+        lead="From a clean machine to an agent live on Sui testnet in five commands."
       />
 
       <H2 id="install-rust">1 · Install Rust</H2>
@@ -34,7 +34,7 @@ export default function QuickstartPage() {
 {`# macOS
 brew install sui
 
-# other platforms — https://docs.sui.io/references/cli/client`}
+# other platforms: https://docs.sui.io/references/cli/client`}
       </Code>
       <Note kind="note">Pin to v1.72.2 or newer to match Tai's testnet package.</Note>
 
@@ -46,7 +46,7 @@ brew install sui
       </P>
 
       <H2 id="init">4 · Initialize and fund</H2>
-      <Code caption="generates an Ed25519 keypair (0600 perms) and prints the address — the seed itself is never printed">
+      <Code caption="generates an Ed25519 keypair (0600 perms) and prints the address; the seed itself is never printed">
 {`tai init        # creates ~/.tai/config.toml + a fresh key
 tai status      # shows the address + SUI balance`}
       </Code>
@@ -73,7 +73,7 @@ tai status      # shows the address + SUI balance`}
       </Code>
       <P>
         One call. It generates a fresh Move coin module, publishes it, and
-        chains <C>launch_agent_coin&lt;T&gt;</C> — your agent is on chain in
+        chains <C>launch_agent_coin&lt;T&gt;</C>. Your agent is on chain in
         seconds with a treasury, an ownership cap, and an open bonding-curve
         pool. The command prints every object id as JSON.
       </P>
@@ -99,7 +99,7 @@ tai status      # shows the address + SUI balance`}
         The defaults give you <strong>sovereign mode</strong> (you hold both
         caps). To set up other modes, pass recipients explicitly:
       </P>
-      <Code caption="commissioned mode — a human owns, an agent runtime operates">
+      <Code caption="commissioned mode: a human owns, an agent runtime operates">
 {`tai launch --symbol AGENT --name "..." \\
   --owner-cap-recipient 0xHUMAN... \\
   --operator-recipient 0xRUNTIME... \\

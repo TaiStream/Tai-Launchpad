@@ -1,6 +1,6 @@
 /**
  * Minimal Sui JSON-RPC client used server-side. Each function is one POST.
- * No SDK — the dashboard touches a tiny surface (getObject, multiGetObjects,
+ * No SDK: the dashboard touches a tiny surface (getObject, multiGetObjects,
  * queryEvents) and the official SDK adds far more weight than the savings
  * justify.
  */
@@ -32,7 +32,7 @@ const RPC_ENDPOINTS: string[] = Array.from(
 );
 
 /** A JSON-RPC method-level error (HTTP 200 with an `error` body). NOT an
- *  endpoint failure — surface it rather than failing over to another node. */
+ *  endpoint failure, so surface it rather than failing over to another node. */
 class RpcMethodError extends Error {}
 
 async function rpcOnce<T>(
@@ -79,7 +79,7 @@ async function rpcWithFailover<T>(
     try {
       return await rpcOnce<T>(endpoint, method, params);
     } catch (err) {
-      // A real method-level RPC error is not an endpoint problem — don't fail
+      // A real method-level RPC error is not an endpoint problem, so don't fail
       // over (every node would return the same). Transport/timeout/HTTP errors
       // fall through to the next endpoint.
       if (err instanceof RpcMethodError) throw err;
@@ -100,7 +100,7 @@ async function rpcWithFailover<T>(
  * every agent page. Caching them for a few seconds makes switching between
  * agents feel instant; coalescing dedupes the concurrent bursts a single render
  * fires. The TTL is far shorter than the ~15s live-view poll, so numbers a user
- * actually watches stay fresh — this only collapses redundant reads.
+ * actually watches stay fresh. This only collapses redundant reads.
  *
  * Reads only (every method here is a query); errors are never cached.
  */

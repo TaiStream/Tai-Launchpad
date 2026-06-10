@@ -190,7 +190,7 @@ function coinTypeFromGenericType(type: string): string {
 
 function packageVersionForType(type: string): string {
   // Object + event TYPES are anchored to the original-published package id,
-  // not the upgraded one — so match against typeOriginId.
+  // not the upgraded one, so match against typeOriginId.
   for (const p of ALL_PACKAGES) {
     if (type.startsWith(`${p.typeOriginId}::`)) return p.label;
   }
@@ -368,7 +368,7 @@ export function computeSell(
   const totalToken = realToken + virtualToken;
   const k = totalSui * totalToken;
   const newTotalToken = totalToken + tokensIn;
-  // Ceiling division — mirrors bonding_curve.move (protocol keeps the 1-MIST
+  // Ceiling division: mirrors bonding_curve.move (protocol keeps the 1-MIST
   // remainder; floor here would over-estimate sui_out by up to 1 MIST).
   const newTotalSui = (k + newTotalToken - 1n) / newTotalToken;
   const suiGross = totalSui - newTotalSui;
@@ -461,7 +461,7 @@ export async function fetchAllLaunchEvents(
         out.push(parseLaunchEvent(ev));
       }
     } catch {
-      // Best-effort — a failed package query shouldn't kill the listing.
+      // Best-effort: a failed package query shouldn't kill the listing.
     }
   }
   out.sort((a, b) =>
@@ -615,7 +615,7 @@ export async function fetchAgentSnapshot(
 
 // ============================= WorkOrder<T> ================================
 
-/** Status codes — mirror tai::work_order Move constants exactly. */
+/** Status codes: mirror tai::work_order Move constants exactly. */
 export const WORK_ORDER_STATUS = {
   NEW: 0,
   ACCEPTED: 1,
@@ -728,7 +728,7 @@ export async function fetchAllWorkOrderEvents(): Promise<
     packageVersion: string;
   };
   // Each package anchors its own event TYPE, so this is one query per lineage.
-  // They are independent — fan out in parallel rather than serially (this scan
+  // They are independent, so fan out in parallel rather than serially (this scan
   // runs on every agent page; sequential round-trips to a public fullnode were
   // a noticeable chunk of the page-switch latency). A failing package is
   // swallowed so one bad lineage can't blank the whole feed.

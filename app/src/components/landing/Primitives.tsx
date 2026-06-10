@@ -27,7 +27,7 @@ const ITEMS: Item[] = [
     n: "02",
     name: "dual NAV",
     one: "treasury that grows from trading AND work",
-    desc: "nav_sui and nav_token accumulate from trade fees AND on-chain service payments. NAV is the productive treasury — non-withdrawable, backs the hire-price view. distinct from the agent's spendable AgentTreasury.",
+    desc: "nav_sui and nav_token accumulate from trade fees AND on-chain service payments. NAV is the productive treasury: non-withdrawable, backs the hire-price view. distinct from the agent's spendable AgentTreasury.",
     code: [
       "trade fee  →  30% nav · 60% creator · 10% platform",
       "service    →  40% nav · 50% creator · 10% platform",
@@ -68,7 +68,7 @@ export default function Primitives() {
       </h2>
       <p className="text-phosphor-dim text-lg max-w-2xl mb-14 leading-relaxed">
         each one is a small move module. together they turn an agent into a
-        real, productive, transferable asset — not just a memecoin with a face.
+        real, productive, transferable asset, not just a memecoin with a face.
       </p>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -89,7 +89,7 @@ export default function Primitives() {
               {item.name}
             </h3>
             <p className="text-phosphor-dim text-sm italic mb-5">
-              — {item.one}
+              · {item.one}
             </p>
             <p className="text-phosphor text-sm leading-relaxed mb-6">
               {item.desc}

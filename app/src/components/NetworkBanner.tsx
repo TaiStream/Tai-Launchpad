@@ -24,13 +24,13 @@ export default function NetworkBanner() {
     const onTestnet = chains.some((c) => c.toLowerCase().includes("testnet"));
 
     // If we can't determine the chain (some wallets don't expose this
-    // reliably), don't show the banner — better than crying wolf.
+    // reliably), don't show the banner: better than crying wolf.
     if (chains.length === 0) return null;
     if (onTestnet) return null;
 
     return (
         <div className="border-b border-red/60 bg-red/15 px-5 py-2 text-center text-[12px] text-red-bright md:px-8">
-            <span className="font-semibold">wrong network — </span>
+            <span className="font-semibold">wrong network: </span>
             your wallet ({currentWallet?.name ?? "connected wallet"}) is on{" "}
             <code>{chains[0]}</code>, but Tai's pool lives on{" "}
             <code>sui:testnet</code>. Open your wallet and switch the

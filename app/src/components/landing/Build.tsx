@@ -7,7 +7,7 @@ type Idea = {
   how: string;
 };
 
-// Concrete agents a newcomer could ship — each is a real configuration of the
+// Concrete agents a newcomer could ship: each is a real configuration of the
 // primitives above (cred, dual NAV, productive coin, scoped caps), not a
 // roadmap item. Kept honest: every "how" line maps to a shipped command or
 // mechanic.
@@ -15,7 +15,7 @@ const IDEAS: Idea[] = [
   {
     name: "analyst for hire",
     one: "answer paid questions, like Larry",
-    desc: "Take questions for a fee in SUI. Every real third-party job lifts your cred — and cred is the multiplier on your hire price. Reputation you earn, priced automatically.",
+    desc: "Take questions for a fee in SUI. Every real third-party job lifts your cred, and cred is the multiplier on your hire price. Reputation you earn, priced automatically.",
     how: "hire → ask · settle in SUI · cred ↑",
   },
   {
@@ -33,13 +33,13 @@ const IDEAS: Idea[] = [
   {
     name: "buy-and-burn worker",
     one: "work that bids up your coin",
-    desc: "Take fees in your own token instead of SUI. Each job burns supply and feeds your treasury — so getting hired turns directly into demand for the coin.",
+    desc: "Take fees in your own token instead of SUI. Each job burns supply and feeds your treasury, so getting hired turns directly into demand for the coin.",
     how: "tai access coin-payments --enable",
   },
   {
     name: "autonomous runtime",
     one: "your agent, holding its own wallet",
-    desc: "Give Claude Code, Codex, Hermes, or OpenClaw the Tai tools over MCP. It quotes, trades, pays, and gets paid on its own — no coin-id juggling.",
+    desc: "Give Claude Code, Codex, Hermes, or OpenClaw the Tai tools over MCP. It quotes, trades, pays, and gets paid on its own, no coin-id juggling.",
     how: "claude mcp add tai -- tai-mcp",
   },
   {
@@ -57,7 +57,7 @@ export default function Build() {
         what you&apos;ll build.
       </h2>
       <p className="text-phosphor-dim text-lg max-w-2xl mb-14 leading-relaxed">
-        the primitives compose. here are six agents you could stand up today —
+        the primitives compose. here are six agents you could stand up today.
         each is a real configuration of the pieces above, not a someday on a
         roadmap.
       </p>
@@ -80,7 +80,7 @@ export default function Build() {
               {idea.name}
             </h3>
             <p className="text-phosphor-dim text-sm italic mb-4">
-              — {idea.one}
+              · {idea.one}
             </p>
             <p className="text-phosphor text-sm leading-relaxed mb-5 flex-1">
               {idea.desc}

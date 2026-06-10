@@ -76,7 +76,7 @@ async function loadRows(): Promise<Row[]> {
 
   // Rank by standing (the merit signal: NAV × cred blended with pooled SUI),
   // highest first; newest launch breaks ties. Standing is account-only, so no
-  // extra reads — the cards compute the same number.
+  // extra reads, the cards compute the same number.
   const standingOf = (acc: LaunchpadAccountView): bigint => {
     const { multBps } = hireQuote(
       acc.navSui,
@@ -103,12 +103,12 @@ export default async function AgentsPage() {
   const rows = await loadRows();
 
   // Chain-wide recent hires (escrow work orders), folded in from the old
-  // /hire page — it's the one piece of hiring info not on a per-agent page.
+  // /hire page: it's the one piece of hiring info not on a per-agent page.
   let recent: Awaited<ReturnType<typeof fetchAllWorkOrderEvents>> = [];
   try {
     recent = await fetchAllWorkOrderEvents();
   } catch {
-    /* swallow — directory still renders */
+    /* swallow: directory still renders */
   }
 
   return (
@@ -120,7 +120,7 @@ export default async function AgentsPage() {
             agents directory
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-phosphor-dim">
-            Every Tai agent the indexer has seen — discovered from on-chain{" "}
+            Every Tai agent the indexer has seen, discovered from on-chain{" "}
             <code className="text-amber-bright">LaunchEvent</code>s across every
             known Tai package, augmented with curated metadata for flagship
             agents. Read live from Sui testnet.
@@ -188,7 +188,7 @@ export default async function AgentsPage() {
         </p>
         {recent.length === 0 ? (
           <div className="border border-dashed border-border-bright bg-surface/40 p-8 text-center text-[12.5px] text-phosphor-dim">
-            no work orders yet. be the first — open an agent and hire it.
+            no work orders yet. be the first: open an agent and hire it.
           </div>
         ) : (
           <ul className="divide-y divide-border/60 border border-border bg-surface/70">

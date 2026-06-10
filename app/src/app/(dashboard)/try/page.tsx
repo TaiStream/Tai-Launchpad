@@ -13,13 +13,13 @@ export default function TryPage() {
       <header className="mb-10">
         <div className="mb-3 flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-phosphor-dim">
           <Tag variant="green">testnet · alpha</Tag>
-          <span>no real money — come break it</span>
+          <span>no real money, come break it</span>
         </div>
         <h1 className="font-display text-5xl leading-tight tracking-tight text-phosphor glow-amber md:text-6xl">
           try Tai in five minutes.
         </h1>
         <p className="mt-4 max-w-2xl text-[14.5px] leading-relaxed text-phosphor-dim">
-          Tai turns an AI agent into an on-chain economy — a tradable coin, a
+          Tai turns an AI agent into an on-chain economy: a tradable coin, a
           treasury that grows from real work, a reputation the protocol prices.
           Everything below runs on <strong>Sui testnet</strong>: the coins are
           real and on-chain, but testnet SUI is free and worth nothing, so
@@ -29,7 +29,7 @@ export default function TryPage() {
 
       <Step n={1} title="Get a Sui wallet, on testnet">
         <p className="text-[13.5px] leading-relaxed text-phosphor-dim">
-          Install a Sui wallet —{" "}
+          Install a Sui wallet,{" "}
           <a
             href="https://slush.app"
             className="text-amber-bright hover:underline"
@@ -46,8 +46,8 @@ export default function TryPage() {
             rel="noreferrer"
           >
             Suiet
-          </a>{" "}
-          — then switch its network to <strong>Testnet</strong> (usually in the
+          </a>
+          , then switch its network to <strong>Testnet</strong> (usually in the
           wallet&apos;s network dropdown). The dashboard shows a red banner if
           your wallet is on the wrong network.
         </p>
@@ -77,7 +77,7 @@ export default function TryPage() {
           </Link>
           , pick one, connect your wallet (top-right), and buy a little of its
           coin from the bonding curve. Watch the &quot;you receive&quot;
-          estimate and the agent&apos;s NAV — 30% of every trade fee flows into
+          estimate and the agent&apos;s NAV: 30% of every trade fee flows into
           the agent&apos;s treasury.
         </p>
       </Step>
@@ -88,15 +88,15 @@ export default function TryPage() {
           services. Pick one, pay, and you&apos;ve hired it: a <strong>v1.1
           agent</strong> (e.g. the Demo agent) offers escrow-backed{" "}
           <em>commission</em> jobs; <strong>Larry</strong> (an older agent)
-          takes a direct <em>ask</em>. Both grow the agent&apos;s cred — the
+          takes a direct <em>ask</em>. Both grow the agent&apos;s cred: the
           reputation multiplier that prices future hires.
         </p>
       </Step>
 
       <Step n={5} title="Launch your own agent" final>
         <p className="text-[13.5px] leading-relaxed text-phosphor-dim">
-          The real fun: spin up your own. Five commands from a clean machine —
-          see the{" "}
+          The real fun: spin up your own. Five commands from a clean machine.
+          See the{" "}
           <Link href="/start" className="text-amber-bright hover:underline">
             quickstart
           </Link>
@@ -113,7 +113,7 @@ export default function TryPage() {
 
       <Panel title="tell us what broke" accent="violet" dense>
         <p className="text-[13px] leading-relaxed text-phosphor-dim">
-          This is an alpha — rough edges are expected and reports are gold.
+          This is an alpha: rough edges are expected and reports are gold.
           Found a bug or something confusing? Open an issue at{" "}
           <a
             href="https://github.com/TaiStream/Tai-Launchpad/issues"
@@ -132,7 +132,7 @@ export default function TryPage() {
           >
             @TaiUpdates
           </a>
-          . New docs you want, agents you wish existed — all useful.
+          . New docs you want, agents you wish existed: all useful.
         </p>
       </Panel>
     </div>

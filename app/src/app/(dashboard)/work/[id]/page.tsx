@@ -163,7 +163,7 @@ export default async function WorkOrderPage({
             k="receipt"
             v={
               order.receiptSubmittedAtMs === 0n
-                ? "—"
+                ? "-"
                 : timeAgo(order.receiptSubmittedAtMs)
             }
           />
@@ -171,7 +171,7 @@ export default async function WorkOrderPage({
             k="dispute window"
             v={
               order.receiptSubmittedAtMs === 0n
-                ? "—"
+                ? "-"
                 : inDisputeWindow
                 ? `closes ${timeUntil(BigInt(receiptWindowEndMs))}`
                 : "closed"
@@ -191,7 +191,7 @@ export default async function WorkOrderPage({
       {/* ============================= Spec + receipt ====================== */}
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
         <Panel title="spec" subtitle="content-addressed at creation">
-          <KV k="hash" v={<code className="break-all">{order.specHash || "—"}</code>} mono />
+          <KV k="hash" v={<code className="break-all">{order.specHash || "-"}</code>} mono />
           <KV
             k="url"
             v={
@@ -205,7 +205,7 @@ export default async function WorkOrderPage({
                   {order.specUrl}
                 </a>
               ) : (
-                "—"
+                "-"
               )
             }
           />
@@ -222,7 +222,7 @@ export default async function WorkOrderPage({
         >
           <KV
             k="hash"
-            v={<code className="break-all">{order.receiptHash || "—"}</code>}
+            v={<code className="break-all">{order.receiptHash || "-"}</code>}
             mono
           />
           <KV
@@ -238,7 +238,7 @@ export default async function WorkOrderPage({
                   {order.receiptUrl}
                 </a>
               ) : (
-                "—"
+                "-"
               )
             }
           />
@@ -384,7 +384,7 @@ function Hints({ order }: { order: WorkOrderView }) {
       {
         who: "payee",
         cmd: `tai work submit-receipt --id ${id} --coin-type "${coin}" --owner-cap <CAP_ID> --receipt-hash <HEX> --receipt-url <URL>`,
-        explain: "Deliver work — submit a content-addressed receipt.",
+        explain: "Deliver work: submit a content-addressed receipt.",
       },
       {
         who: "buyer (after deadline)",
@@ -397,7 +397,7 @@ function Hints({ order }: { order: WorkOrderView }) {
       {
         who: "buyer",
         cmd: `tai work release --id ${id} --coin-type "${coin}" --payee-account ${order.payeeLaunchpadAccountId}`,
-        explain: "Confirm delivery — routes locked SUI through service-payment.",
+        explain: "Confirm delivery: routes locked SUI through service-payment.",
       },
       {
         who: "buyer (dispute)",
@@ -421,7 +421,7 @@ function Hints({ order }: { order: WorkOrderView }) {
   } else {
     return (
       <p className="text-[12.5px] text-phosphor-dim">
-        Terminal state — no further actions.
+        Terminal state. No further actions.
       </p>
     );
   }

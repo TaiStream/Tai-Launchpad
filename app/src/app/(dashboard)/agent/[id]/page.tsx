@@ -46,8 +46,8 @@ export default async function AgentPage({
   const launchpadAccountId = known?.launchpadAccountId ?? id;
   if (!launchpadAccountId.startsWith("0x")) notFound();
 
-  // Snapshot and work-order scan are independent — work orders key off the
-  // route id, not the snapshot — so run them concurrently instead of letting
+  // Snapshot and work-order scan are independent (work orders key off the
+  // route id, not the snapshot) so run them concurrently instead of letting
   // the scan wait behind the snapshot's reads. A snapshot failure means the
   // agent doesn't exist (404); a work-order failure is silent (best-effort).
   const [snap, workOrders] = await Promise.all([
@@ -86,7 +86,7 @@ export default async function AgentPage({
     ),
   );
 
-  // Coin symbol from the type — last token after ::
+  // Coin symbol from the type: last token after ::
   const symbol =
     account.coinType.split("::").pop() ?? account.coinTypeName ?? "T";
   const displayName = display?.name ?? known?.name ?? `Agent ${symbol}`;
@@ -252,7 +252,7 @@ export default async function AgentPage({
             <>
               productive treasury · grows from trade fees + completed hires ·
               non-withdrawable. (the agent's spendable working-capital treasury
-              is a separate balance — see below)
+              is a separate balance, see below)
             </>
           }
           accent="amber"
@@ -325,7 +325,7 @@ export default async function AgentPage({
                 v={
                   payerSignals.countedTotalSui > 0n
                     ? String(payerSignals.distinctPayers)
-                    : "—"
+                    : "-"
                 }
               />
               <KV
@@ -333,7 +333,7 @@ export default async function AgentPage({
                 v={
                   payerSignals.countedTotalSui > 0n
                     ? `${(payerSignals.topPayerShareBps / 100).toFixed(0)}% top`
-                    : "—"
+                    : "-"
                 }
               />
               <KV
@@ -353,7 +353,7 @@ export default async function AgentPage({
           {payerSignals.singleSourceCred && (
             <div className="mt-4 border border-amber/40 bg-amber/[0.05] px-3 py-2 text-[12px] leading-relaxed text-phosphor-dim">
               <span className="text-amber-bright">caution:</span> all counted
-              revenue seen here is from a single payer — this cred rests on one
+              revenue seen here is from a single payer. This cred rests on one
               source, the cheapest kind of reputation to fake. Weigh it
               accordingly.
             </div>
@@ -471,7 +471,7 @@ export default async function AgentPage({
         >
           <p className="mb-3 border border-border bg-base/40 px-3 py-2 text-[11.5px] leading-relaxed text-phosphor-dim">
             Separate from NAV. Funded by top-ups and transfer-to-object
-            claims — <span className="text-phosphor">not</span> by trades or
+            claims, <span className="text-phosphor">not</span> by trades or
             hires (those grow the pool + NAV). This is what the agent spends
             from. Top it up with{" "}
             <code className="text-amber-bright">
@@ -584,7 +584,7 @@ export default async function AgentPage({
             k="access threshold"
             v={
               account.accessThreshold === 0n
-                ? "—"
+                ? "-"
                 : unitsToCoin(account.accessThreshold, account.decimals, 0)
             }
           />
@@ -593,7 +593,7 @@ export default async function AgentPage({
             v={
               account.linkedIdentity
                 ? shortAddr(account.linkedIdentity, 6, 6)
-                : "—"
+                : "-"
             }
             mono
           />
@@ -632,7 +632,7 @@ export default async function AgentPage({
         >
           {workOrders.length === 0 ? (
             <div className="border border-dashed border-border-bright bg-surface/40 p-6 text-center text-[12.5px] text-phosphor-dim">
-              No work-order escrows targeting this agent. Be the first — hire it
+              No work-order escrows targeting this agent. Be the first: hire it
               with the card above.{" "}
               <Link href="/docs/hiring" className="text-amber-bright hover:text-amber-bright/80">
                 how escrow works →

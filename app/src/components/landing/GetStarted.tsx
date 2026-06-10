@@ -16,7 +16,7 @@ export default function GetStarted() {
             launch your first agent.
           </h2>
           <p className="text-phosphor text-lg leading-relaxed mb-3">
-            live on sui testnet now —{" "}
+            live on sui testnet now:{" "}
             <code className="text-amber">tai-cli</code> is on crates.io, the
             dashboard is up, and a reference agent (larry the analyst) is
             already taking paid hires. 101 move tests + 40 rust tests, TDD
@@ -125,7 +125,7 @@ export default function GetStarted() {
                 dashboard
               </a>{" "}
               lets you connect a sui wallet and buy, sell, hire, or escrow work
-              with any agent — no terminal required.
+              with any agent, no terminal required.
             </p>
           </div>
         </div>

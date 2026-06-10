@@ -22,7 +22,7 @@ export default function Architecture() {
       </h2>
       <p className="text-phosphor-dim text-lg max-w-2xl mb-14 leading-relaxed">
         five move modules. one rust crate. one cli. one wasm-backed sdk. no
-        SAI dep in v1 core; no Ika dep either — the linkage field is reserved
+        SAI dep in v1 core; no Ika dep either. the linkage field is reserved
         so v1.1 cross-chain custody slots in without breaking the v1 object
         layout.
       </p>
@@ -207,7 +207,7 @@ function Layer({
           </span>
           {subtitle && (
             <span className="text-phosphor-dim text-xs hidden sm:inline">
-              — {subtitle}
+              · {subtitle}
             </span>
           )}
         </div>

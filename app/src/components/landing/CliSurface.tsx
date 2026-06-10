@@ -41,8 +41,8 @@ export default function CliSurface() {
           </h2>
           <p className="text-phosphor-dim text-lg leading-relaxed mb-4">
             agents run in processes, not browsers. tai's primary access
-            surface is a single rust binary that any runtime — eliza,
-            virtuals, custom python/go/node, anything in a docker image — can
+            surface is a single rust binary that any runtime (eliza,
+            virtuals, custom python/go/node, anything in a docker image) can
             invoke as a subprocess.
           </p>
           <p className="text-phosphor-dim text-lg leading-relaxed mb-4">

@@ -26,10 +26,10 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   // Live config read on v1.1 (the canonical lineage) for the protocol params.
   const config = await fetchLaunchpadConfig(TAI.v1_1.configId, "v1.1");
-  // Featured agent — Larry (legacy v1.0.1).
+  // Featured agent: Larry (legacy v1.0.1).
   const larry = KNOWN_AGENTS.find((a) => a.slug === "larry")!;
   const snap = await fetchAgentSnapshot(larry.launchpadAccountId, larry.displayId);
-  // All launch events across packages — just for the count.
+  // All launch events across packages, just for the count.
   let launchCount = 0;
   let lastLaunchAt: bigint = 0n;
   try {
@@ -65,7 +65,7 @@ export default async function HomePage() {
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-phosphor-dim">
             NAV. Hire price. Cred multiplier. Bonding curve depth. Treasury
             balances. Operator caps. Every paid hire and every trade on the
-            tape. The view an agent's human operator wants on a second monitor —
+            tape. The view an agent's human operator wants on a second monitor,
             served fresh from Sui RPC, never cached.
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -128,7 +128,7 @@ export default async function HomePage() {
             k="schema version"
             v={
               <Tag variant="green">
-                v{config.schemaVersion?.toString() ?? "—"}
+                v{config.schemaVersion?.toString() ?? "-"}
               </Tag>
             }
           />
@@ -148,7 +148,7 @@ export default async function HomePage() {
           <SysRow k="agents discovered" v={launchCount.toString()} />
           <SysRow
             k="last launch"
-            v={lastLaunchAt > 0n ? utcStamp(lastLaunchAt) : "—"}
+            v={lastLaunchAt > 0n ? utcStamp(lastLaunchAt) : "-"}
           />
         </Panel>
       </section>
@@ -238,7 +238,7 @@ export default async function HomePage() {
         <Panel title="why a dashboard" dense>
           <p className="text-[13.5px] leading-relaxed text-phosphor-dim">
             Tai's primary surface is a CLI agents drive themselves. But the
-            humans who own those agents still want a glance — is NAV
+            humans who own those agents still want a glance: is NAV
             accumulating, are paid hires landing, is the treasury healthy?
             This is that glance.
           </p>
@@ -257,7 +257,7 @@ export default async function HomePage() {
             Trading, hiring, and work-order actions already run from a connected
             wallet in this UI. Owner operations (top-up, withdraw, issue/revoke
             operator caps) stay in the CLI for now and are next up for a
-            wallet-connect path. The aesthetic stays — fewer surprises that way.
+            wallet-connect path. The aesthetic stays, fewer surprises that way.
           </p>
         </Panel>
       </section>

@@ -136,7 +136,7 @@ function ServiceRow({
         title={
           ev.countedTowardCred
             ? "Counted toward the cred multiplier (third-party paid revenue)"
-            : "Self-payment (creator paying their own agent) — grows NAV but excluded from cred"
+            : "Self-payment (creator paying their own agent): grows NAV but excluded from cred"
         }
       >
         {ev.countedTowardCred ? "CRED" : "SELF"}

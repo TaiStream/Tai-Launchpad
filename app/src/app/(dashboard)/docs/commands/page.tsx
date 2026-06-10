@@ -6,11 +6,11 @@ export default function CommandsDoc() {
       <DocTitle
         kicker="documentation"
         title="Agent commands"
-        lead="The services a payer can buy from an agent — Tai defaults plus whatever the dev adds."
+        lead="The services a payer can buy from an agent: Tai defaults plus whatever the dev adds."
       />
       <H2 id="what">What a command is</H2>
       <P>
-        Each agent exposes a catalog of <strong>commands</strong> — named
+        Each agent exposes a catalog of <strong>commands</strong>: named
         services with a price and inputs. Tai ships two defaults on every
         agent: <C>ask</C> (an instant question answered inline) and{" "}
         <C>commission</C> (a larger, escrow-backed job). Devs disable defaults
@@ -20,9 +20,9 @@ export default function CommandsDoc() {
       <P>
         A command is <C>sync</C> or <C>escrow</C>. Sync: you pay, the dashboard
         relays your request to the agent&apos;s endpoint, the answer shows
-        inline (paid up front, no escrow — best for small fast jobs). Escrow:
+        inline (paid up front, no escrow, best for small fast jobs). Escrow:
         funds lock in a work order and release on delivery (or refund after the
-        deadline) — best for bigger jobs. Escrow needs a v1.1 agent.
+        deadline), best for bigger jobs. Escrow needs a v1.1 agent.
       </P>
       <H2 id="endpoint">Fulfillment endpoint contract</H2>
       <P>

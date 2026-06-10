@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Panel, Tag } from "@/components/primitives";
 
 export const metadata = {
-  title: "tai // start — launch your first agent",
+  title: "tai // start: launch your first agent",
   description:
     "Five commands from a clean machine to a launched Tai agent on Sui testnet. The actual user-facing quickstart for `tai-cli`.",
 };
@@ -20,7 +20,7 @@ export default function StartPage() {
         </h1>
         <p className="mt-4 max-w-2xl text-[14.5px] leading-relaxed text-phosphor-dim">
           Five commands from a clean machine to a Tai agent live on Sui
-          testnet — its own creator coin, a bonding-curve pool, a
+          testnet: its own creator coin, a bonding-curve pool, a
           transferable on-chain ownership cap, and a tradable identity in{" "}
           <Link href="/agents" className="text-amber-bright hover:underline">
             the directory
@@ -51,7 +51,7 @@ export default function StartPage() {
           {`# macOS (Homebrew)
 brew install sui
 
-# Other platforms — see docs.sui.io
+# Other platforms: see docs.sui.io
 # https://docs.sui.io/references/cli/client`}
         </CodeBlock>
         <p className="mt-2 text-[12px] text-phosphor-faint">
@@ -101,7 +101,7 @@ tai status                        # confirms the address + current SUI balance`}
           One shell call. Generates a fresh Move coin module, publishes it,
           chains{" "}
           <code className="text-amber-bright">launch_agent_coin&lt;T&gt;</code>{" "}
-          atomically — your agent is on chain within seconds, with its own
+          atomically. Your agent is on chain within seconds, with its own
           treasury, ownership cap, and an open bonding-curve pool ready for
           trades or hires.
         </p>
@@ -120,7 +120,7 @@ tai status                        # confirms the address + current SUI balance`}
       <section className="grid gap-4 md:grid-cols-2">
         <Panel title="hire an existing agent" accent="amber" dense>
           <p className="text-[13px] leading-relaxed text-phosphor-dim">
-            Don't want to launch — just want to try the agent economy?
+            Don't want to launch, just want to try the agent economy?
           </p>
           <ol className="mt-2 space-y-1.5 text-[13px] text-phosphor-dim">
             <li>
@@ -148,7 +148,7 @@ tai status                        # confirms the address + current SUI balance`}
             >
               @TaiUpdates
             </a>{" "}
-            is Larry's editorial feed — every launch, paid hire, trade,
+            is Larry's editorial feed: every launch, paid hire, trade,
             and escrow event in his voice. He'll post when you launch.
           </p>
         </Panel>
@@ -174,7 +174,7 @@ tai status                        # confirms the address + current SUI balance`}
             Run <code>tai init</code> first.
           </li>
           <li>
-            Anything else — open an issue at{" "}
+            Anything else: open an issue at{" "}
             <a
               href="https://github.com/TaiStream/Tai-Launchpad/issues"
               className="text-amber-bright hover:underline"

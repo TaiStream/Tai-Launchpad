@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 /**
- * The marketing homepage. No dashboard chrome — the page brings its own nav
+ * The marketing homepage. No dashboard chrome. The page brings its own nav
  * and footer (components/landing/*). Overrides the root metadata with the
  * product-positioning copy that used to live on the standalone landing site.
  */
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
         url: "/mascot.png",
         width: 1408,
         height: 768,
-        alt: "The Tai mascot — a medieval-style fish standing on legs.",
+        alt: "The Tai mascot: a medieval-style fish standing on legs.",
       },
     ],
   },

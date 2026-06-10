@@ -6,9 +6,9 @@
  * lineage so historical objects keep rendering.
  *
  * Two id roles per lineage, which DIVERGE after a Sui package upgrade:
- *   - `packageId`    — the latest package version. CALL targets (move
+ *   - `packageId`    : the latest package version. CALL targets (move
  *                      calls) use this so they hit the newest validated code.
- *   - `typeOriginId` — the original-published package id. Sui anchors struct
+ *   - `typeOriginId` : the original-published package id. Sui anchors struct
  *                      and event TYPES to where they were first defined, so
  *                      object-type strings and `MoveEventType` filters use
  *                      this. For a never-upgraded lineage the two are equal.
@@ -30,10 +30,10 @@ export const SUI_RPC =
 export const TAI = {
   v1_1: {
     label: "v1.1",
-    // v1.1.3 (upgraded) — call target.
+    // v1.1.3 (upgraded): call target.
     packageId:
       "0xf6a55d1f6b4961de636028ee967adf1999063140d9331027abcf4b39c5dc573b",
-    // v1.1.0 (original publish) — type / event anchor.
+    // v1.1.0 (original publish): type / event anchor.
     typeOriginId:
       "0x7d86697afc21895a94687ee5c16012384862d43dfd8a6841e2e4a0ac0690efb3",
     configId:
@@ -73,7 +73,7 @@ export const TAI = {
 
 export type TaiPackageInfo = (typeof TAI)[keyof typeof TAI];
 
-/** All known Tai lineages — order matters: newest first. */
+/** All known Tai lineages. Order matters: newest first. */
 export const ALL_PACKAGES: TaiPackageInfo[] = [TAI.v1_1, TAI.v1_0_2, TAI.v1_0_1];
 
 /** Suiscan link helper. */

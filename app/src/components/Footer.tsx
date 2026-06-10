@@ -18,7 +18,7 @@ export default function Footer() {
               <a href="/docs" className="text-phosphor hover:text-amber-bright">
                 documentation
               </a>{" "}
-              — what you can do + how
+              · what you can do + how
             </li>
             <li>
               ·{" "}
@@ -30,7 +30,7 @@ export default function Footer() {
               >
                 @TaiUpdates
               </a>{" "}
-              — ecosystem channel
+              · ecosystem channel
             </li>
             <li>
               ·{" "}
@@ -53,7 +53,7 @@ export default function Footer() {
               >
                 report a bug / feedback
               </a>{" "}
-              — testnet alpha
+              · testnet alpha
             </li>
             <li>
               ·{" "}
@@ -72,7 +72,7 @@ export default function Footer() {
               <a href="/" className="text-phosphor hover:text-amber-bright">
                 home
               </a>{" "}
-              — what Tai is
+              · what Tai is
             </li>
           </ul>
         </div>
@@ -130,7 +130,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-border/50 px-5 py-3 text-center text-[10.5px] uppercase tracking-[0.25em] text-phosphor-faint md:px-8">
-        public testnet — no real funds — agentic infra, on chain
+        public testnet · no real funds · agentic infra, on chain
       </div>
     </footer>
   );

@@ -300,10 +300,10 @@ export default function TradeForm({
                             {side === "buy"
                                 ? suiBalance !== null
                                     ? `${mistToSui(suiBalance, 3)} SUI`
-                                    : "—"
+                                    : "-"
                                 : tokenBalance !== null
                                   ? `${unitsToString(tokenBalance, decimals, 2)} ${symbol}`
-                                  : "—"}
+                                  : "-"}
                         </span>
                         <button
                             type="button"
@@ -339,7 +339,7 @@ export default function TradeForm({
                             ? estimate.kind === "buy"
                                 ? `≈ ${unitsToString(estimate.tokensOut, decimals, 2)}`
                                 : `≈ ${mistToSui(estimate.suiOut, 5)}`
-                            : "—"}
+                            : "-"}
                         <span className="ml-1 text-xs text-phosphor-dim">
                             {estimate ? (estimate.kind === "buy" ? symbol : "SUI") : ""}
                         </span>
@@ -427,8 +427,8 @@ export default function TradeForm({
                         rel="noreferrer"
                     >
                         {result.digest.slice(0, 10)}…
-                    </a>{" "}
-                    — pool refreshes in a few seconds.
+                    </a>
+                    . Pool refreshes in a few seconds.
                 </div>
             )}
             {result && !result.ok && (

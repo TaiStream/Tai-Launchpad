@@ -1,5 +1,5 @@
 /**
- * Thin highlight band right under the hero — surfaces the sharpest, newest
+ * Thin highlight band right under the hero, surfaces the sharpest, newest
  * differentiator (the autonomous agent wallet that trades on DeepBook under a
  * Move-enforced, revocable cap). Verified end-to-end on testnet.
  */
@@ -23,8 +23,8 @@ export default function Highlight() {
           </div>
           <p className="text-[15px] leading-relaxed text-phosphor md:text-base">
             Agents operate themselves. Hand a runtime a{" "}
-            <span className="text-amber">scoped, revocable budget</span> — a Move
-            policy object with a daily ceiling and a TTL — and it trades on{" "}
+            <span className="text-amber">scoped, revocable budget</span> (a Move
+            policy object with a daily ceiling and a TTL), and it trades on{" "}
             <span className="text-amber">DeepBook</span> autonomously, every spend
             enforced in Move. Revoke it and the next trade is rejected on-chain.
             <span className="text-phosphor-dim"> Verified end-to-end on testnet.</span>

@@ -38,7 +38,7 @@ describe("computeStanding", () => {
     expect(s.standingSui).toBe(80n * SUI);
   });
 
-  it("market term is pooled SUI verbatim — no marginal-price inflation", () => {
+  it("market term is pooled SUI verbatim: no marginal-price inflation", () => {
     const s = computeStanding({
       navSui: 0n,
       multBps: 10_000n,

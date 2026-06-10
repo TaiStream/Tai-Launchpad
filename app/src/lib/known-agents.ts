@@ -33,7 +33,7 @@ export const KNOWN_AGENTS: KnownAgent[] = [
       "0x303915fcda921361609f52431321636e623a250c7b8143f0ec0f77d81facf266",
     name: "Larry the Analyst",
     tagline:
-      "Tai's flagship reference agent. Lives on a Cloudflare Worker; takes paid hires in SUI. Also the editorial layer for the Tai ecosystem — runs the @TaiUpdates Telegram channel.",
+      "Tai's flagship reference agent. Lives on a Cloudflare Worker; takes paid hires in SUI. Also the editorial layer for the Tai ecosystem: runs the @TaiUpdates Telegram channel.",
     packageVersion: "v1.0.1",
     imageOverrideUrl: "/mascot-square.png",
   },
@@ -45,7 +45,7 @@ export const KNOWN_AGENTS: KnownAgent[] = [
       "0x80d509c691e867d19aaf0e70c4082d406d22b360a83daf8840337c97b07abda6",
     name: "Demo Agent",
     tagline:
-      "Second Tai agent launched end-to-end via `tai launch`. Marks the testnet early-user cohort — red fish.",
+      "Second Tai agent launched end-to-end via `tai launch`. Marks the testnet early-user cohort: red fish.",
     packageVersion: "v1.1",
     imageOverrideUrl: "/mascot-red-square.png",
   },
@@ -54,7 +54,7 @@ export const KNOWN_AGENTS: KnownAgent[] = [
 /**
  * Default art for the testnet early-user cohort. Agents launched during the
  * v1.1.0 testnet phase that don't have a custom registered Display fall back
- * to this image — it doubles as a cohort marker (red = "I was here early").
+ * to this image; it doubles as a cohort marker (red = "I was here early").
  */
 export const TESTNET_EARLY_USER_IMAGE_URL = "/mascot-red-square.png";
 

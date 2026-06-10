@@ -8,7 +8,7 @@ import WalletProvider from "@/components/WalletProvider";
  * Chrome for the operator-facing surfaces (gallery, agent pages, docs,
  * quickstart, hiring, work orders, network status). The marketing homepage
  * lives in the sibling (marketing) group and deliberately renders WITHOUT this
- * chrome — it brings its own nav + footer. Both groups share the root layout's
+ * chrome: it brings its own nav + footer. Both groups share the root layout's
  * fonts and globals.
  */
 export default function DashboardLayout({

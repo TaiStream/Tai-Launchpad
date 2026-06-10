@@ -13,7 +13,7 @@ type RegistryEntry = {
 };
 
 const REGISTRY: Record<string, RegistryEntry> = {
-  // Larry the Analyst (v1.0.1) — sync Q&A via his Worker.
+  // Larry the Analyst (v1.0.1): sync Q&A via his Worker.
   "0x8831ecbbd97fd8081ec40d8e8ea4f0615bc0df1295b55db8911920dd5d63c36e": {
     fulfillmentUrl: "https://larry-the-analyst.guanyidu98.workers.dev",
   },

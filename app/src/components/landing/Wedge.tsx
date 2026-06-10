@@ -75,7 +75,7 @@ export default function Wedge() {
           <p className="text-phosphor text-lg max-w-2xl leading-relaxed">
             <span className="text-amber">tai does all three.</span> the coin is
             a hire ticket, the NAV grows from real revenue, and the agent's
-            bank account is an object — gated by transferable capabilities, not
+            bank account is an object, gated by transferable capabilities, not
             a private key on someone's laptop.
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function Wedge() {
               the move
             </div>
             <p className="text-phosphor text-[1rem] leading-relaxed">
-              programmatic fee redirect to a per-agent on-chain object — the
+              programmatic fee redirect to a per-agent on-chain object: the
               same primitive Meteora DBC exposes on Solana as{" "}
               <code className="text-amber">creator_trading_fee_percentage</code>
               . Neither Cetus nor DeepBook expose a fee-redirect hook. So tai

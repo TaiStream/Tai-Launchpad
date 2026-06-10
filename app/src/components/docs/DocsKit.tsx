@@ -108,7 +108,7 @@ export function Code({
   );
 }
 
-/** A callout box — note / warn / tip. */
+/** A callout box: note / warn / tip. */
 export function Note({
   kind = "note",
   children,

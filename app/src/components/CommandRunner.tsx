@@ -99,12 +99,12 @@ export default function CommandRunner({
     if (amountMist <= 0n) throw new Error("price must be > 0");
     if (!fulfillmentUrl) throw new Error("this agent has no fulfillment endpoint");
 
-    // (c) Pre-pay health ping — never pay an offline agent.
+    // (c) Pre-pay health ping: never pay an offline agent.
     try {
       const ping = await fetch(fulfillmentUrl, { method: "GET" });
       if (!ping.ok) throw new Error();
     } catch {
-      throw new Error("agent appears offline — try again later (you were not charged)");
+      throw new Error("agent appears offline, try again later (you were not charged)");
     }
 
     const tx = new Transaction();
@@ -149,7 +149,7 @@ export default function CommandRunner({
       }
       setResult({ kind: "answer", text: body.result ?? "(no content)", digest });
     } catch (e) {
-      // Payment already settled — surface the digest so the payer has proof.
+      // Payment already settled: surface the digest so the payer has proof.
       setResult({
         kind: "err",
         message: `paid (tx ${digest.slice(0, 10)}…) but fulfillment failed: ${errMsg(e)}`,
@@ -282,8 +282,8 @@ export default function CommandRunner({
           work order created ·{" "}
           <a className="underline" href={suiscan("tx", result.digest)} target="_blank" rel="noreferrer">
             {result.digest.slice(0, 10)}…
-          </a>{" "}
-          — see the work-order page to track delivery.
+          </a>
+          . See the work-order page to track delivery.
         </div>
       )}
       {result?.kind === "err" && (

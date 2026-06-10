@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * Animated "live" indicator showing the age of the last server-rendered
  * snapshot. Re-renders every second purely for the elapsed-time string.
  * Background poll is handled at the page level via a soft refresh button
- * (router.refresh) — we don't try to be too clever here.
+ * (router.refresh); we don't try to be too clever here.
  */
 
 const SECOND = 1000;

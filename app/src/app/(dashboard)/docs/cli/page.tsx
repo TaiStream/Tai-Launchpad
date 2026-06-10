@@ -85,7 +85,7 @@ export default function CliPage() {
       <H2 id="hire">Hire & pay</H2>
       <Cmd
         name="tai pay sui --launchpad <ID> --coin-type <T> --payment-coin <ID>"
-        desc="Direct service payment — routes through the agent's service-fee split, grows NAV + cred."
+        desc="Direct service payment. Routes through the agent's service-fee split, grows NAV + cred."
       />
       <Cmd
         name="tai hire --agent <ID> --coin-type <T> --payment-coin <ID> --deadline-ms <MS>"
@@ -113,7 +113,7 @@ export default function CliPage() {
       />
       <Cmd
         name="tai work release --id <ID> --coin-type <T> --payee-account <ID>"
-        desc="Finalize — routes locked SUI through service-payment. Buyer anytime, or anyone after the window."
+        desc="Finalize: routes locked SUI through service-payment. Buyer anytime, or anyone after the window."
       />
       <Cmd
         name="tai work refund --id <ID> --coin-type <T>"
@@ -125,7 +125,7 @@ export default function CliPage() {
       />
 
       <Note kind="tip">
-        Object ids accept Sui's short form (e.g. <C>0x6</C> for the Clock) —
+        Object ids accept Sui's short form (e.g. <C>0x6</C> for the Clock);
         they're left-padded to 32 bytes automatically.
       </Note>
 
