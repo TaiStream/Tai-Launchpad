@@ -205,6 +205,10 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
         status === WORK_ORDER_STATUS.REFUNDED ||
         status === WORK_ORDER_STATUS.DISPUTED;
 
+    // Disable actions while the tx is pending OR while awaiting wallet signing,
+    // to close the double-submit window on slow testnet.
+    const busy = isPending || result.kind === "signing";
+
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-[11px] uppercase tracking-[0.18em] text-phosphor-faint sm:grid-cols-4">
@@ -229,10 +233,10 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                     />
                     {status === WORK_ORDER_STATUS.NEW && (
                         <div className="flex flex-wrap gap-2">
-                            <ActionButton onClick={() => onAccept(false)} disabled={isPending}>
+                            <ActionButton onClick={() => onAccept(false)} disabled={busy}>
                                 accept (owner cap)
                             </ActionButton>
-                            <ActionButton onClick={() => onAccept(true)} disabled={isPending}>
+                            <ActionButton onClick={() => onAccept(true)} disabled={busy}>
                                 accept (operator cap)
                             </ActionButton>
                         </div>
@@ -256,10 +260,10 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                                 />
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <ActionButton onClick={() => onSubmit(false)} disabled={isPending}>
+                                <ActionButton onClick={() => onSubmit(false)} disabled={busy}>
                                     submit receipt (owner cap)
                                 </ActionButton>
-                                <ActionButton onClick={() => onSubmit(true)} disabled={isPending}>
+                                <ActionButton onClick={() => onSubmit(true)} disabled={busy}>
                                     submit receipt (operator cap)
                                 </ActionButton>
                             </div>
@@ -276,17 +280,17 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {showRelease && (
-                            <ActionButton onClick={onRelease} disabled={isPending} variant="green">
+                            <ActionButton onClick={onRelease} disabled={busy} variant="green">
                                 release (routes through service-payment)
                             </ActionButton>
                         )}
                         {showRefund && (
-                            <ActionButton onClick={onRefund} disabled={isPending}>
+                            <ActionButton onClick={onRefund} disabled={busy}>
                                 refund (deadline passed)
                             </ActionButton>
                         )}
                         {showDispute && (
-                            <ActionButton onClick={onDispute} disabled={isPending} variant="red">
+                            <ActionButton onClick={onDispute} disabled={busy} variant="red">
                                 open dispute
                             </ActionButton>
                         )}
@@ -300,6 +304,11 @@ export default function WorkOrderActions({ order }: { order: WorkOrderView }) {
                 </div>
             )}
 
+            {result.kind === "signing" && (
+                <div className="border border-amber/60 bg-amber/5 p-3 text-[12.5px] text-amber-bright">
+                    signing… approve the transaction in your wallet.
+                </div>
+            )}
             {result.kind === "ok" && (
                 <div className="border border-green-dim/60 bg-green/5 p-3 text-[12.5px] text-green-bright">
                     success ·{" "}

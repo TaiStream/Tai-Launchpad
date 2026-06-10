@@ -8,7 +8,7 @@
   --color-surface-3: #1e1c26;
   --color-phosphor: #f0ead6;
   --color-phosphor-dim: #8a8071;
-  --color-phosphor-faint: #44402f;
+  --color-phosphor-faint: #6a6452;
   --color-border: #232128;
   --color-border-bright: #34313d;
   --color-border-hot: #4a4456;
@@ -35,6 +35,29 @@ html {
   color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
+}
+
+/* Visible keyboard focus. Several inputs set focus:outline-none; this restores a
+   consistent amber ring for keyboard users without showing it on mouse clicks. */
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+/* Respect reduced-motion: freeze the flicker/ticker/pulse loops at their end
+   state and disable smooth-scroll. Keeps the phosphor look, drops the motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {

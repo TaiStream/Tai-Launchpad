@@ -38,33 +38,37 @@ export default function ActivityFeed({
 
   return (
     <div className="overflow-hidden border border-border bg-surface/50">
-      {/* Column header */}
-      <div className="grid grid-cols-[80px_88px_1fr_1fr_120px_84px] gap-3 border-b border-border bg-surface-2/70 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
-        <span>kind</span>
-        <span>side</span>
-        <span>amount</span>
-        <span>actor</span>
-        <span className="text-right">tx</span>
-        <span className="text-right">when</span>
+      <div className="overflow-x-auto">
+        <div className="min-w-[640px]">
+          {/* Column header */}
+          <div className="grid grid-cols-[80px_88px_1fr_1fr_120px_84px] gap-3 border-b border-border bg-surface-2/70 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
+            <span>kind</span>
+            <span>side</span>
+            <span>amount</span>
+            <span>actor</span>
+            <span className="text-right">tx</span>
+            <span className="text-right">when</span>
+          </div>
+          <ol className="divide-y divide-border/60">
+            {events.map((ev, i) => (
+              <li
+                key={`${ev.txDigest}:${i}`}
+                className="grid grid-cols-[80px_88px_1fr_1fr_120px_84px] items-center gap-3 px-3 py-2 text-[12.5px] tabular hover:bg-surface-2/40"
+              >
+                {ev.kind === "trade" ? (
+                  <TradeRow
+                    ev={ev}
+                    decimals={decimals}
+                    symbol={symbol}
+                  />
+                ) : (
+                  <ServiceRow ev={ev} decimals={decimals} symbol={symbol} />
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
-      <ol className="divide-y divide-border/60">
-        {events.map((ev, i) => (
-          <li
-            key={`${ev.txDigest}:${i}`}
-            className="grid grid-cols-[80px_88px_1fr_1fr_120px_84px] items-center gap-3 px-3 py-2 text-[12.5px] tabular hover:bg-surface-2/40"
-          >
-            {ev.kind === "trade" ? (
-              <TradeRow
-                ev={ev}
-                decimals={decimals}
-                symbol={symbol}
-              />
-            ) : (
-              <ServiceRow ev={ev} decimals={decimals} symbol={symbol} />
-            )}
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }

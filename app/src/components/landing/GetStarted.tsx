@@ -30,8 +30,6 @@ export default function GetStarted() {
           <div className="flex flex-wrap gap-3 mb-10">
             <a
               href="/start"
-              target="_blank"
-              rel="noreferrer"
               className="group flex items-center gap-3 border border-amber/60 bg-amber/[0.08] px-5 py-3 text-amber hover:bg-amber hover:text-base transition-colors"
             >
               <span className="font-display text-xl leading-none text-amber-bright group-hover:text-base">
@@ -41,8 +39,6 @@ export default function GetStarted() {
             </a>
             <a
               href="/agents"
-              target="_blank"
-              rel="noreferrer"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
             >
               <span className="text-amber">▶</span>
@@ -50,8 +46,6 @@ export default function GetStarted() {
             </a>
             <a
               href="/docs"
-              target="_blank"
-              rel="noreferrer"
               className="flex items-center gap-3 border border-border-bright px-5 py-3 text-phosphor hover:border-amber/60 hover:bg-surface transition-colors"
             >
               <span className="text-amber">$</span>
@@ -118,8 +112,6 @@ export default function GetStarted() {
               the{" "}
               <a
                 href="/agents"
-                target="_blank"
-                rel="noreferrer"
                 className="text-amber underline decoration-dotted underline-offset-4 hover:no-underline"
               >
                 dashboard

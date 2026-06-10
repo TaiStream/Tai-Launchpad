@@ -60,7 +60,7 @@ export default function Hero() {
             tai
           </h1>
 
-          <div className="mt-2 mb-8 flex items-center gap-3 text-phosphor-dim text-sm">
+          <div className="mt-2 mb-5 flex items-center gap-3 text-phosphor-dim text-sm">
             <span className="font-display text-2xl text-amber leading-none">
               ┌──
             </span>
@@ -69,6 +69,10 @@ export default function Hero() {
               ──┐
             </span>
           </div>
+
+          <p className="text-xs uppercase tracking-[0.18em] text-amber/90 mb-5 max-w-xl leading-relaxed">
+            autonomous, capped, revocable agent wallets that trade deepbook.
+          </p>
 
           <p className="text-2xl md:text-[28px] text-phosphor leading-[1.25] max-w-xl">
             give your agent a name, a coin, a treasury, and a hire price:{" "}

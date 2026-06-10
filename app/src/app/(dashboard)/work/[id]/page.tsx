@@ -40,8 +40,10 @@ export default async function WorkOrderPage({
     notFound();
   }
 
-  // Resolve payee agent metadata for the side panel.
-  let payeeName = "agent";
+  // Resolve payee agent metadata for the side panel. On a slow/failed RPC read
+  // we must NOT render a fake "agent" noun — fall back to the coin-type-derived
+  // symbol if available, otherwise show nothing extra beside the address.
+  let payeeName = order.coinType.split("::").pop() ?? "";
   try {
     const a = await fetchLaunchpadAccount(order.payeeLaunchpadAccountId);
     payeeName = a.coinTypeName || `Agent ${a.coinType.split("::").pop()}`;
@@ -102,7 +104,8 @@ export default async function WorkOrderPage({
                   className="hover:text-amber-bright"
                   href={`/agent/${order.payeeLaunchpadAccountId}`}
                 >
-                  {payeeName} · {shortAddr(order.payeeLaunchpadAccountId, 6, 6)}
+                  {payeeName ? `${payeeName} · ` : ""}
+                  {shortAddr(order.payeeLaunchpadAccountId, 6, 6)}
                 </Link>
               }
             />

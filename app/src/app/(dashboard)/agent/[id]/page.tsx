@@ -640,15 +640,17 @@ export default async function AgentPage({
             </div>
           ) : (
             <div className="overflow-hidden border border-border bg-surface/50">
-              <div className="grid grid-cols-[140px_1fr_120px_120px_120px] gap-3 border-b border-border bg-surface-2/70 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
-                <span>status</span>
-                <span>order</span>
-                <span className="text-right">amount</span>
-                <span className="text-right">buyer</span>
-                <span className="text-right">created</span>
-              </div>
-              <ol className="divide-y divide-border/60">
-                {workOrders.map((w) => {
+              <div className="overflow-x-auto">
+                <div className="min-w-[640px]">
+                  <div className="grid grid-cols-[140px_1fr_120px_120px_120px] gap-3 border-b border-border bg-surface-2/70 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-phosphor-faint">
+                    <span>status</span>
+                    <span>order</span>
+                    <span className="text-right">amount</span>
+                    <span className="text-right">buyer</span>
+                    <span className="text-right">created</span>
+                  </div>
+                  <ol className="divide-y divide-border/60">
+                    {workOrders.map((w) => {
                   const tone =
                     w.status === WORK_ORDER_STATUS.RELEASED
                       ? "green"
@@ -688,9 +690,11 @@ export default async function AgentPage({
                         })()}
                       </span>
                     </li>
-                  );
-                })}
-              </ol>
+                      );
+                    })}
+                  </ol>
+                </div>
+              </div>
             </div>
           )}
         </Panel>

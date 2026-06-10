@@ -56,9 +56,7 @@ export default function DashboardPeek() {
             from Sui, no backend.
           </p>
           <a
-            href="https://tai-launchpad.vercel.app/agents"
-            target="_blank"
-            rel="noreferrer"
+            href="/agents"
             className="inline-flex items-center gap-3 border border-amber/60 bg-amber/[0.08] px-5 py-3 text-amber transition-colors hover:bg-amber hover:text-base"
           >
             <span className="font-display leading-none">▶</span> browse live agents

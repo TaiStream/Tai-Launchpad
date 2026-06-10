@@ -54,6 +54,33 @@ export default function Nav() {
           >
             live app <span aria-hidden>→</span>
           </a>
+
+          {/* Mobile nav: native disclosure, no JS. */}
+          <details className="relative lg:hidden">
+            <summary
+              className="flex cursor-pointer list-none items-center gap-1.5 px-2 py-1.5 text-phosphor-dim transition-colors hover:text-phosphor [&::-webkit-details-marker]:hidden"
+              aria-label="open navigation menu"
+            >
+              menu <span aria-hidden>▾</span>
+            </summary>
+            <div className="absolute right-0 top-full mt-2 flex w-44 flex-col border border-border-bright bg-surface py-1 shadow-lg">
+              {LINKS.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="px-4 py-2.5 text-phosphor-dim transition-colors hover:bg-surface-2 hover:text-phosphor"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <a
+                href="/docs"
+                className="border-t border-border px-4 py-2.5 text-phosphor-dim transition-colors hover:bg-surface-2 hover:text-phosphor sm:hidden"
+              >
+                docs
+              </a>
+            </div>
+          </details>
         </div>
       </div>
     </nav>

@@ -66,6 +66,7 @@ export default function TradeForm({
     const [slippagePct, setSlippagePct] = useState("5");
     const [tokenBalance, setTokenBalance] = useState<bigint | null>(null);
     const [suiBalance, setSuiBalance] = useState<bigint | null>(null);
+    const [balanceError, setBalanceError] = useState(false);
     const [result, setResult] = useState<
         { ok: true; digest: string } | { ok: false; error: string } | null
     >(null);
@@ -75,6 +76,7 @@ export default function TradeForm({
         if (!account) {
             setTokenBalance(null);
             setSuiBalance(null);
+            setBalanceError(false);
             return;
         }
         let cancelled = false;
@@ -90,8 +92,10 @@ export default function TradeForm({
                 if (cancelled) return;
                 setSuiBalance(BigInt(sui.totalBalance));
                 setTokenBalance(BigInt(tok.totalBalance));
+                setBalanceError(false);
             } catch {
                 if (cancelled) return;
+                setBalanceError(true);
             }
         };
         refresh();
@@ -253,6 +257,11 @@ export default function TradeForm({
     })();
     const amountValid = !!estimate;
 
+    // The "max" button reads the relevant balance; disable it visibly when that
+    // balance is unavailable (null), so it reads as not-ready rather than dead.
+    const maxDisabled =
+        side === "sell" ? tokenBalance === null : suiBalance === null;
+
     function fillMax() {
         if (side === "sell") {
             if (tokenBalance !== null) setAmount(unitsToString(tokenBalance, decimals, decimals));
@@ -305,10 +314,16 @@ export default function TradeForm({
                                   ? `${unitsToString(tokenBalance, decimals, 2)} ${symbol}`
                                   : "-"}
                         </span>
+                        {balanceError && (
+                            <span className="ml-2 text-phosphor-dim">balance unavailable</span>
+                        )}
                         <button
                             type="button"
                             onClick={fillMax}
-                            className="ml-2 text-amber-bright hover:text-amber-bright/80"
+                            disabled={maxDisabled}
+                            className={`ml-2 text-amber-bright hover:text-amber-bright/80 ${
+                                maxDisabled ? "opacity-40 cursor-not-allowed" : ""
+                            }`}
                         >
                             max
                         </button>
