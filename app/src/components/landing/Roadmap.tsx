@@ -15,9 +15,10 @@ const ENTRIES: Entry[] = [
     state: "move package shipped · 101 move + 40 rust tests · ~0.12 SUI to publish",
     items: [
       "move package · launchpad + bonding_curve + fees + agent_treasury + views",
-      "v1.0.1 · 0xb41f…6909 · LaunchpadConfig · 0xe2ec…a1f0 · Display<OwnerCap<T>> wallet card",
+      "v1.1.3 · 0xf6a5…573b · LaunchpadConfig 0x4a8b…3c50 · Display<OwnerCap<T>> wallet card",
+      "autonomous agent wallet on deepbook · capped + revocable OperatorCap places real orders · verified on testnet",
       "TDD throughout · u128 overflow-safe · curve invariant proven",
-      "tai-core rust crate · tai-cli binary · TEE signer (phala cloud + nautilus) — next",
+      "tai-core rust crate · tai-cli binary · live · TEE signer (phala + nautilus) — next",
       "wasm-backed @tai/sdk for js-native runtimes — next",
     ],
     active: true,
@@ -48,7 +49,7 @@ const ENTRIES: Entry[] = [
     when: "future",
     state: "deferred",
     items: [
-      "deepbook integration (volume-gated)",
+      "agent-coin graduation to deepbook pools (volume-gated)",
       "on-chain hire-flow object · escrow + completion attestation",
       "capability lending · sub-agent revenue splits · collateral adapter",
     ],
